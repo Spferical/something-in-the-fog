@@ -3,6 +3,8 @@ use std::time::Duration;
 use bevy::prelude::*;
 
 mod performance_ui;
+mod renderer;
+mod sdf;
 
 fn on_resize(mut resize_reader: EventReader<bevy::window::WindowResized>) {
     for _e in resize_reader.read() {}
@@ -68,6 +70,7 @@ fn move_player(
 fn main() {
     App::new()
         .add_plugins(DefaultPlugins.set(ImagePlugin::default_nearest()))
+        .add_plugins(renderer::Renderer)
         .add_plugins(performance_ui::PerformanceUiPlugin)
         .add_systems(Startup, setup)
         .add_systems(Update, on_resize)
