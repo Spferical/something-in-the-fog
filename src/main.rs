@@ -66,6 +66,7 @@ fn setup(
     window.single_mut().resizable = true;
     commands.spawn((
         Player,
+        world::WorldPos(IVec2::new(0, 0)),
         Mesh2d(meshes.add(Rectangle::new(24.0, 24.0))),
         MeshMaterial2d(materials.add(Color::LinearRgba(LinearRgba::RED))),
         Transform::from_translation(Vec3::new(0.0, 0.0, 1.0)),
@@ -73,28 +74,66 @@ fn setup(
     commands.init_resource::<MoveTimer>();
 }
 
+#[derive(Default)]
+struct MovePlayerState {
+    last_move_direction: IVec2,
+}
+
 fn move_player(
     keyboard_input: Res<ButtonInput<KeyCode>>,
-    mut query: Query<&mut Transform, With<Player>>,
+    mut player_query: Query<(&mut Transform, &mut world::WorldPos), With<Player>>,
+    blocked_query: Query<&mut world::WorldPos, (With<world::BlocksMovement>, Without<Player>)>,
     mut timer: ResMut<MoveTimer>,
+    mut local_state: Local<MovePlayerState>,
+    tile_map: Res<world::TileMap>,
     time: Res<Time>,
 ) {
     timer.0.tick(time.delta());
     if timer.0.finished() {
-        if let Ok(mut transform) = query.get_single_mut() {
-            let mut movement = Vec3::ZERO;
+        if let Ok((mut transform, mut world_pos)) = player_query.get_single_mut() {
+            let mut movement = IVec2::ZERO;
             for (key, dir) in [
-                (KeyCode::KeyW, Vec3::new(0.0, 1.0, 0.0)),
-                (KeyCode::KeyA, Vec3::new(-1.0, 0.0, 0.0)),
-                (KeyCode::KeyS, Vec3::new(0.0, -1.0, 0.0)),
-                (KeyCode::KeyD, Vec3::new(1.0, 0.0, 0.0)),
+                (KeyCode::KeyW, IVec2::new(0, 1)),
+                (KeyCode::KeyA, IVec2::new(-1, 0)),
+                (KeyCode::KeyS, IVec2::new(0, -1)),
+                (KeyCode::KeyD, IVec2::new(1, 0)),
             ] {
                 if keyboard_input.pressed(key) {
-                    movement += dir * Vec3::splat(24.0);
+                    movement += dir;
                 }
             }
-            transform.translation += movement;
-            if movement != Vec3::ZERO {
+            let x_move = IVec2::new(movement.x, 0);
+            let y_move = IVec2::new(0, movement.y);
+            let x_dest = world_pos.0 + x_move;
+            let y_dest = world_pos.0 + y_move;
+            let x_valid = movement.x != 0
+                && blocked_query
+                    .iter_many(tile_map.0.get(&x_dest).unwrap_or(&vec![]))
+                    .next()
+                    .is_none();
+            let y_valid = movement.y != 0
+                && blocked_query
+                    .iter_many(tile_map.0.get(&y_dest).unwrap_or(&vec![]))
+                    .next()
+                    .is_none();
+            if !x_valid {
+                movement.x = 0;
+            }
+            if !y_valid {
+                movement.y = 0;
+            }
+            if x_valid && y_valid {
+                // alternate
+                if local_state.last_move_direction.x == x_move.x {
+                    movement.x = 0;
+                } else {
+                    movement.y = 0;
+                }
+            }
+            world_pos.0 += movement;
+            transform.translation = world_pos.to_vec3(transform.translation.z);
+            if movement != IVec2::ZERO {
+                local_state.last_move_direction = movement;
                 timer.0.reset();
             }
         }

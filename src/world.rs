@@ -6,14 +6,27 @@ pub const TILE_SIZE: f32 = 24.0;
 
 #[derive(Component)]
 #[allow(unused)]
-pub struct WorldPos(IVec2);
+pub struct WorldPos(pub IVec2);
+
+impl WorldPos {
+    pub fn to_vec3(&self, z: f32) -> Vec3 {
+        Vec3 {
+            x: TILE_SIZE * self.0.x as f32,
+            y: TILE_SIZE * self.0.y as f32,
+            z,
+        }
+    }
+}
+
+#[derive(Component)]
+pub struct BlocksMovement;
 
 #[allow(unused)]
 #[derive(Default, Resource)]
-pub struct TileMap(HashMap<IVec2, Vec<Entity>>);
+pub struct TileMap(pub HashMap<IVec2, Vec<Entity>>);
 
-#[allow(unused)]
 fn update_tilemap(mut tile_map: ResMut<TileMap>, query: Query<(Entity, &WorldPos)>) {
+    tile_map.0.clear();
     for (entity, WorldPos(vec2)) in query.iter() {
         tile_map.0.entry(*vec2).or_default().push(entity);
     }
@@ -35,7 +48,9 @@ fn startup(
         square: meshes.add(Rectangle::new(TILE_SIZE, TILE_SIZE)),
         white: materials.add(Color::LinearRgba(LinearRgba::WHITE)),
     });
-    ev_new_tile.send(NewTileEvent(IVec2::new(3, 3), TileKind::Wall));
+    for (x, y) in [(3, 3), (3, 4), (3, 5), (3, 6), (2, 6), (1, 6), (0, 6)] {
+        ev_new_tile.send(NewTileEvent(IVec2::new(x, y), TileKind::Wall));
+    }
 }
 
 enum TileKind {
@@ -54,7 +69,7 @@ fn make_tiles(
         let color = match kind {
             TileKind::Wall => world_assets.white.clone(),
         };
-        commands.spawn((
+        let mut entity_commands = commands.spawn((
             Mesh2d(world_assets.square.clone()),
             MeshMaterial2d(color),
             WorldPos(*pos),
@@ -64,6 +79,9 @@ fn make_tiles(
                 0.0,
             )),
         ));
+        if matches!(kind, TileKind::Wall) {
+            entity_commands.insert(BlocksMovement);
+        }
     }
 }
 
@@ -74,6 +92,7 @@ impl Plugin for WorldPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<TileMap>();
         app.add_systems(Startup, startup);
+        app.add_systems(PreUpdate, update_tilemap);
         app.add_systems(FixedUpdate, make_tiles);
         app.add_event::<NewTileEvent>();
     }
