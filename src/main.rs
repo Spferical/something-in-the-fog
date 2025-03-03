@@ -6,6 +6,8 @@ mod performance_ui;
 mod renderer;
 mod sdf;
 
+const CAMERA_DECAY_RATE: f32 = 2.;
+
 fn on_resize(mut resize_reader: EventReader<bevy::window::WindowResized>) {
     for _e in resize_reader.read() {}
 }
@@ -31,6 +33,27 @@ fn setup_camera(mut commands: Commands) {
             ..default()
         },
     ));
+}
+
+fn update_camera(
+    mut camera: Query<&mut Transform, (With<Camera2d>, Without<Player>)>,
+    player: Query<&Transform, (With<Player>, Without<Camera2d>)>,
+    time: Res<Time>,
+) {
+    let Ok(mut camera) = camera.get_single_mut() else {
+        return;
+    };
+
+    let Ok(player) = player.get_single() else {
+        return;
+    };
+
+    let Vec3 { x, y, .. } = player.translation;
+    let direction = Vec3::new(x, y, camera.translation.z);
+
+    camera
+        .translation
+        .smooth_nudge(&direction, CAMERA_DECAY_RATE, time.delta_secs());
 }
 
 fn setup(
@@ -83,7 +106,7 @@ fn main() {
         .add_plugins(renderer::Renderer)
         .add_plugins(performance_ui::PerformanceUiPlugin)
         .add_systems(Startup, (setup_camera, setup))
-        .add_systems(Update, on_resize)
+        .add_systems(Update, (update_camera, on_resize))
         .add_systems(FixedUpdate, move_player)
         .run();
 }
