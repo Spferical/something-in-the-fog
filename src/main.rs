@@ -2,10 +2,11 @@ use std::time::Duration;
 
 use bevy::prelude::*;
 
+mod map;
+mod mapgen;
 mod performance_ui;
 mod renderer;
 mod sdf;
-mod world;
 
 const CAMERA_DECAY_RATE: f32 = 2.;
 
@@ -66,7 +67,7 @@ fn setup(
     window.single_mut().resizable = true;
     commands.spawn((
         Player,
-        world::WorldPos(IVec2::new(0, 0)),
+        map::WorldPos(IVec2::new(0, 0)),
         Mesh2d(meshes.add(Rectangle::new(24.0, 24.0))),
         MeshMaterial2d(materials.add(Color::LinearRgba(LinearRgba::RED))),
         Transform::from_translation(Vec3::new(0.0, 0.0, 1.0)),
@@ -81,11 +82,11 @@ struct MovePlayerState {
 
 fn move_player(
     keyboard_input: Res<ButtonInput<KeyCode>>,
-    mut player_query: Query<(&mut Transform, &mut world::WorldPos), With<Player>>,
-    blocked_query: Query<&mut world::WorldPos, (With<world::BlocksMovement>, Without<Player>)>,
+    mut player_query: Query<(&mut Transform, &mut map::WorldPos), With<Player>>,
+    blocked_query: Query<&mut map::WorldPos, (With<map::BlocksMovement>, Without<Player>)>,
     mut timer: ResMut<MoveTimer>,
     mut local_state: Local<MovePlayerState>,
-    tile_map: Res<world::TileMap>,
+    tile_map: Res<map::TileMap>,
     time: Res<Time>,
 ) {
     timer.0.tick(time.delta());
@@ -145,7 +146,7 @@ fn main() {
         .add_plugins(DefaultPlugins.set(ImagePlugin::default_nearest()))
         .add_plugins(renderer::Renderer)
         .add_plugins(performance_ui::PerformanceUiPlugin)
-        .add_plugins(world::WorldPlugin)
+        .add_plugins(map::WorldPlugin)
         .add_systems(Startup, (setup_camera, setup))
         .add_systems(Update, (update_camera, on_resize))
         .add_systems(FixedUpdate, move_player)

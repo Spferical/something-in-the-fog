@@ -48,12 +48,13 @@ fn startup(
         square: meshes.add(Rectangle::new(TILE_SIZE, TILE_SIZE)),
         white: materials.add(Color::LinearRgba(LinearRgba::WHITE)),
     });
-    for (x, y) in [(3, 3), (3, 4), (3, 5), (3, 6), (2, 6), (1, 6), (0, 6)] {
-        ev_new_tile.send(NewTileEvent(IVec2::new(x, y), TileKind::Wall));
+    for (pos, tile) in crate::mapgen::gen_map() {
+        ev_new_tile.send(NewTileEvent(pos, tile));
     }
 }
 
-enum TileKind {
+#[derive(Debug, Clone, Copy)]
+pub enum TileKind {
     Wall,
 }
 

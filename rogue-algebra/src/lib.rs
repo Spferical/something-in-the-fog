@@ -275,6 +275,18 @@ impl<Tile: Clone> TileMap<Tile> {
             default_chunk: Chunk::new_filled(default_tile),
         }
     }
+
+    pub fn iter(&'_ self) -> impl Iterator<Item = (Pos, Tile)> + '_ {
+        self.chunks.iter().flat_map(|(ci, chunk)| {
+            chunk.grid.iter().enumerate().map(|(ti, tile)| {
+                let pos = Pos {
+                    x: ci.x * CHUNKSIZE as i32 + modulo!(ti, CHUNKSIZE) as i32,
+                    y: ci.y * CHUNKSIZE as i32 + (ti / CHUNKSIZE) as i32,
+                };
+                (pos, tile.clone())
+            })
+        })
+    }
 }
 
 impl<Tile: Clone> Index<Pos> for TileMap<Tile> {
