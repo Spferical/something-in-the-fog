@@ -4,11 +4,13 @@ use bevy::{
     render::{
         render_graph::{RenderGraphApp, ViewNodeRunner},
         view::prepare_view_targets,
-        Render, RenderApp,
+        Render, RenderApp, RenderSet,
     },
 };
 
-use crate::sdf::{prepare_sdf_texture, SdfNode, SdfPass, SdfPipeline};
+use crate::sdf::{
+    prepare_sdf_settings, prepare_sdf_texture, AllSdfSettings, SdfNode, SdfPass, SdfPipeline,
+};
 
 pub struct Renderer;
 
@@ -20,7 +22,16 @@ impl Plugin for Renderer {
 
         // set up render systems here
         render_app
-            .add_systems(Render, prepare_sdf_texture.after(prepare_view_targets))
+            .init_resource::<AllSdfSettings>()
+            .add_systems(
+                Render,
+                (
+                    prepare_sdf_settings.in_set(RenderSet::Prepare),
+                    prepare_sdf_texture
+                        .after(prepare_view_targets)
+                        .in_set(RenderSet::ManageViews),
+                ),
+            )
             .add_render_graph_node::<ViewNodeRunner<SdfNode>>(Core2d, SdfPass)
             .add_render_graph_edges(
                 Core2d,
