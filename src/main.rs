@@ -5,6 +5,7 @@ use bevy::prelude::*;
 mod performance_ui;
 mod renderer;
 mod sdf;
+mod world;
 
 const CAMERA_DECAY_RATE: f32 = 2.;
 
@@ -67,7 +68,7 @@ fn setup(
         Player,
         Mesh2d(meshes.add(Rectangle::new(24.0, 24.0))),
         MeshMaterial2d(materials.add(Color::LinearRgba(LinearRgba::RED))),
-        Transform::from_translation(Vec3::new(0.0, 0.0, 0.0)),
+        Transform::from_translation(Vec3::new(0.0, 0.0, 1.0)),
     ));
     commands.init_resource::<MoveTimer>();
 }
@@ -105,6 +106,7 @@ fn main() {
         .add_plugins(DefaultPlugins.set(ImagePlugin::default_nearest()))
         .add_plugins(renderer::Renderer)
         .add_plugins(performance_ui::PerformanceUiPlugin)
+        .add_plugins(world::WorldPlugin)
         .add_systems(Startup, (setup_camera, setup))
         .add_systems(Update, (update_camera, on_resize))
         .add_systems(FixedUpdate, move_player)
