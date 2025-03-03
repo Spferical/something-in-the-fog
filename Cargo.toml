@@ -3,4 +3,16 @@ name = "something-in-the-fog"
 version = "0.1.0"
 edition = "2024"
 
+[profile.dev]
+opt-level = 1
+
+[profile.dev.package."*"]
+opt-level = 3
+
+[profile.release]
+opt-level = "s"
+lto = true
+
 [dependencies]
+bevy = "0.15.3"
+iyes_perf_ui = { git = "https://github.com/IyesGames/iyes_perf_ui.git",  branch="main" }
