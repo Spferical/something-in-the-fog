@@ -7,5 +7,5 @@
 
 @fragment
 fn fragment(in: FullscreenVertexOutput) -> @location(0) vec4<f32> {
-    return vec4(textureSample(screen_texture, texture_sampler, in.uv).a);
+    return vec4(textureSample(screen_texture, texture_sampler, in.uv));
 }
