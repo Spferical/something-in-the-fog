@@ -60,19 +60,14 @@ fn update_camera(
         .smooth_nudge(&direction, CAMERA_DECAY_RATE, time.delta_secs());
 }
 
-fn setup(
-    mut commands: Commands,
-    mut window: Query<&mut Window>,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<ColorMaterial>>,
-) {
+fn setup(mut commands: Commands, mut window: Query<&mut Window>, assets: Res<map::WorldAssets>) {
     window.single_mut().resizable = true;
     let player_start_translation = Vec3::new(PLAYER_START.x as f32, PLAYER_START.y as f32, 1.0);
     commands.spawn((
         Player,
         map::WorldPos(PLAYER_START),
-        Mesh2d(meshes.add(Rectangle::new(24.0, 24.0))),
-        MeshMaterial2d(materials.add(Color::LinearRgba(LinearRgba::RED))),
+        Mesh2d(assets.square.clone()),
+        MeshMaterial2d(assets.red.clone()),
         Transform::from_translation(player_start_translation),
     ));
     commands.init_resource::<MoveTimer>();

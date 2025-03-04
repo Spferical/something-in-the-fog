@@ -32,24 +32,28 @@ fn update_tilemap(mut tile_map: ResMut<TileMap>, query: Query<(Entity, &WorldPos
 
 #[derive(Resource)]
 pub struct WorldAssets {
-    square: Handle<Mesh>,
-    white: Handle<ColorMaterial>,
-    green: Handle<ColorMaterial>,
-    dark_green: Handle<ColorMaterial>,
+    pub square: Handle<Mesh>,
+    pub white: Handle<ColorMaterial>,
+    pub green: Handle<ColorMaterial>,
+    pub dark_green: Handle<ColorMaterial>,
+    pub red: Handle<ColorMaterial>,
 }
 
-fn startup(
+fn init_assets(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ColorMaterial>>,
-    mut ev_new_tile: EventWriter<NewTileEvent>,
 ) {
     commands.insert_resource(WorldAssets {
         square: meshes.add(Rectangle::new(TILE_SIZE, TILE_SIZE)),
         white: materials.add(Color::LinearRgba(LinearRgba::WHITE)),
         green: materials.add(Color::LinearRgba(LinearRgba::GREEN)),
         dark_green: materials.add(Color::LinearRgba(LinearRgba::rgb(0.0, 0.5, 0.0))),
+        red: materials.add(Color::LinearRgba(LinearRgba::RED)),
     });
+}
+
+fn startup(mut ev_new_tile: EventWriter<NewTileEvent>) {
     for (pos, tile) in crate::mapgen::gen_map() {
         ev_new_tile.send(NewTileEvent(pos, tile));
     }
@@ -109,6 +113,7 @@ pub(crate) struct WorldPlugin;
 impl Plugin for WorldPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<TileMap>();
+        app.add_systems(PreStartup, init_assets);
         app.add_systems(Startup, startup);
         app.add_systems(PreUpdate, update_tilemap);
         app.add_systems(FixedUpdate, make_tiles);
