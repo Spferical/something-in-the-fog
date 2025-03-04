@@ -1,7 +1,17 @@
 use std::time::Duration;
 
-use bevy::prelude::*;
+use bevy::{
+    asset::RenderAssetUsages,
+    prelude::*,
+    render::{
+        render_resource::{Extent3d, TextureDimension, TextureFormat, TextureUsages},
+        renderer::RenderDevice,
+        texture::TextureCache,
+        view::RenderLayers,
+    },
+};
 
+mod edge;
 mod performance_ui;
 mod renderer;
 mod sdf;
@@ -25,15 +35,81 @@ impl Default for MoveTimer {
 #[derive(Component)]
 struct Player;
 
-fn setup_camera(mut commands: Commands) {
-    commands.spawn((
-        Camera2d,
-        Camera {
-            clear_color: ClearColorConfig::Custom(Color::linear_rgba(0.0, 0.0, 0.0, 0.0)),
-            hdr: true,
+fn recreate_camera(
+    window: Single<&Window>,
+    mut commands: Commands,
+    camera_query: Query<(Entity, &Camera)>,
+    mut resize_reader: EventReader<bevy::window::WindowResized>,
+    mut images: ResMut<Assets<Image>>,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<ColorMaterial>>,
+) {
+    println!(
+        "dims {:?} {:?}",
+        window.resolution.physical_width(),
+        window.resolution.physical_height()
+    );
+    let mut image = Image::new_fill(
+        Extent3d {
+            width: window.resolution.physical_width(), // does this work?
+            height: window.resolution.physical_height(),
             ..default()
         },
+        TextureDimension::D2,
+        &[0, 0, 0, 0],
+        TextureFormat::Bgra8UnormSrgb,
+        RenderAssetUsages::RENDER_WORLD,
+    );
+    // You need to set these texture usage flags in order to use the image as a render target
+    image.texture_descriptor.usage =
+        TextureUsages::TEXTURE_BINDING | TextureUsages::COPY_DST | TextureUsages::RENDER_ATTACHMENT;
+
+    let image_handle = images.add(image);
+
+    let camera = Camera {
+        target: image_handle.clone().into(),
+        clear_color: ClearColorConfig::Custom(Color::linear_rgba(0.0, 0.0, 0.0, 0.0)),
+        hdr: true,
+        ..default()
+    };
+
+    let texture_cpu = renderer::OccluderTextureCpu(image_handle);
+
+    match camera_query.get_single() {
+        Ok((camera_entity, _)) => {
+            println!("got here OK");
+            commands
+                .entity(camera_entity)
+                .remove::<Camera>()
+                .insert(camera);
+        }
+        Err(_) => {
+            println!("got here Err");
+            commands.spawn((Camera2d, camera, RenderLayers::layer(1)));
+        }
+    };
+
+    let camera_postprocess = Camera {
+        clear_color: ClearColorConfig::Custom(Color::linear_rgba(0.0, 0.0, 0.0, 0.0)),
+        hdr: true,
+        ..default()
+    };
+    commands.spawn((Camera2d, camera_postprocess, RenderLayers::layer(2)));
+
+    let fullscreen_mesh = meshes.add(bevy::math::primitives::Rectangle::new(
+        window.resolution.physical_width() as f32,
+        window.resolution.physical_height() as f32,
     ));
+    commands.spawn((
+        Mesh2d(fullscreen_mesh),
+        MeshMaterial2d(materials.add(Color::srgb(0.2, 0.2, 0.3))),
+        RenderLayers::layer(2),
+        texture_cpu,
+    ));
+
+    for e in resize_reader.read() {
+        println!("Resize happened {:?}", e);
+    }
 }
 
 fn update_camera(
@@ -70,6 +146,7 @@ fn setup(
         Mesh2d(meshes.add(Rectangle::new(24.0, 24.0))),
         MeshMaterial2d(materials.add(Color::LinearRgba(LinearRgba::RED))),
         Transform::from_translation(Vec3::new(0.0, 0.0, 1.0)),
+        RenderLayers::layer(1),
     ));
     commands.init_resource::<MoveTimer>();
 }
@@ -146,7 +223,7 @@ fn main() {
         .add_plugins(renderer::Renderer)
         .add_plugins(performance_ui::PerformanceUiPlugin)
         .add_plugins(world::WorldPlugin)
-        .add_systems(Startup, (setup_camera, setup))
+        .add_systems(Startup, (recreate_camera, setup))
         .add_systems(Update, (update_camera, on_resize))
         .add_systems(FixedUpdate, move_player)
         .run();

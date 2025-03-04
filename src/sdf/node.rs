@@ -1,5 +1,6 @@
 use bevy::ecs::system::lifetimeless::Read;
 use bevy::prelude::*;
+use bevy::render::camera::RenderTarget;
 use bevy::render::render_graph::ViewNode;
 use bevy::render::render_resource::{
     BindGroupEntries, Operations, PipelineCache, RenderPassColorAttachment, RenderPassDescriptor,
@@ -16,13 +17,21 @@ const SDF_PASS: &str = "sdf_pass";
 const SDF_BIND_GROUP: &str = "sdf_bind_group";
 
 impl ViewNode for SdfNode {
-    type ViewQuery = (Read<ViewTarget>, Read<ViewUniformOffset>, Read<SdfTexture>);
+    type ViewQuery = (
+        Read<ViewTarget>,
+        Read<ViewUniformOffset>,
+        Read<SdfTexture>,
+        // Read<crate::renderer::OccluderTexture>,
+    );
 
     fn run<'w>(
         &self,
         _graph: &mut bevy::render::render_graph::RenderGraphContext,
         render_context: &mut bevy::render::renderer::RenderContext<'w>,
-        (view_target, view_offset, sdf_texture): bevy::ecs::query::QueryItem<'w, Self::ViewQuery>,
+        (view_target, view_offset, sdf_texture /*occluder_texture*/): bevy::ecs::query::QueryItem<
+            'w,
+            Self::ViewQuery,
+        >,
         world: &'w World,
     ) -> Result<(), bevy::render::render_graph::NodeRunError> {
         let sdf_pipeline = world.resource::<SdfPipeline>();
@@ -43,7 +52,7 @@ impl ViewNode for SdfNode {
 
         for i in 0..num_passes {
             let Some(sdf_settings_binding) = all_sdf_settings.all[i].binding() else {
-                println!("early exit");
+                info!("early exit");
                 return Ok(());
             };
 
@@ -57,6 +66,7 @@ impl ViewNode for SdfNode {
 
             let output = if i == num_passes - 1 {
                 post_process.destination
+                //&occluder_texture.handle
             } else {
                 &pong.default_view
             };
