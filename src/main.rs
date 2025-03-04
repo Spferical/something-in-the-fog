@@ -9,7 +9,7 @@ mod renderer;
 mod sdf;
 
 const CAMERA_DECAY_RATE: f32 = 2.;
-const PLAYER_MOVE_DELAY: Duration = Duration::from_millis(50);
+const PLAYER_MOVE_DELAY: Duration = Duration::from_millis(100);
 const PLAYER_START: IVec2 = IVec2::new(100, 0);
 
 fn on_resize(mut resize_reader: EventReader<bevy::window::WindowResized>) {
@@ -65,7 +65,7 @@ fn setup(mut commands: Commands, mut window: Query<&mut Window>, assets: Res<map
     let player_start_translation = Vec3::new(PLAYER_START.x as f32, PLAYER_START.y as f32, 1.0);
     commands.spawn((
         Player,
-        map::WorldPos(PLAYER_START),
+        map::MapPos(PLAYER_START),
         Mesh2d(assets.square.clone()),
         MeshMaterial2d(assets.red.clone()),
         Transform::from_translation(player_start_translation),
@@ -80,11 +80,11 @@ struct MovePlayerState {
 
 fn move_player(
     keyboard_input: Res<ButtonInput<KeyCode>>,
-    mut player_query: Query<(&mut Transform, &mut map::WorldPos), With<Player>>,
-    blocked_query: Query<&mut map::WorldPos, (With<map::BlocksMovement>, Without<Player>)>,
+    mut player_query: Query<(&mut Transform, &mut map::MapPos), With<Player>>,
+    blocked_query: Query<&mut map::MapPos, (With<map::BlocksMovement>, Without<Player>)>,
     mut timer: ResMut<MoveTimer>,
     mut local_state: Local<MovePlayerState>,
-    tile_map: Res<map::TileMap>,
+    tile_map: Res<map::Map>,
     time: Res<Time>,
 ) {
     timer.0.tick(time.delta());

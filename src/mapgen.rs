@@ -5,7 +5,7 @@ use bevy::prelude::*;
 use rand::{Rng, seq::SliceRandom as _};
 use rogue_algebra::{Pos, Rect};
 
-use crate::map::TileKind;
+use crate::map::{MobKind, Spawn, TileKind};
 
 fn pos2ivec(pos: Pos) -> IVec2 {
     let Pos { x, y } = pos;
@@ -296,9 +296,11 @@ pub fn gen_forest_room(
     }
 }
 
-pub fn gen_map() -> HashMap<IVec2, TileKind> {
+pub fn gen_map() -> HashMap<IVec2, Vec<Spawn>> {
     let mut rng = rand::thread_rng();
     let mut tile_map = rogue_algebra::TileMap::<Option<TileKind>>::new(Some(TileKind::Wall));
+
+    let mut mob_spawns = HashMap::new();
 
     // field
     let start = Pos::new(0, 0);
@@ -338,6 +340,17 @@ pub fn gen_map() -> HashMap<IVec2, TileKind> {
                 tile_map[p] = None;
             }
             break;
+        }
+    }
+    for _ in 0..30 {
+        loop {
+            let pos = forest_rect.choose(&mut rng);
+            if tile_map[pos].filter(TileKind::blocks_movement).is_none()
+                && !mob_spawns.contains_key(&pos)
+            {
+                mob_spawns.insert(pos, MobKind::Zombie);
+                break;
+            }
         }
     }
 
@@ -393,11 +406,20 @@ pub fn gen_map() -> HashMap<IVec2, TileKind> {
         }
     }
 
-    let mut map = HashMap::new();
+    let mut spawns: HashMap<IVec2, Vec<Spawn>> = HashMap::new();
     for (pos, tile) in tile_map.iter() {
         if let Some(tile) = tile {
-            map.insert(pos2ivec(pos), tile);
+            spawns
+                .entry(pos2ivec(pos))
+                .or_default()
+                .push(Spawn::Tile(tile));
         }
     }
-    map
+    for (pos, mob_kind) in mob_spawns.into_iter() {
+        spawns
+            .entry(pos2ivec(pos))
+            .or_default()
+            .push(Spawn::Mob(mob_kind));
+    }
+    spawns
 }
