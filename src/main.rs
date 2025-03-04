@@ -9,6 +9,8 @@ mod renderer;
 mod sdf;
 
 const CAMERA_DECAY_RATE: f32 = 2.;
+const PLAYER_MOVE_DELAY: Duration = Duration::from_millis(50);
+const PLAYER_START: IVec2 = IVec2::new(100, 0);
 
 fn on_resize(mut resize_reader: EventReader<bevy::window::WindowResized>) {
     for _e in resize_reader.read() {}
@@ -19,7 +21,7 @@ struct MoveTimer(Timer);
 
 impl Default for MoveTimer {
     fn default() -> Self {
-        MoveTimer(Timer::new(Duration::from_secs_f64(0.25), TimerMode::Once))
+        MoveTimer(Timer::new(PLAYER_MOVE_DELAY, TimerMode::Once))
     }
 }
 
@@ -65,12 +67,13 @@ fn setup(
     mut materials: ResMut<Assets<ColorMaterial>>,
 ) {
     window.single_mut().resizable = true;
+    let player_start_translation = Vec3::new(PLAYER_START.x as f32, PLAYER_START.y as f32, 1.0);
     commands.spawn((
         Player,
-        map::WorldPos(IVec2::new(0, 0)),
+        map::WorldPos(PLAYER_START),
         Mesh2d(meshes.add(Rectangle::new(24.0, 24.0))),
         MeshMaterial2d(materials.add(Color::LinearRgba(LinearRgba::RED))),
-        Transform::from_translation(Vec3::new(0.0, 0.0, 1.0)),
+        Transform::from_translation(player_start_translation),
     ));
     commands.init_resource::<MoveTimer>();
 }
