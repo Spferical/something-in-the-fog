@@ -164,26 +164,76 @@ fn spawn(
 }
 
 #[derive(Default, Resource)]
-struct VisibilityMap(HashSet<IVec2>);
+struct SightBlockedMap(HashSet<IVec2>);
 
-fn update_visibility(query: Query<&MapPos, With<BlocksSight>>, mut vis_map: ResMut<VisibilityMap>) {
+fn update_visibility(
+    query: Query<&MapPos, With<BlocksSight>>,
+    mut vis_map: ResMut<SightBlockedMap>,
+) {
     vis_map.0.clear();
     for pos in query.iter() {
         vis_map.0.insert(pos.0);
     }
 }
 
+#[derive(Default, Resource)]
+struct WalkBlockedMap(HashSet<IVec2>);
+
+fn update_walkability(
+    query: Query<&MapPos, With<BlocksMovement>>,
+    mut walk_map: ResMut<WalkBlockedMap>,
+) {
+    walk_map.0.clear();
+    for pos in query.iter() {
+        walk_map.0.insert(pos.0);
+    }
+}
+
 fn move_mobs(
-    mut mobs: Query<(&mut Mob, &MapPos)>,
+    mut mobs: Query<(&mut Mob, &mut MapPos, &mut Transform)>,
     player: Query<&MapPos, (With<Player>, Without<Mob>)>,
-    visibility_map: Res<VisibilityMap>,
+    sight_blocked_map: Res<SightBlockedMap>,
+    mut walk_blocked_map: ResMut<WalkBlockedMap>,
+    time: Res<Time>,
 ) {
     let player_pos = player.single();
-    for (mut mob, pos) in mobs.iter_mut() {
+    for (mut mob, mut pos, mut transform) in mobs.iter_mut() {
         let player_visible = Bresenham::new((pos.0.x, pos.0.y), (player_pos.0.x, player_pos.0.y))
-            .all(|(x, y)| !visibility_map.0.contains(&IVec2::new(x, y)));
+            .all(|(x, y)| !sight_blocked_map.0.contains(&IVec2::new(x, y)));
         if player_visible {
             mob.saw_player_at = Some(player_pos.0);
+        }
+        mob.move_timer.tick(time.delta());
+        if mob.move_timer.finished() {
+            if let Some(player_pos) = mob.saw_player_at {
+                let path = rogue_algebra::path::bfs_paths(
+                    &[rogue_algebra::Pos::new(pos.0.x, pos.0.y)],
+                    10,
+                    |pos| {
+                        rogue_algebra::CARDINALS
+                            .iter()
+                            .copied()
+                            .map(|c| pos + c)
+                            .filter(|&rogue_algebra::Pos { x, y }| {
+                                !walk_blocked_map.0.contains(&IVec2 { x, y })
+                            })
+                            .collect()
+                    },
+                )
+                .find(|path| {
+                    (*path.last().unwrap() - rogue_algebra::Pos::from(player_pos)).mhn_dist() == 1
+                });
+                if let Some(path) = path {
+                    if let Some(move_pos) = path.get(1) {
+                        let move_pos = IVec2::from(*move_pos);
+                        walk_blocked_map.0.insert(move_pos);
+                        pos.0 = move_pos;
+                        transform.translation.x = pos.0.x as f32 * TILE_SIZE;
+                        transform.translation.y = pos.0.y as f32 * TILE_SIZE;
+                        mob.move_timer.reset();
+                    }
+                }
+            }
         }
     }
 }
@@ -194,11 +244,15 @@ pub(crate) struct WorldPlugin;
 impl Plugin for WorldPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<Map>();
-        app.init_resource::<VisibilityMap>();
+        app.init_resource::<SightBlockedMap>();
+        app.init_resource::<WalkBlockedMap>();
         app.add_systems(PreStartup, init_assets);
         app.add_systems(Startup, startup);
         app.add_systems(PreUpdate, update_tilemap);
-        app.add_systems(FixedUpdate, (spawn, update_visibility, move_mobs).chain());
+        app.add_systems(
+            Update,
+            (spawn, update_visibility, update_walkability, move_mobs).chain(),
+        );
         app.add_event::<SpawnEvent>();
     }
 }

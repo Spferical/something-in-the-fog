@@ -3497,6 +3497,7 @@ dependencies = [
 name = "rogue-algebra"
 version = "0.1.0"
 dependencies = [
+ "bevy_math",
  "rand",
 ]
 

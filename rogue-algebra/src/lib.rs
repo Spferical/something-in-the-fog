@@ -17,6 +17,7 @@ use std::{
 use rand::Rng;
 
 pub mod fov;
+pub mod path;
 
 const CHUNKSIZE: usize = 16;
 
@@ -62,6 +63,22 @@ impl Pos {
     #[must_use]
     pub fn adjacent_cardinal(&self) -> [Pos; 4] {
         CARDINALS.map(|c| *self + c)
+    }
+}
+
+#[cfg(feature = "bevy15")]
+impl From<Pos> for bevy15_math::IVec2 {
+    fn from(pos: Pos) -> Self {
+        let Pos { x, y } = pos;
+        Self { x, y }
+    }
+}
+
+#[cfg(feature = "bevy15")]
+impl From<bevy15_math::IVec2> for Pos {
+    fn from(ivec: bevy15_math::IVec2) -> Self {
+        let bevy15_math::IVec2 { x, y } = ivec;
+        Self { x, y }
     }
 }
 

@@ -184,6 +184,7 @@
                 binaryen
                 wasm-pack
                 trunk
+                rust-analyzer
             ];
           };
       });
