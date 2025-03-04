@@ -19,5 +19,6 @@ lto = true
 [dependencies]
 bevy = "0.15.3"
 iyes_perf_ui = { git = "https://github.com/IyesGames/iyes_perf_ui.git",  branch="main" }
+line_drawing = "1.0.1"
 rand = "0.8.5"
 rogue-algebra = { path = "./rogue-algebra/" }

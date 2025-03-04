@@ -1,8 +1,15 @@
-use std::collections::HashMap;
+use std::{
+    collections::{HashMap, HashSet},
+    time::Duration,
+};
 
 use bevy::prelude::*;
+use line_drawing::Bresenham;
+
+use crate::Player;
 
 pub const TILE_SIZE: f32 = 48.0;
+pub const ZOMBIE_MOVE_DELAY: Duration = Duration::from_secs(1);
 
 #[derive(Component)]
 pub struct MapPos(pub IVec2);
@@ -19,6 +26,9 @@ impl MapPos {
 
 #[derive(Component)]
 pub struct BlocksMovement;
+
+#[derive(Component)]
+pub struct BlocksSight;
 
 #[derive(Default, Resource)]
 pub struct Map(pub HashMap<IVec2, Vec<Entity>>);
@@ -78,6 +88,12 @@ impl TileKind {
             Bush => false,
         }
     }
+    pub fn blocks_sight(&self) -> bool {
+        use TileKind::*;
+        match self {
+            Wall | Tree | Bush => true,
+        }
+    }
 }
 
 pub enum MobKind {
@@ -99,9 +115,9 @@ impl Spawn {
 }
 
 #[derive(Component)]
-#[allow(unused)]
 struct Mob {
     saw_player_at: Option<IVec2>,
+    #[allow(unused)]
     move_timer: Timer,
 }
 
@@ -133,6 +149,42 @@ fn spawn(
         if spawn.blocks_movement() {
             entity_commands.insert(BlocksMovement);
         }
+        if let Spawn::Tile(t) = spawn {
+            if t.blocks_sight() {
+                entity_commands.insert(BlocksSight);
+            }
+        }
+        if let Spawn::Mob(_) = spawn {
+            entity_commands.insert(Mob {
+                saw_player_at: None,
+                move_timer: Timer::new(ZOMBIE_MOVE_DELAY, TimerMode::Once),
+            });
+        }
+    }
+}
+
+#[derive(Default, Resource)]
+struct VisibilityMap(HashSet<IVec2>);
+
+fn update_visibility(query: Query<&MapPos, With<BlocksSight>>, mut vis_map: ResMut<VisibilityMap>) {
+    vis_map.0.clear();
+    for pos in query.iter() {
+        vis_map.0.insert(pos.0);
+    }
+}
+
+fn move_mobs(
+    mut mobs: Query<(&mut Mob, &MapPos)>,
+    player: Query<&MapPos, (With<Player>, Without<Mob>)>,
+    visibility_map: Res<VisibilityMap>,
+) {
+    let player_pos = player.single();
+    for (mut mob, pos) in mobs.iter_mut() {
+        let player_visible = Bresenham::new((pos.0.x, pos.0.y), (player_pos.0.x, player_pos.0.y))
+            .all(|(x, y)| !visibility_map.0.contains(&IVec2::new(x, y)));
+        if player_visible {
+            mob.saw_player_at = Some(player_pos.0);
+        }
     }
 }
 
@@ -142,10 +194,11 @@ pub(crate) struct WorldPlugin;
 impl Plugin for WorldPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<Map>();
+        app.init_resource::<VisibilityMap>();
         app.add_systems(PreStartup, init_assets);
         app.add_systems(Startup, startup);
         app.add_systems(PreUpdate, update_tilemap);
-        app.add_systems(FixedUpdate, spawn);
+        app.add_systems(FixedUpdate, (spawn, update_visibility, move_mobs).chain());
         app.add_event::<SpawnEvent>();
     }
 }
