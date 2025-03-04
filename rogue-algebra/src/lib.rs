@@ -287,6 +287,12 @@ impl<Tile: Clone> TileMap<Tile> {
             })
         })
     }
+
+    pub fn set_rect(&mut self, rect: Rect, tile: Tile) {
+        for p in rect {
+            self[p] = tile.clone();
+        }
+    }
 }
 
 impl<Tile: Clone> Index<Pos> for TileMap<Tile> {
@@ -479,6 +485,20 @@ impl Rect {
         assert!(amt >= 0, "Cannot expand a rectangle by a negative amount.");
         self.x1 -= amt;
         self.x2 += amt;
+        self.y1 -= amt;
+        self.y2 += amt;
+        self
+    }
+    #[must_use]
+    pub fn expand_x(mut self, amt: i32) -> Self {
+        assert!(amt >= 0, "Cannot expand a rectangle by a negative amount.");
+        self.x1 -= amt;
+        self.x2 += amt;
+        self
+    }
+    #[must_use]
+    pub fn expand_y(mut self, amt: i32) -> Self {
+        assert!(amt >= 0, "Cannot expand a rectangle by a negative amount.");
         self.y1 -= amt;
         self.y2 += amt;
         self

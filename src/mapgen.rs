@@ -82,6 +82,9 @@ struct RoomGraph {
 }
 
 impl RoomGraph {
+    fn len(&self) -> usize {
+        self.room_adj.len()
+    }
     fn get_adj(&self, rect: Rect) -> Option<&[Rect]> {
         self.room_adj.get(&rect).map(|v| v.as_slice())
     }
@@ -207,7 +210,7 @@ pub fn carve_line_drunk(
     }
 }
 
-pub fn gen_cellular_atomata(
+pub fn gen_cellular_automata(
     room: Rect,
     iterations: usize,
     noise: f64,
@@ -225,7 +228,7 @@ pub fn gen_cellular_atomata(
                     &rogue_algebra::DIRECTIONS
                         .iter()
                         .copied()
-                        .filter(|dir| state.contains(&(*pos + *dir)))
+                        .filter(|dir| !state.contains(&(*pos + *dir)))
                         .count(),
                 )
             })
@@ -308,27 +311,20 @@ pub fn gen_map() -> HashMap<IVec2, TileKind> {
             None
         }
     }
-    for pos in field_rect
-        .top_edge()
-        .into_iter()
-        .chain(field_rect.left_edge().into_iter())
-        .chain(field_rect.bottom_edge().into_iter())
-    {
-        tile_map[pos] = Some(TileKind::Tree);
-    }
+    tile_map.set_rect(field_rect.top_edge(), Some(TileKind::Tree));
+    tile_map.set_rect(field_rect.left_edge(), Some(TileKind::Tree));
+    tile_map.set_rect(field_rect.bottom_edge(), Some(TileKind::Tree));
 
     // forest
     let mut forest_rect = field_rect.right_edge();
     forest_rect.x2 += 81;
     forest_rect.x1 += 1;
-    for pos in forest_rect.into_iter() {
-        tile_map[pos] = Some(TileKind::Tree);
-    }
+    tile_map.set_rect(forest_rect, Some(TileKind::Tree));
     forest_rect.y2 -= 1;
     forest_rect.y1 += 1;
 
     loop {
-        let walkable = gen_cellular_atomata(forest_rect, 15, 0.5, &mut rng);
+        let walkable = gen_cellular_automata(forest_rect, 100, 0.8, &mut rng);
         let starts: Vec<Pos> = forest_rect.left_edge().into_iter().collect();
         let reachable = |p: Pos| {
             p.adjacent_cardinal()
@@ -345,42 +341,57 @@ pub fn gen_map() -> HashMap<IVec2, TileKind> {
         }
     }
 
-    //    // like a cave but it's a forest. bsp + random walk.
-    //    let forest_bsp_opts = BspSplitOpts {
-    //        max_width: 16,
-    //        max_height: 16,
-    //        min_width: 7,
-    //        min_height: 7,
-    //    };
-    //    let forest_bsp_tree = gen_bsp_tree(forest_rect, forest_bsp_opts, &mut rng);
-    //    let mut forest_room_graph = forest_bsp_tree.into_room_graph();
-    //    forest_room_graph.add_extra_loops(30, &mut rng);
-    //    // decide on specific tiles to be the entrances between each room pair
-    //    let mut room_to_doors = HashMap::<Rect, Vec<Pos>>::new();
-    //    for room1 in forest_room_graph.iter() {
-    //        for &room2 in forest_room_graph.get_adj(room1).unwrap() {
-    //            if room1.topleft() < room2.topleft() {
-    //                let door = get_connecting_wall(room1, room2).unwrap().choose(&mut rng);
-    //                room_to_doors.entry(room1).or_default().push(door);
-    //                room_to_doors.entry(room2).or_default().push(door);
-    //            }
-    //        }
-    //    }
-    //    // carve entryways between field and forest
-    //    for adjacent_room in forest_room_graph.find_spatially_adjacent(field_rect) {
-    //        let door = get_connecting_wall(adjacent_room, field_rect)
-    //            .unwrap()
-    //            .choose(&mut rng);
-    //        room_to_doors.entry(adjacent_room).or_default().push(door);
-    //    }
-    //
-    //    // dig each door
-    //    for door in room_to_doors.iter().flat_map(|(_, doors)| doors.iter()) {
-    //        tile_map[*door] = None;
-    //    }
-    //    for room in forest_room_graph.iter() {
-    //        gen_forest_room(&mut tile_map, &mut rng, &room_to_doors[&room], room);
-    //    }
+    // warehouse
+    let mut warehouse_zone_rect = forest_rect.right_edge();
+    warehouse_zone_rect.x1 += 1;
+    warehouse_zone_rect.x2 += 81;
+    tile_map.set_rect(warehouse_zone_rect, None);
+    // clearing with one big building in it
+    let warehouse_rect = Rect {
+        x1: warehouse_zone_rect.x1 + 5,
+        x2: warehouse_zone_rect.x2,
+        y1: warehouse_zone_rect.y1 + 5,
+        y2: warehouse_zone_rect.y2 - 5,
+    };
+    tile_map.set_rect(warehouse_rect, Some(TileKind::Wall));
+
+    let warehouse_bsp_opts = BspSplitOpts {
+        min_width: 9,
+        min_height: 9,
+        max_width: 20,
+        max_height: 20,
+    };
+    let warehouse_bsp_tree = gen_bsp_tree(warehouse_rect.shrink(1), warehouse_bsp_opts, &mut rng);
+    let mut warehouse_room_graph = warehouse_bsp_tree.into_room_graph();
+    // Carve out rooms, including doors between each two adjacent rooms.
+    for room1 in warehouse_room_graph.iter() {
+        tile_map.set_rect(room1, None);
+        for room2 in warehouse_room_graph.find_spatially_adjacent(room1) {
+            // avoid double counting
+            if room1.topleft() < room2.topleft() {
+                let adj_wall = get_connecting_wall(room1, room2).unwrap();
+                let door = adj_wall.choose(&mut rng);
+                tile_map[door] = None;
+            }
+        }
+    }
+    // add doors to the outside
+    for room in warehouse_room_graph.iter() {
+        let exterior_door = if room.x1 == warehouse_rect.x1 + 1 {
+            Some(room.left_edge().choose(&mut rng) + rogue_algebra::Offset::new(-1, 0))
+        } else if room.y1 == warehouse_rect.y1 + 1 {
+            Some(room.bottom_edge().choose(&mut rng) + rogue_algebra::Offset::new(0, -1))
+        } else if room.y2 == warehouse_rect.y2 - 1 {
+            Some(room.top_edge().choose(&mut rng) + rogue_algebra::Offset::new(0, 1))
+        } else if room.x2 == warehouse_rect.x2 - 1 {
+            Some(room.right_edge().choose(&mut rng) + rogue_algebra::Offset::new(1, 0))
+        } else {
+            None
+        };
+        if let Some(door) = exterior_door {
+            tile_map[door] = None;
+        }
+    }
 
     let mut map = HashMap::new();
     for (pos, tile) in tile_map.iter() {
