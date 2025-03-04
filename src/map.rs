@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use bevy::prelude::*;
 
-pub const TILE_SIZE: f32 = 24.0;
+pub const TILE_SIZE: f32 = 48.0;
 
 #[derive(Component)]
 pub struct WorldPos(pub IVec2);
