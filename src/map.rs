@@ -5,7 +5,6 @@ use bevy::prelude::*;
 pub const TILE_SIZE: f32 = 24.0;
 
 #[derive(Component)]
-#[allow(unused)]
 pub struct WorldPos(pub IVec2);
 
 impl WorldPos {
@@ -21,7 +20,6 @@ impl WorldPos {
 #[derive(Component)]
 pub struct BlocksMovement;
 
-#[allow(unused)]
 #[derive(Default, Resource)]
 pub struct TileMap(pub HashMap<IVec2, Vec<Entity>>);
 
@@ -36,6 +34,8 @@ fn update_tilemap(mut tile_map: ResMut<TileMap>, query: Query<(Entity, &WorldPos
 pub struct WorldAssets {
     square: Handle<Mesh>,
     white: Handle<ColorMaterial>,
+    green: Handle<ColorMaterial>,
+    dark_green: Handle<ColorMaterial>,
 }
 
 fn startup(
@@ -47,6 +47,8 @@ fn startup(
     commands.insert_resource(WorldAssets {
         square: meshes.add(Rectangle::new(TILE_SIZE, TILE_SIZE)),
         white: materials.add(Color::LinearRgba(LinearRgba::WHITE)),
+        green: materials.add(Color::LinearRgba(LinearRgba::GREEN)),
+        dark_green: materials.add(Color::LinearRgba(LinearRgba::rgb(0.0, 0.5, 0.0))),
     });
     for (pos, tile) in crate::mapgen::gen_map() {
         ev_new_tile.send(NewTileEvent(pos, tile));
@@ -54,8 +56,21 @@ fn startup(
 }
 
 #[derive(Debug, Clone, Copy)]
+#[allow(unused)]
 pub enum TileKind {
     Wall,
+    Bush,
+    Tree,
+}
+
+impl TileKind {
+    fn is_opaque(&self) -> bool {
+        use TileKind::*;
+        match self {
+            Wall | Tree => true,
+            Bush => false,
+        }
+    }
 }
 
 #[derive(Event)]
@@ -69,6 +84,8 @@ fn make_tiles(
     for NewTileEvent(pos, kind) in ev_new_tile.read() {
         let color = match kind {
             TileKind::Wall => world_assets.white.clone(),
+            TileKind::Bush => world_assets.green.clone(),
+            TileKind::Tree => world_assets.dark_green.clone(),
         };
         let mut entity_commands = commands.spawn((
             Mesh2d(world_assets.square.clone()),
@@ -80,7 +97,7 @@ fn make_tiles(
                 0.0,
             )),
         ));
-        if matches!(kind, TileKind::Wall) {
+        if kind.is_opaque() {
             entity_commands.insert(BlocksMovement);
         }
     }
