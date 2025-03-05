@@ -243,6 +243,7 @@ fn update_shooting(
         });
         if let Ok(dir) = Dir2::new(mouse_offset) {
             let ray = RayCast2d::new(line_start, dir, 4000.0);
+            let mut collided = false;
             for c in collisions {
                 if let Some(distance) = ray.aabb_intersection_at(&c) {
                     gizmos.line_2d(
@@ -250,8 +251,16 @@ fn update_shooting(
                         line_start + dir * distance,
                         bevy::color::palettes::basic::YELLOW,
                     );
+                    collided = true;
                     break;
                 }
+            }
+            if !collided {
+                gizmos.line_2d(
+                    line_start,
+                    line_start + dir * 4000.0,
+                    bevy::color::palettes::basic::YELLOW,
+                );
             }
         }
 
