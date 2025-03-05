@@ -7,7 +7,7 @@ mod prepare;
 
 use crate::renderer::OccluderTextureCpu;
 pub use mat::EdgeMaterial;
-pub use prepare::prepare_edge_texture;
+pub use prepare::{on_resize_edge_texture, prepare_edge_texture};
 
 #[derive(Component)]
 pub struct EdgeTexture(pub Handle<Image>);

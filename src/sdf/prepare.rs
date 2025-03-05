@@ -1,6 +1,9 @@
 use bevy::{
     asset::{Assets, RenderAssetUsages},
-    ecs::system::{Commands, ResMut, Single},
+    ecs::{
+        event::EventReader,
+        system::{Commands, Query, ResMut, Single},
+    },
     image::Image,
     render::render_resource::{
         Extent3d, TextureDescriptor, TextureDimension, TextureFormat, TextureUsages,
@@ -10,6 +13,27 @@ use bevy::{
 };
 
 use super::SdfTexture;
+
+pub fn on_resize_sdf_texture(
+    mut resize_reader: EventReader<bevy::window::WindowResized>,
+    mut sdf_texture_query: Query<&mut SdfTexture>,
+    mut images: ResMut<Assets<Image>>,
+) {
+    let Ok(mut sdf_texture) = sdf_texture_query.get_single_mut() else {
+        return;
+    };
+    for e in resize_reader.read() {
+        sdf_texture.iters.iter_mut().for_each(|x| {
+            if let Some(image) = images.get_mut(x) {
+                image.resize(Extent3d {
+                    width: e.width as u32,
+                    height: e.height as u32,
+                    ..default()
+                });
+            }
+        });
+    }
+}
 
 pub fn create_sdf_texture(window: &Single<&Window>, name: &'static str) -> Image {
     let target_size = Extent3d {

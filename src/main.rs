@@ -36,10 +36,10 @@ struct Player;
 #[derive(Component)]
 struct PrimaryCamera;
 
-fn recreate_camera(
+fn create_camera(
     mut window: Single<&mut Window>,
     mut commands: Commands,
-    camera_query: Query<(Entity, &Camera), With<PrimaryCamera>>,
+    // camera_query: Query<(Entity, &Camera), With<PrimaryCamera>>,
     mut resize_reader: EventReader<bevy::window::WindowResized>,
     mut images: ResMut<Assets<Image>>,
 ) {
@@ -71,7 +71,15 @@ fn recreate_camera(
     let texture_cpu = renderer::OccluderTextureCpu(image_handle);
     commands.spawn(texture_cpu.clone());
 
-    match camera_query.get_single() {
+    commands.spawn((
+        Camera2d,
+        camera,
+        RenderLayers::layer(1),
+        PrimaryCamera,
+        Transform::from_translation(Vec3::new(0.0, 0.0, 3.0)),
+    ));
+
+    /*match camera_query.get_single() {
         Ok((camera_entity, _)) => {
             commands
                 .entity(camera_entity)
@@ -87,7 +95,7 @@ fn recreate_camera(
                 Transform::from_translation(Vec3::new(0.0, 0.0, 3.0)),
             ));
         }
-    };
+    };*/
 
     for e in resize_reader.read() {
         println!("Resize happened {:?}", e);
@@ -262,8 +270,8 @@ fn update_shooting(
 #[allow(unused)]
 fn line_grid_intersection(start: Vec2, direction: Vec2) -> impl Iterator<Item = (Vec2, IVec2)> {
     // let direction = direction.normalize(); // not sure if this is necessary
-    use grid_ray::GridRayIter2;
     use grid_ray::ilattice::glam;
+    use grid_ray::GridRayIter2;
     let Vec2 { x, y } = start;
     let mut glam_start = glam::Vec2 { x, y } / TILE_SIZE;
     glam_start.x += 0.5;
@@ -354,7 +362,7 @@ fn main() {
         .add_plugins(LogDiagnosticsPlugin::default())
         .add_plugins(map::WorldPlugin)
         .add_plugins(renderer::Renderer)
-        .add_systems(Startup, (recreate_camera, setup))
+        .add_systems(Startup, (create_camera, setup))
         .add_systems(
             Update,
             (

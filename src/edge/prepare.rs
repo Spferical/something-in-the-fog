@@ -1,6 +1,9 @@
 use bevy::{
     asset::{Assets, RenderAssetUsages},
-    ecs::system::{Commands, ResMut, Single},
+    ecs::{
+        event::EventReader,
+        system::{Commands, Query, ResMut, Single},
+    },
     image::Image,
     render::render_resource::{
         Extent3d, TextureDescriptor, TextureDimension, TextureFormat, TextureUsages,
@@ -10,6 +13,25 @@ use bevy::{
 };
 
 use super::EdgeTexture;
+
+pub fn on_resize_edge_texture(
+    mut resize_reader: EventReader<bevy::window::WindowResized>,
+    mut edge_texture_query: Query<&mut EdgeTexture>,
+    mut images: ResMut<Assets<Image>>,
+) {
+    let Ok(mut edge_texture) = edge_texture_query.get_single_mut() else {
+        return;
+    };
+    for e in resize_reader.read() {
+        if let Some(image) = images.get_mut(&mut edge_texture.0) {
+            image.resize(Extent3d {
+                width: e.width as u32,
+                height: e.height as u32,
+                ..default()
+            });
+        }
+    }
+}
 
 pub fn prepare_edge_texture(
     mut commands: Commands,
