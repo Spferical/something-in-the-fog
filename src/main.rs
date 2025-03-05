@@ -262,8 +262,8 @@ fn update_shooting(
 #[allow(unused)]
 fn line_grid_intersection(start: Vec2, direction: Vec2) -> impl Iterator<Item = (Vec2, IVec2)> {
     // let direction = direction.normalize(); // not sure if this is necessary
-    use grid_ray::ilattice::glam;
     use grid_ray::GridRayIter2;
+    use grid_ray::ilattice::glam;
     let Vec2 { x, y } = start;
     let mut glam_start = glam::Vec2 { x, y } / TILE_SIZE;
     glam_start.x += 0.5;

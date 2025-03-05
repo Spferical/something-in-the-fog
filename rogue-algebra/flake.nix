@@ -1,22 +1,16 @@
 {
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/release-24.11";
+    nixpkgs.url = "github:NixOS/nixpkgs/release-23.11";
 
     crane = {
       url = "github:ipetkov/crane";
+      inputs.nixpkgs.follows = "nixpkgs";
     };
 
     fenix = {
       url = "github:nix-community/fenix";
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.rust-analyzer-src.follows = "";
-    };
-
-    rust-overlay = {
-      url = "github:oxalica/rust-overlay";
-      inputs = {
-        nixpkgs.follows = "nixpkgs";
-      };
     };
 
     flake-utils.url = "github:numtide/flake-utils";
@@ -27,25 +21,20 @@
     };
   };
 
-  outputs = { self, nixpkgs, crane, fenix, flake-utils, advisory-db, rust-overlay, ... }:
+  outputs = { self, nixpkgs, crane, fenix, flake-utils, advisory-db, ... }:
     flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = import nixpkgs {
           inherit system;
-          overlays = [ (import rust-overlay) ];
         };
 
         inherit (pkgs) lib;
 
-        craneLib = (crane.mkLib pkgs).overrideToolchain pkgs.rust-bin.stable.latest.default;
+        craneLib = crane.lib.${system};
         src = lib.cleanSourceWith {
           src = craneLib.path ./.;
-          filter = path: type: (craneLib.filterCargoSources path type) || (builtins.match ".*/assets/.*$" path != null);
+          filter = path: type: (craneLib.filterCargoSources path type) || (builtins.match ".*/static/.*$" path != null);
         };
-        craneLibWasm = craneLib.overrideToolchain (pkgs.rust-bin.stable.latest.default.override {
-          targets = [ "wasm32-unknown-unknown" ];
-            extensions = [ "rust-src" ];
-        });
 
         # Common arguments can be set here to avoid repeating them later
         commonArgs = {
@@ -54,40 +43,9 @@
           nativeBuildInputs = with pkgs; [
             cmake
             makeWrapper
-            mold
           ];
 
-          buildInputs = with pkgs; [
-            # Add additional build inputs here
-            openssl
-            libGL
-            fontconfig
-            pkg-config
-            stdenv.cc.cc
-          ] ++ lib.optionals pkgs.stdenv.isLinux [
-            wayland
-            libxkbcommon
-            glew
-            egl-wayland
-            xorg.libX11
-            xorg.libXcursor
-            xorg.libXi
-            xorg.libXrandr
-            xorg.libxcb
-            vulkan-loader
-            alsa-lib
-            udev
-          ] ++ lib.optionals pkgs.stdenv.isDarwin [
-            # Additional darwin specific inputs can be set here
-            pkgs.libiconv
-          ];
-
-          # Additional environment variables can be set directly
-          # MY_CUSTOM_VAR = "some value";
-        };
-
-        wasmArgs = {
-          CARGO_BUILD_TARGET = "wasm32-unknown-unknown";
+          buildInputs = with pkgs; [];
         };
 
         craneLibLLvmTools = craneLib.overrideToolchain
@@ -105,15 +63,6 @@
         # artifacts from above.
         my-crate = craneLib.buildPackage (commonArgs // {
           inherit cargoArtifacts;
-          postInstall = ''
-            wrapProgram "$out/bin/something-in-the-fog" --set LD_LIBRARY_PATH "${lib.makeLibraryPath commonArgs.buildInputs}";
-          '';
-        });
-        # Build the actual crate itself, reusing the dependency
-        # artifacts from above.
-        my-crate-wasm = craneLibWasm.buildPackage (wasmArgs // commonArgs // {
-          inherit cargoArtifacts;
-          cargoTestCommand = "true";
         });
       in
       {
@@ -158,7 +107,6 @@
 
         packages = {
           default = my-crate;
-          wasm = my-crate-wasm;
           my-crate-llvm-coverage = craneLibLLvmTools.cargoLlvmCov (commonArgs // {
             inherit cargoArtifacts;
           });
@@ -168,7 +116,7 @@
           drv = my-crate;
         };
 
-        devShells.default = craneLibWasm.devShell
+        devShells.default = craneLib.devShell
           {
             # Inherit inputs from checks.
             checks = self.checks.${system};
@@ -176,16 +124,12 @@
             # Additional dev-shell environment variables can be set directly
             # MY_CUSTOM_DEVELOPMENT_VAR = "something else";
             LD_LIBRARY_PATH = "${lib.makeLibraryPath commonArgs.buildInputs}";
-            CARGO_TARGET_WASM32_UNKNOWN_UNKNOWN_LINKER = "lld";
 
             # Extra inputs can be added here; cargo and rustc are provided by default.
-            packages = with pkgs; [
-                lld
-                binaryen
-                wasm-pack
-                trunk
-                rust-analyzer
+            packages = [
+              #pkgs.ripgrep
             ];
           };
       });
 }
+
