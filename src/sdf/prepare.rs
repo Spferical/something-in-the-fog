@@ -1,19 +1,67 @@
 use bevy::{
+    asset::{Assets, Handle, RenderAssetUsages},
     ecs::{
         entity::Entity,
-        system::{Commands, Query, Res, ResMut},
+        system::{Commands, Query, Res, ResMut, Single},
     },
+    image::Image,
     render::{
-        render_resource::{TextureDescriptor, TextureDimension, TextureFormat, TextureUsages},
+        render_resource::{
+            Extent3d, TextureDescriptor, TextureDimension, TextureFormat, TextureUsages,
+        },
         renderer::{RenderDevice, RenderQueue},
         texture::{CachedTexture, TextureCache},
         view::ViewTarget,
     },
+    utils::default,
+    window::Window,
 };
 
-use super::{AllSdfSettings, SdfSettings, SdfTexture};
+// use super::{AllSdfSettings, SdfSettings, SdfTexture};
+use super::SdfTexture;
 
 const SDF_TEXTURE: &str = "sdf_texture";
+
+pub fn create_sdf_texture(window: &Single<&Window>, name: &'static str) -> Image {
+    let target_size = Extent3d {
+        width: window.resolution.physical_width(),
+        height: window.resolution.physical_height(),
+        ..default()
+    };
+    let mut image = Image {
+        texture_descriptor: TextureDescriptor {
+            label: Some(name),
+            size: target_size,
+            mip_level_count: 1,
+            sample_count: 1,
+            dimension: TextureDimension::D2,
+            format: TextureFormat::Rgba32Float,
+            usage: TextureUsages::RENDER_ATTACHMENT
+                | TextureUsages::TEXTURE_BINDING
+                | TextureUsages::COPY_DST,
+            view_formats: &[],
+        },
+        asset_usage: RenderAssetUsages::RENDER_WORLD,
+        ..default()
+    };
+
+    image.resize(target_size);
+    image
+}
+
+pub fn prepare_sdf_texture(
+    mut commands: Commands,
+    window: Single<&Window>,
+    mut images: ResMut<Assets<Image>>,
+) {
+    println!("Prepared sdf texture!");
+    commands.spawn(SdfTexture {
+        ping: images.add(create_sdf_texture(&window, "sdf_texture_0")),
+        pong: images.add(create_sdf_texture(&window, "sdf_texture_1")),
+    });
+}
+
+/*const SDF_TEXTURE: &str = "sdf_texture";
 
 pub fn create_single_sdf_texture(
     render_device: &Res<RenderDevice>,
@@ -46,7 +94,6 @@ pub fn prepare_sdf_texture(
         let pong = create_single_sdf_texture(&render_device, &mut texture_cache, view_target);
 
         commands.entity(entity).insert(SdfTexture { ping, pong });
-        // commands.entity(entity).insert(AllSdfSettings::default());
     }
 }
 
@@ -65,4 +112,4 @@ pub fn prepare_sdf_settings(
         .all
         .iter_mut()
         .for_each(|x| x.write_buffer(&render_device, &render_queue));
-}
+}*/

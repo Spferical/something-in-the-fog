@@ -1,24 +1,19 @@
-#import bevy_core_pipeline::fullscreen_vertex_shader::FullscreenVertexOutput
-#import bevy_render::view::View
+// #import bevy_core_pipeline::fullscreen_vertex_shader::FullscreenVertexOutput
+#import bevy_sprite::mesh2d_vertex_output::VertexOutput
 
-@group(0) @binding(0) var screen_texture: texture_2d<f32>;
-@group(0) @binding(1) var sdf: texture_2d<f32>;
-@group(0) @binding(2) var texture_sampler: sampler;
-@group(0) @binding(3) var<uniform> view: View;
-struct SdfSettings {
-    iteration: i32,
-#ifdef SIXTEEN_BYTE_ALIGNMENT
-    // WebGL2 structs must be 16 byte aligned.
-    _webgl2_padding: vec3<f32>
-#endif
-}
-@group(0) @binding(4) var<uniform> settings: SdfSettings;
+@group(2) @binding(0) var screen_texture: texture_2d<f32>;
+@group(2) @binding(1) var screen_texture_sampler: sampler;
+@group(2) @binding(2) var sdf: texture_2d<f32>;
+@group(2) @binding(3) var sdf_sampler: sampler;
+@group(2) @binding(4) var<uniform> iteration: i32;
 
 @fragment
-fn fragment(in: FullscreenVertexOutput) -> @location(0) vec4<f32> {
-    if (settings.iteration == 0) {
-        return vec4(0.0);
+fn fragment(in: VertexOutput) -> @location(0) vec4<f32> {
+    return vec4(1.0);
+    // return vec4(textureSample(screen_texture, screen_texture_sampler, in.uv));
+    /*if (iteration == 0) {
+        return vec4(0.5);
     } else {
-        return vec4(textureSample(screen_texture, texture_sampler, in.uv));
-    }
+        return vec4(textureSample(sdf, sdf_sampler, in.uv));
+    }*/
 }

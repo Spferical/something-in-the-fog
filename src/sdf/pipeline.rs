@@ -75,8 +75,9 @@ impl FromWorld for SdfPipeline {
                     texture_2d(TextureSampleType::Float { filterable: true }),
                     texture_2d(TextureSampleType::Float { filterable: true }),
                     sampler(SamplerBindingType::Filtering),
-                    uniform_buffer::<ViewUniform>(true),
-                    uniform_buffer::<SdfSettings>(false),
+                    uniform_buffer::<i32>(true),
+                    //uniform_buffer::<ViewUniform>(true),
+                    //uniform_buffer::<SdfSettings>(false),
                 ),
             ),
         );

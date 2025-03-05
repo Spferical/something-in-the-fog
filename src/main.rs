@@ -35,15 +35,20 @@ impl Default for MoveTimer {
 #[derive(Component)]
 struct Player;
 
+#[derive(Component)]
+struct PrimaryCamera;
+
 fn recreate_camera(
-    window: Single<&Window>,
+    mut window: Single<&mut Window>,
     mut commands: Commands,
     camera_query: Query<(Entity, &Camera)>,
+    sdf_texture_query: Query<&sdf::SdfTexture>,
     mut resize_reader: EventReader<bevy::window::WindowResized>,
     mut images: ResMut<Assets<Image>>,
     mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<ColorMaterial>>,
+    mut materials: ResMut<Assets<sdf::SdfMaterial>>,
 ) {
+    window.resizable = true;
     println!(
         "dims {:?} {:?}",
         window.resolution.physical_width(),
@@ -68,44 +73,26 @@ fn recreate_camera(
 
     let camera = Camera {
         target: image_handle.clone().into(),
-        clear_color: ClearColorConfig::Custom(Color::linear_rgba(0.0, 0.0, 0.0, 0.0)),
-        hdr: true,
+        // clear_color: ClearColorConfig::Custom(Color::linear_rgba(0.0, 0.0, 0.0, 0.0)),
+        // hdr: false,
+        order: 0,
         ..default()
     };
 
     let texture_cpu = renderer::OccluderTextureCpu(image_handle);
+    commands.spawn(texture_cpu.clone());
 
     match camera_query.get_single() {
         Ok((camera_entity, _)) => {
-            println!("got here OK");
             commands
                 .entity(camera_entity)
                 .remove::<Camera>()
                 .insert(camera);
         }
         Err(_) => {
-            println!("got here Err");
-            commands.spawn((Camera2d, camera, RenderLayers::layer(1)));
+            commands.spawn((Camera2d, camera, RenderLayers::layer(1), PrimaryCamera));
         }
     };
-
-    let camera_postprocess = Camera {
-        clear_color: ClearColorConfig::Custom(Color::linear_rgba(0.0, 0.0, 0.0, 0.0)),
-        hdr: true,
-        ..default()
-    };
-    commands.spawn((Camera2d, camera_postprocess, RenderLayers::layer(2)));
-
-    let fullscreen_mesh = meshes.add(bevy::math::primitives::Rectangle::new(
-        window.resolution.physical_width() as f32,
-        window.resolution.physical_height() as f32,
-    ));
-    commands.spawn((
-        Mesh2d(fullscreen_mesh),
-        MeshMaterial2d(materials.add(Color::srgb(0.2, 0.2, 0.3))),
-        RenderLayers::layer(2),
-        texture_cpu,
-    ));
 
     for e in resize_reader.read() {
         println!("Resize happened {:?}", e);
@@ -113,8 +100,8 @@ fn recreate_camera(
 }
 
 fn update_camera(
-    mut camera: Query<&mut Transform, (With<Camera2d>, Without<Player>)>,
-    player: Query<&Transform, (With<Player>, Without<Camera2d>)>,
+    mut camera: Query<&mut Transform, (With<PrimaryCamera>, Without<Player>)>,
+    player: Query<&Transform, (With<Player>, Without<PrimaryCamera>)>,
     time: Res<Time>,
 ) {
     let Ok(mut camera) = camera.get_single_mut() else {
@@ -135,11 +122,9 @@ fn update_camera(
 
 fn setup(
     mut commands: Commands,
-    mut window: Query<&mut Window>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ColorMaterial>>,
 ) {
-    window.single_mut().resizable = true;
     commands.spawn((
         Player,
         world::WorldPos(IVec2::new(0, 0)),

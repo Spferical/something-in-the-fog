@@ -8,7 +8,7 @@ use bevy::render::render_resource::{
 use bevy::render::view::{ViewTarget, ViewUniformOffset, ViewUniforms};
 
 use super::SdfTexture;
-use super::{AllSdfSettings, SdfPipeline};
+// use super::{AllSdfSettings, SdfPipeline};
 
 #[derive(Default)]
 pub struct SdfNode;
@@ -16,7 +16,7 @@ pub struct SdfNode;
 const SDF_PASS: &str = "sdf_pass";
 const SDF_BIND_GROUP: &str = "sdf_bind_group";
 
-impl ViewNode for SdfNode {
+/*impl ViewNode for SdfNode {
     type ViewQuery = (
         Read<ViewTarget>,
         Read<ViewUniformOffset>,
@@ -101,4 +101,4 @@ impl ViewNode for SdfNode {
 
         Ok(())
     }
-}
+}*/

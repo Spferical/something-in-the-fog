@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use bevy::prelude::*;
+use bevy::{prelude::*, render::view::RenderLayers};
 
 pub const TILE_SIZE: f32 = 24.0;
 
@@ -78,6 +78,7 @@ fn make_tiles(
                 TILE_SIZE * pos.y as f32,
                 0.0,
             )),
+            RenderLayers::layer(1),
         ));
         if matches!(kind, TileKind::Wall) {
             entity_commands.insert(BlocksMovement);
