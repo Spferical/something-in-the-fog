@@ -1,7 +1,10 @@
 use std::{f32::consts::PI, time::Duration};
 
-use bevy::prelude::*;
-use map::TILE_SIZE;
+use bevy::{
+    math::bounding::{Aabb2d, RayCast2d},
+    prelude::*,
+};
+use map::{Map, MapPos, Mob, TILE_SIZE, Tile};
 
 mod map;
 mod mapgen;
@@ -98,6 +101,7 @@ struct ShootState {
     focus: f32,
 }
 
+#[allow(clippy::complexity)]
 fn update_shooting(
     player_query: Query<&Transform, With<Player>>,
     mut shoot_state: ResMut<ShootState>,
@@ -105,6 +109,9 @@ fn update_shooting(
     time: Res<Time>,
     mut gizmos: Gizmos,
     mouse_button: Res<ButtonInput<MouseButton>>,
+    map: Res<Map>,
+    mobs: Query<(&Mob, &Transform), Without<Player>>,
+    tiles: Query<(&Tile, &Transform), (Without<Mob>, Without<Player>)>,
 ) {
     let player_pos = player_query.single();
 
@@ -141,18 +148,60 @@ fn update_shooting(
         // let angle_degrees = rand::thread_rng().gen_range(left_angle..right_angle);
         let line_start = player_pos.translation.truncate();
         shoot_state.focus -= 1.0;
-        let mut last_pos = line_start;
-        for (world_pos, _grid_pos) in line_grid_intersection(line_start, mouse_offset.normalize()) {
-            if world_pos.distance(line_start) > 2000.0 {
-                break;
+        let mut collisions = vec![];
+        let player_pos_ivec2 = MapPos::from_vec3(player_pos.translation).0;
+        for x in player_pos_ivec2.x - 100..player_pos_ivec2.x + 100 {
+            for y in player_pos_ivec2.y - 100..player_pos_ivec2.y + 100 {
+                if let Some(entities) = map.0.get(&IVec2 { x, y }) {
+                    for (_mob, transform) in mobs.iter_many(entities) {
+                        collisions.push(Aabb2d::new(
+                            transform.translation.truncate(),
+                            Vec2::splat(TILE_SIZE / 2.0),
+                        ));
+                    }
+                    for (tile, transform) in tiles.iter_many(entities) {
+                        if tile.0.blocks_movement() {
+                            collisions.push(Aabb2d::new(
+                                transform.translation.truncate(),
+                                Vec2::splat(TILE_SIZE / 2.0),
+                            ));
+                        }
+                    }
+                }
             }
-            gizmos.line_2d(last_pos, world_pos, bevy::color::palettes::basic::YELLOW);
-            last_pos = world_pos;
         }
+        let dist_to_player = |point| player_pos.translation.truncate().distance_squared(point);
+        collisions.sort_by(|a, b| {
+            dist_to_player((a.min + a.max) / 2.0)
+                .partial_cmp(&dist_to_player((b.min + b.max) / 2.0))
+                .unwrap()
+        });
+        if let Ok(dir) = Dir2::new(mouse_offset) {
+            let ray = RayCast2d::new(line_start, dir, 4000.0);
+            for c in collisions {
+                if let Some(distance) = ray.aabb_intersection_at(&c) {
+                    gizmos.line_2d(
+                        line_start,
+                        line_start + dir * distance,
+                        bevy::color::palettes::basic::YELLOW,
+                    );
+                    break;
+                }
+            }
+        }
+
+        //         for (world_pos, _grid_pos) in line_grid_intersection(line_start, mouse_offset.normalize()) {
+        //             if world_pos.distance(line_start) > 2000.0 {
+        //                 break;
+        //             }
+        //             gizmos.line_2d(last_pos, world_pos, bevy::color::palettes::basic::YELLOW);
+        //             last_pos = world_pos;
+        //         }
     }
 }
 
 // Intersects a line with the integer grid. Returns (world pt, grid cell) pairs.
+#[allow(unused)]
 fn line_grid_intersection(start: Vec2, direction: Vec2) -> impl Iterator<Item = (Vec2, IVec2)> {
     // let direction = direction.normalize(); // not sure if this is necessary
     use grid_ray::GridRayIter2;

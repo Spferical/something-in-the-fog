@@ -22,6 +22,12 @@ impl MapPos {
             z,
         }
     }
+    pub fn from_vec3(vec3: Vec3) -> Self {
+        Self(IVec2 {
+            x: (vec3.x / TILE_SIZE) as i32,
+            y: (vec3.y / TILE_SIZE) as i32,
+        })
+    }
 }
 
 #[derive(Component)]
@@ -29,6 +35,9 @@ pub struct BlocksMovement;
 
 #[derive(Component)]
 pub struct BlocksSight;
+
+#[derive(Component)]
+pub struct Tile(pub TileKind);
 
 #[derive(Default, Resource)]
 pub struct Map(pub HashMap<IVec2, Vec<Entity>>);
@@ -117,7 +126,7 @@ impl Spawn {
 }
 
 #[derive(Component)]
-struct Mob {
+pub struct Mob {
     saw_player_at: Option<IVec2>,
     #[allow(unused)]
     move_timer: Timer,
@@ -159,6 +168,7 @@ fn spawn(
             if t.blocks_sight() {
                 entity_commands.insert(BlocksSight);
             }
+            entity_commands.insert(Tile(*t));
         }
         if let Spawn::Mob(_) = spawn {
             entity_commands.insert(Mob {
@@ -183,7 +193,7 @@ fn update_visibility(
 }
 
 #[derive(Default, Resource)]
-struct WalkBlockedMap(HashSet<IVec2>);
+pub struct WalkBlockedMap(pub HashSet<IVec2>);
 
 fn update_walkability(
     query: Query<&MapPos, With<BlocksMovement>>,
