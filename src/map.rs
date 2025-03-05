@@ -62,6 +62,7 @@ fn update_tilemap(mut tile_map: ResMut<Map>, query: Query<(Entity, &MapPos)>) {
 pub struct WorldAssets {
     pub circle: Handle<Mesh>,
     pub square: Handle<Mesh>,
+    pub bullet: Handle<Mesh>,
     pub white: Handle<ColorMaterial>,
     pub green: Handle<ColorMaterial>,
     pub dark_green: Handle<ColorMaterial>,
@@ -77,6 +78,7 @@ fn init_assets(
     commands.insert_resource(WorldAssets {
         square: meshes.add(Rectangle::new(TILE_SIZE, TILE_SIZE)),
         circle: meshes.add(Circle::new(TILE_SIZE / 2.0)),
+        bullet: meshes.add(Rectangle::new(1.0, 1.0)),
         white: materials.add(Color::LinearRgba(LinearRgba::WHITE)),
         green: materials.add(Color::LinearRgba(LinearRgba::GREEN)),
         dark_green: materials.add(Color::LinearRgba(LinearRgba::rgb(0.0, 0.5, 0.0))),

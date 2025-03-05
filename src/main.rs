@@ -2,7 +2,6 @@ use std::{f32::consts::PI, time::Duration};
 
 use bevy::diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin};
 use bevy::math::bounding::{Aabb2d, RayCast2d};
-use bevy::render::camera::RenderTarget;
 use bevy::{
     asset::RenderAssetUsages,
     prelude::*,
@@ -11,8 +10,7 @@ use bevy::{
         view::RenderLayers,
     },
 };
-
-use map::{Map, MapPos, Mob, TILE_SIZE, Tile};
+use map::{Map, MapPos, Mob, TILE_SIZE, Tile, WorldAssets};
 use rand::Rng as _;
 
 mod edge;
@@ -167,6 +165,22 @@ struct ShootState {
     focus: f32,
 }
 
+#[derive(Component)]
+struct ClearAfter(Timer);
+
+fn clear_after(
+    mut commands: Commands,
+    mut query: Query<(Entity, &mut ClearAfter)>,
+    time: Res<Time>,
+) {
+    for (entity, mut bullet_trail) in query.iter_mut() {
+        bullet_trail.0.tick(time.delta());
+        if bullet_trail.0.finished() {
+            commands.entity(entity).clear();
+        }
+    }
+}
+
 #[allow(clippy::complexity)]
 fn update_shooting(
     player_query: Query<&Transform, With<Player>>,
@@ -178,6 +192,7 @@ fn update_shooting(
     map: Res<Map>,
     mobs: Query<(&Mob, &Transform), Without<Player>>,
     tiles: Query<(&Tile, &Transform), (Without<Mob>, Without<Player>)>,
+    mut ev_spawn_bullet: EventWriter<SpawnBulletEvent>,
 ) {
     let player_pos = player_query.single();
 
@@ -241,26 +256,44 @@ fn update_shooting(
         let dir = Vec2::from_angle(angle_radians).rotate(mouse_offset);
         if let Ok(dir) = Dir2::new(dir) {
             let ray = RayCast2d::new(line_start, dir, 4000.0);
-            let mut collided = false;
+            let mut line = None;
             for c in collisions {
                 if let Some(distance) = ray.aabb_intersection_at(&c) {
-                    gizmos.line_2d(
-                        line_start,
-                        line_start + dir * distance,
-                        bevy::color::palettes::basic::YELLOW,
-                    );
-                    collided = true;
+                    line = Some((line_start, line_start + dir * distance));
                     break;
                 }
             }
-            if !collided {
-                gizmos.line_2d(
-                    line_start,
-                    line_start + dir * 4000.0,
-                    bevy::color::palettes::basic::YELLOW,
-                );
-            }
+            // did not collide with any wall or mob.
+            let line = line.unwrap_or((line_start, line_start + dir * 4000.0));
+            let (start, end) = line;
+            ev_spawn_bullet.send(SpawnBulletEvent { start, end });
         }
+    }
+}
+
+#[derive(Event)]
+struct SpawnBulletEvent {
+    start: Vec2,
+    end: Vec2,
+}
+
+fn spawn_bullets(
+    mut commands: Commands,
+    mut ev_spawn_bullet: EventReader<SpawnBulletEvent>,
+    assets: Res<WorldAssets>,
+) {
+    for SpawnBulletEvent { start, end } in ev_spawn_bullet.read() {
+        // we want to create a rectangle stretching between start and end.
+        commands.spawn((
+            ClearAfter(Timer::new(Duration::from_millis(100), TimerMode::Once)),
+            Mesh2d(assets.bullet.clone()),
+            MeshMaterial2d(assets.white.clone()),
+            Transform {
+                translation: ((start + end) / 2.0).extend(0.0),
+                rotation: Quat::from_rotation_z((end - start).to_angle()),
+                scale: Vec3::new((start - end).length(), 1.0, 1.0),
+            },
+        ));
     }
 }
 
@@ -349,9 +382,12 @@ fn main() {
                 on_resize,
                 update_mouse_coords,
                 update_shooting,
+                spawn_bullets,
+                clear_after,
             )
                 .chain(),
         )
         .add_systems(FixedUpdate, move_player)
+        .add_event::<SpawnBulletEvent>()
         .run();
 }
