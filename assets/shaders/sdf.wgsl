@@ -23,16 +23,11 @@ fn query_seeds(position: vec2i) -> vec2f {
 
 @fragment
 fn fragment(@builtin(position) position: vec4f) -> @location(0) vec4<f32> {
-    // return textureLoad(screen_texture, vec2i(position.xy), 0);
     let pos = vec2i(position.xy);
 
     var nearest_seed = vec2f(-screen_size);
     var nearest_dist: f32 = 999999.9;
 
-    /*let s_q = vec4(query_seeds(pos + vec2i(probe_size, 0)), 0.0, 1.0);
-    if (s_q.x >= 0 && s_q.y >= 0) {
-        nearest_dist = 0.0;
-        }*/
     for (var i_r: i32 = -1; i_r < 2; i_r++) {
         for (var j_r: i32 = -1; j_r < 2; j_r++) {
             let i = i_r * probe_size;
@@ -59,7 +54,9 @@ fn fragment(@builtin(position) position: vec4f) -> @location(0) vec4<f32> {
     }
 
     if (probe_size == 1) {
-        return vec4(nearest_dist / vec2f(screen_size), 0.0, 1.0);
+        return textureLoad(screen_texture, vec2i(position.xy), 0);
+        // Uncomment me to get sdf vis!
+        //return vec4(nearest_dist / vec2f(screen_size), 0.0, 1.0);
     } else {
         return vec4(nearest_seed / vec2f(screen_size), 0.0, 1.0);
     }

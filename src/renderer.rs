@@ -30,7 +30,7 @@ impl Plugin for Renderer {
         app.add_plugins(Material2dPlugin::<SdfMaterial>::default())
             .add_plugins(Material2dPlugin::<EdgeMaterial>::default())
             .add_systems(PreStartup, (prepare_sdf_texture, prepare_edge_texture))
-            .add_systems(Startup, (setup_sdf_pass, setup_edge_pass));
+            .add_systems(PostStartup, (setup_sdf_pass, setup_edge_pass));
         // .add_systems(Update, debug_render_targets);
     }
 }
