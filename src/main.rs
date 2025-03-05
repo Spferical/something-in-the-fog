@@ -1,6 +1,6 @@
-use std::time::Duration;
+use std::{f32::consts::PI, time::Duration};
 
-use bevy::prelude::*;
+use bevy::{prelude::*, time::Stopwatch};
 
 mod map;
 mod mapgen;
@@ -66,6 +66,8 @@ fn setup(mut commands: Commands, mut window: Query<&mut Window>, assets: Res<map
     commands.insert_resource(MouseWorldCoords(player_start_translation.truncate()));
     commands.insert_resource(ShootState {
         timer: Timer::new(PLAYER_SHOOT_DELAY, TimerMode::Once),
+        player_last_position: player_start_translation.truncate(),
+        focus: 0.0,
     });
 }
 
@@ -87,23 +89,45 @@ fn update_mouse_coords(
     }
 }
 
-#[derive(Resource)]
+#[derive(Debug, Resource)]
 struct ShootState {
     timer: Timer,
+    player_last_position: Vec2,
+    focus: f32,
 }
 
 fn update_shooting(
     player_query: Query<&Transform, With<Player>>,
-    shoot_state: ResMut<ShootState>,
+    mut shoot_state: ResMut<ShootState>,
     mouse_world_coords: Res<MouseWorldCoords>,
+    time: Res<Time>,
     mut gizmos: Gizmos,
 ) {
     let player_pos = player_query.single();
+    info!("{shoot_state:?}");
+    if shoot_state.player_last_position != player_pos.translation.truncate() {
+        shoot_state.player_last_position = player_pos.translation.truncate();
+        shoot_state.focus -= 1.0;
+    } else {
+        shoot_state.focus += time.delta().as_secs_f32();
+    }
+    shoot_state.focus = shoot_state.focus.clamp(0.0, 2.5);
     let mouse_offset = mouse_world_coords.0 - player_pos.translation.truncate();
-    gizmos.ray_gradient_2d(
-        player_pos.translation.truncate(),
-        mouse_offset.normalize() * 240.0,
-        bevy::color::palettes::basic::YELLOW,
+    let aim_angle_degrees = (30.0 - shoot_state.focus * 12.0).max(0.0);
+    let left_angle = Vec2::from_angle(aim_angle_degrees / 2.0 * PI / 180.0);
+    let right_angle = Vec2::from_angle(-aim_angle_degrees / 2.0 * PI / 180.0);
+    let left_ray = left_angle.rotate(mouse_offset.normalize());
+    let right_ray = right_angle.rotate(mouse_offset.normalize());
+    gizmos.line_gradient_2d(
+        player_pos.translation.truncate() + left_ray * 60.0,
+        player_pos.translation.truncate() + left_ray * 240.0,
+        bevy::color::palettes::basic::YELLOW.with_alpha(0.5),
+        Color::NONE.into(),
+    );
+    gizmos.line_gradient_2d(
+        player_pos.translation.truncate() + right_ray * 60.0,
+        player_pos.translation.truncate() + right_ray * 240.0,
+        bevy::color::palettes::basic::YELLOW.with_alpha(0.5),
         Color::NONE.into(),
     );
 }
@@ -191,7 +215,8 @@ fn main() {
                 on_resize,
                 update_mouse_coords,
                 update_shooting,
-            ),
+            )
+                .chain(),
         )
         .add_systems(FixedUpdate, move_player)
         .run();
