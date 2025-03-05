@@ -54,8 +54,8 @@ impl Plugin for Renderer {
         };*/
         app.add_plugins(Material2dPlugin::<SdfMaterial>::default())
             .add_systems(PreStartup, prepare_sdf_texture)
-            .add_systems(PostStartup, setup_sdf_pass)
-            .add_systems(Update, debug_render_targets);
+            .add_systems(PostStartup, setup_sdf_pass);
+            // .add_systems(Update, debug_render_targets);
 
         // set up render systems here
         /*render_app

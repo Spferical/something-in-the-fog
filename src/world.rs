@@ -94,7 +94,7 @@ impl Plugin for WorldPlugin {
         app.init_resource::<TileMap>();
         app.add_systems(Startup, startup);
         app.add_systems(PreUpdate, update_tilemap);
-        app.add_systems(FixedUpdate, make_tiles);
+        app.add_systems(Update, make_tiles);
         app.add_event::<NewTileEvent>();
     }
 }

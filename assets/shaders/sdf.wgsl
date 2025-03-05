@@ -9,11 +9,10 @@
 
 @fragment
 fn fragment(in: VertexOutput) -> @location(0) vec4<f32> {
-    return vec4(1.0);
     // return vec4(textureSample(screen_texture, screen_texture_sampler, in.uv));
-    /*if (iteration == 0) {
-        return vec4(0.5);
+    if (iteration == 0) {
+        return vec4(0.0);
     } else {
-        return vec4(textureSample(sdf, sdf_sampler, in.uv));
-    }*/
+        return vec4(textureSample(sdf, sdf_sampler, in.uv)) + 0.01;
+    }
 }

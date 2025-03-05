@@ -16,13 +16,11 @@ pub struct SdfPass;
 
 #[derive(Component)]
 pub struct SdfTexture {
-    pub ping: Handle<Image>,
-    pub pong: Handle<Image>,
+    pub iters: Vec<Handle<Image>>,
 }
 
 const SDF_ORDER_OFFSET: usize = 1;
-const SDF_PING_LAYER: usize = 14;
-const SDF_PONG_LAYER: usize = 15;
+const SDF_START_LAYER: usize = 31;
 
 pub fn setup_sdf_pass(
     window: Single<&Window>,
@@ -39,8 +37,6 @@ pub fn setup_sdf_pass(
 
     let larger_dim = width.max(height);
     let num_passes = (larger_dim as f32).log2().ceil() as usize;
-    let num_passes = 1;
-    println!("num passes {:?}", num_passes);
 
     let Ok(sdf_texture) = sdf_texture_query.get_single() else {
         return;
@@ -52,47 +48,34 @@ pub fn setup_sdf_pass(
     let fullscreen_mesh = meshes.add(Rectangle::new(width, height));
 
     for i in 0..num_passes {
-        let (ping_layer, sdf_texture, output_texture) = match i % 2 {
-            0 => (SDF_PING_LAYER, &sdf_texture.ping, &sdf_texture.pong),
-            _ => (SDF_PONG_LAYER, &sdf_texture.pong, &sdf_texture.ping),
-        };
+        let ping_it = SDF_START_LAYER - i;
+        let ping_image = sdf_texture.iters[i].clone();
+        let pong_image = sdf_texture.iters[i + 1].clone();
 
         if i == num_passes - 1 {
             let camera_postprocess = Camera {
-                // clear_color: ClearColorConfig::Custom(Color::linear_rgba(0.0, 0.0, 0.0, 0.0)),
-                // hdr: true,
-                // order: (SDF_ORDER_OFFSET + i) as isize,
-                //order: 0,
+                clear_color: ClearColorConfig::Custom(Color::linear_rgba(0.0, 0.0, 0.0, 0.0)),
                 ..default()
             };
-            commands.spawn((
-                Camera2d,
-                camera_postprocess,
-                RenderLayers::layer(ping_layer),
-            ));
+            commands.spawn((Camera2d, camera_postprocess, RenderLayers::layer(ping_it)));
         } else {
             let camera_postprocess = Camera {
-                // clear_color: ClearColorConfig::Custom(Color::linear_rgba(0.0, 0.0, 0.0, 0.0)),
-                // hdr: true,
-                target: output_texture.clone().into(),
+                clear_color: ClearColorConfig::Custom(Color::linear_rgba(0.0, 0.0, 0.0, 0.0)),
+                target: pong_image.clone().into(),
                 order: (SDF_ORDER_OFFSET + i) as isize,
                 ..default()
             };
-            commands.spawn((
-                Camera2d,
-                camera_postprocess,
-                RenderLayers::layer(ping_layer),
-            ));
+            commands.spawn((Camera2d, camera_postprocess, RenderLayers::layer(ping_it)));
         }
 
         commands.spawn((
-                Mesh2d(fullscreen_mesh.clone()),
-                MeshMaterial2d(materials.add(SdfMaterial {
-                    screen_texture: Some(occluder_texture.0.clone()),
-                    sdf: Some(sdf_texture.clone()),
-                    iteration: i as i32,
-                })),
-                RenderLayers::layer(ping_layer),
+            Mesh2d(fullscreen_mesh.clone()),
+            MeshMaterial2d(materials.add(SdfMaterial {
+                screen_texture: Some(occluder_texture.0.clone()),
+                sdf: Some(ping_image.clone()),
+                iteration: i as i32,
+            })),
+            RenderLayers::layer(ping_it),
         ));
     }
 }

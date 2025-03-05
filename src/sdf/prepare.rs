@@ -54,10 +54,10 @@ pub fn prepare_sdf_texture(
     window: Single<&Window>,
     mut images: ResMut<Assets<Image>>,
 ) {
-    println!("Prepared sdf texture!");
     commands.spawn(SdfTexture {
-        ping: images.add(create_sdf_texture(&window, "sdf_texture_0")),
-        pong: images.add(create_sdf_texture(&window, "sdf_texture_1")),
+        iters: (0..32)
+            .map(|_| images.add(create_sdf_texture(&window, "sdf_texture")))
+            .collect(),
     });
 }
 

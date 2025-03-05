@@ -1,5 +1,6 @@
 use std::time::Duration;
 
+use bevy::diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin};
 use bevy::{
     asset::RenderAssetUsages,
     prelude::*,
@@ -42,11 +43,8 @@ fn recreate_camera(
     mut window: Single<&mut Window>,
     mut commands: Commands,
     camera_query: Query<(Entity, &Camera)>,
-    sdf_texture_query: Query<&sdf::SdfTexture>,
     mut resize_reader: EventReader<bevy::window::WindowResized>,
     mut images: ResMut<Assets<Image>>,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<sdf::SdfMaterial>>,
 ) {
     window.resizable = true;
     println!(
@@ -65,7 +63,6 @@ fn recreate_camera(
         TextureFormat::Bgra8UnormSrgb,
         RenderAssetUsages::RENDER_WORLD,
     );
-    // You need to set these texture usage flags in order to use the image as a render target
     image.texture_descriptor.usage =
         TextureUsages::TEXTURE_BINDING | TextureUsages::COPY_DST | TextureUsages::RENDER_ATTACHMENT;
 
@@ -205,9 +202,11 @@ fn move_player(
 fn main() {
     App::new()
         .add_plugins(DefaultPlugins.set(ImagePlugin::default_nearest()))
-        .add_plugins(renderer::Renderer)
-        .add_plugins(performance_ui::PerformanceUiPlugin)
+        // .add_plugins(performance_ui::PerformanceUiPlugin)
+        .add_plugins(FrameTimeDiagnosticsPlugin::default())
+        .add_plugins(LogDiagnosticsPlugin::default())
         .add_plugins(world::WorldPlugin)
+        .add_plugins(renderer::Renderer)
         .add_systems(Startup, (recreate_camera, setup))
         .add_systems(Update, (update_camera, on_resize))
         .add_systems(FixedUpdate, move_player)
