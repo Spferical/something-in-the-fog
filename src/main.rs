@@ -10,19 +10,11 @@ mod sdf;
 
 const CAMERA_DECAY_RATE: f32 = 2.;
 const PLAYER_MOVE_DELAY: Duration = Duration::from_millis(100);
+const PLAYER_SHOOT_DELAY: Duration = Duration::from_millis(500);
 const PLAYER_START: IVec2 = IVec2::new(100, 0);
 
 fn on_resize(mut resize_reader: EventReader<bevy::window::WindowResized>) {
     for _e in resize_reader.read() {}
-}
-
-#[derive(Resource)]
-struct MoveTimer(Timer);
-
-impl Default for MoveTimer {
-    fn default() -> Self {
-        MoveTimer(Timer::new(PLAYER_MOVE_DELAY, TimerMode::Once))
-    }
 }
 
 #[derive(Component)]
@@ -66,12 +58,58 @@ fn setup(mut commands: Commands, mut window: Query<&mut Window>, assets: Res<map
     commands.spawn((
         Player,
         map::MapPos(PLAYER_START),
-        Mesh2d(assets.square.clone()),
+        Mesh2d(assets.circle.clone()),
         MeshMaterial2d(assets.red.clone()),
         Transform::from_translation(player_start_translation),
     ));
-    commands.init_resource::<MoveTimer>();
+    commands.insert_resource(MoveTimer(Timer::new(PLAYER_MOVE_DELAY, TimerMode::Once)));
+    commands.insert_resource(MouseWorldCoords(player_start_translation.truncate()));
+    commands.insert_resource(ShootState {
+        timer: Timer::new(PLAYER_SHOOT_DELAY, TimerMode::Once),
+    });
 }
+
+#[derive(Resource)]
+struct MouseWorldCoords(Vec2);
+
+fn update_mouse_coords(
+    mut mouse_world_coords: ResMut<MouseWorldCoords>,
+    query_window: Query<&Window, With<bevy::window::PrimaryWindow>>,
+    query_camera: Query<(&Camera, &GlobalTransform), With<Camera2d>>,
+) {
+    let (camera, camera_transform) = query_camera.single();
+    let window = query_window.single();
+    if let Some(world_position) = window
+        .cursor_position()
+        .and_then(|cursor| camera.viewport_to_world_2d(camera_transform, cursor).ok())
+    {
+        mouse_world_coords.0 = world_position;
+    }
+}
+
+#[derive(Resource)]
+struct ShootState {
+    timer: Timer,
+}
+
+fn update_shooting(
+    player_query: Query<&Transform, With<Player>>,
+    shoot_state: ResMut<ShootState>,
+    mouse_world_coords: Res<MouseWorldCoords>,
+    mut gizmos: Gizmos,
+) {
+    let player_pos = player_query.single();
+    let mouse_offset = mouse_world_coords.0 - player_pos.translation.truncate();
+    gizmos.ray_gradient_2d(
+        player_pos.translation.truncate(),
+        mouse_offset.normalize() * 240.0,
+        bevy::color::palettes::basic::YELLOW,
+        Color::NONE.into(),
+    );
+}
+
+#[derive(Resource)]
+struct MoveTimer(Timer);
 
 #[derive(Default)]
 struct MovePlayerState {
@@ -146,7 +184,15 @@ fn main() {
         .add_plugins(performance_ui::PerformanceUiPlugin)
         .add_plugins(map::WorldPlugin)
         .add_systems(Startup, (setup_camera, setup))
-        .add_systems(Update, (update_camera, on_resize))
+        .add_systems(
+            Update,
+            (
+                update_camera,
+                on_resize,
+                update_mouse_coords,
+                update_shooting,
+            ),
+        )
         .add_systems(FixedUpdate, move_player)
         .run();
 }

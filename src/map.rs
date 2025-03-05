@@ -42,6 +42,7 @@ fn update_tilemap(mut tile_map: ResMut<Map>, query: Query<(Entity, &MapPos)>) {
 
 #[derive(Resource)]
 pub struct WorldAssets {
+    pub circle: Handle<Mesh>,
     pub square: Handle<Mesh>,
     pub white: Handle<ColorMaterial>,
     pub green: Handle<ColorMaterial>,
@@ -57,6 +58,7 @@ fn init_assets(
 ) {
     commands.insert_resource(WorldAssets {
         square: meshes.add(Rectangle::new(TILE_SIZE, TILE_SIZE)),
+        circle: meshes.add(Circle::new(TILE_SIZE / 2.0)),
         white: materials.add(Color::LinearRgba(LinearRgba::WHITE)),
         green: materials.add(Color::LinearRgba(LinearRgba::GREEN)),
         dark_green: materials.add(Color::LinearRgba(LinearRgba::rgb(0.0, 0.5, 0.0))),
@@ -136,8 +138,12 @@ fn spawn(
             Spawn::Tile(TileKind::Tree) => world_assets.dark_green.clone(),
             Spawn::Mob(MobKind::Zombie) => world_assets.purple.clone(),
         };
+        let mesh = match spawn {
+            Spawn::Tile(_) => world_assets.square.clone(),
+            Spawn::Mob(_) => world_assets.circle.clone(),
+        };
         let mut entity_commands = commands.spawn((
-            Mesh2d(world_assets.square.clone()),
+            Mesh2d(mesh),
             MeshMaterial2d(color),
             MapPos(*pos),
             Transform::from_translation(Vec3::new(
