@@ -1,6 +1,7 @@
 use std::{f32::consts::PI, time::Duration};
 
 use bevy::prelude::*;
+use map::TILE_SIZE;
 
 mod map;
 mod mapgen;
@@ -136,8 +137,37 @@ fn update_shooting(
     );
 
     if mouse_button.just_pressed(MouseButton::Left) {
+        // shoot
+        // let angle_degrees = rand::thread_rng().gen_range(left_angle..right_angle);
+        let line_start = player_pos.translation.truncate();
         shoot_state.focus -= 1.0;
+        let mut last_pos = line_start;
+        for (world_pos, _grid_pos) in line_grid_intersection(line_start, mouse_offset.normalize()) {
+            if world_pos.distance(line_start) > 2000.0 {
+                break;
+            }
+            gizmos.line_2d(last_pos, world_pos, bevy::color::palettes::basic::YELLOW);
+            last_pos = world_pos;
+        }
     }
+}
+
+// Intersects a line with the integer grid. Returns (world pt, grid cell) pairs.
+fn line_grid_intersection(start: Vec2, direction: Vec2) -> impl Iterator<Item = (Vec2, IVec2)> {
+    // let direction = direction.normalize(); // not sure if this is necessary
+    use grid_ray::GridRayIter2;
+    use grid_ray::ilattice::glam;
+    let Vec2 { x, y } = start;
+    let mut glam_start = glam::Vec2 { x, y } / TILE_SIZE;
+    glam_start.x += 0.5;
+    glam_start.y += 0.5;
+    let Vec2 { x, y } = direction;
+    let glam_direction = glam::Vec2 { x, y };
+    GridRayIter2::new(glam_start, glam_direction)
+        .filter(|(t, _)| *t >= 0.0)
+        .map(move |(time, glam::IVec2 { x, y })| {
+            (start + direction * time * TILE_SIZE, IVec2 { x, y })
+        })
 }
 
 #[derive(Resource)]
