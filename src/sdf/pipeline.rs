@@ -2,9 +2,9 @@ use bevy::core_pipeline::fullscreen_vertex_shader::fullscreen_shader_vertex_stat
 use bevy::prelude::*;
 use bevy::render::render_resource::binding_types::{sampler, uniform_buffer};
 use bevy::render::render_resource::{
-    binding_types::texture_2d, BindGroupLayout, BindGroupLayoutEntries, CachedRenderPipelineId,
-    ColorTargetState, ColorWrites, FragmentState, MultisampleState, PipelineCache, PrimitiveState,
-    RenderPipelineDescriptor, ShaderStages, ShaderType, TextureFormat,
+    BindGroupLayout, BindGroupLayoutEntries, CachedRenderPipelineId, ColorTargetState, ColorWrites,
+    FragmentState, MultisampleState, PipelineCache, PrimitiveState, RenderPipelineDescriptor,
+    ShaderStages, ShaderType, TextureFormat, binding_types::texture_2d,
 };
 use bevy::render::render_resource::{
     Sampler, SamplerBindingType, SamplerDescriptor, TextureSampleType, UniformBuffer,

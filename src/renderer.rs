@@ -2,14 +2,14 @@ use bevy::{
     core_pipeline::core_2d::graph::{Core2d, Node2d},
     prelude::*,
     render::{
+        Render, RenderApp, RenderSet,
         render_graph::{RenderGraphApp, ViewNodeRunner},
         view::prepare_view_targets,
-        Render, RenderApp, RenderSet,
     },
 };
 
 use crate::sdf::{
-    prepare_sdf_settings, prepare_sdf_texture, AllSdfSettings, SdfNode, SdfPass, SdfPipeline,
+    AllSdfSettings, SdfNode, SdfPass, SdfPipeline, prepare_sdf_settings, prepare_sdf_texture,
 };
 
 pub struct Renderer;
