@@ -1,31 +1,43 @@
 use bevy::{
-    ecs::system::{Res, ResMut},
-    render::{
-        render_resource::{TextureDescriptor, TextureDimension, TextureFormat, TextureUsages},
-        renderer::{RenderDevice},
-        texture::{CachedTexture, TextureCache},
-        view::ViewTarget,
+    asset::{Assets, RenderAssetUsages},
+    ecs::system::{Commands, ResMut, Single},
+    image::Image,
+    render::render_resource::{
+        Extent3d, TextureDescriptor, TextureDimension, TextureFormat, TextureUsages,
     },
+    utils::default,
+    window::Window,
 };
 
-const EDGE_TEXTURE: &str = "edge_texture";
+use super::EdgeTexture;
 
 pub fn prepare_edge_texture(
-    render_device: &Res<RenderDevice>,
-    texture_cache: &mut ResMut<TextureCache>,
-    view_target: &ViewTarget,
-) -> CachedTexture {
-    texture_cache.get(
-        &render_device,
-        TextureDescriptor {
-            label: Some(EDGE_TEXTURE),
-            size: view_target.main_texture().size(),
+    mut commands: Commands,
+    window: Single<&Window>,
+    mut images: ResMut<Assets<Image>>,
+) {
+    let target_size = Extent3d {
+        width: window.resolution.physical_width(),
+        height: window.resolution.physical_height(),
+        ..default()
+    };
+    let mut image = Image {
+        texture_descriptor: TextureDescriptor {
+            label: Some("edge_texture"),
+            size: target_size,
             mip_level_count: 1,
             sample_count: 1,
             dimension: TextureDimension::D2,
-            format: TextureFormat::Rgba16Float,
-            usage: TextureUsages::RENDER_ATTACHMENT | TextureUsages::TEXTURE_BINDING,
+            format: TextureFormat::Rgba8UnormSrgb,
+            usage: TextureUsages::RENDER_ATTACHMENT
+                | TextureUsages::TEXTURE_BINDING
+                | TextureUsages::COPY_DST,
             view_formats: &[],
         },
-    )
+        asset_usage: RenderAssetUsages::default(),
+        ..default()
+    };
+
+    image.resize(target_size);
+    commands.spawn(EdgeTexture(images.add(image)));
 }

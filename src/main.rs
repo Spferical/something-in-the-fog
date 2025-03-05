@@ -1,19 +1,18 @@
 use std::time::Duration;
 
 use bevy::diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin};
+use bevy::render::camera::RenderTarget;
 use bevy::{
     asset::RenderAssetUsages,
     prelude::*,
     render::{
         render_resource::{Extent3d, TextureDimension, TextureFormat, TextureUsages},
-        renderer::RenderDevice,
-        texture::TextureCache,
         view::RenderLayers,
     },
 };
 
 mod edge;
-mod performance_ui;
+//mod performance_ui;
 mod renderer;
 mod sdf;
 mod world;
@@ -42,16 +41,11 @@ struct PrimaryCamera;
 fn recreate_camera(
     mut window: Single<&mut Window>,
     mut commands: Commands,
-    camera_query: Query<(Entity, &Camera)>,
+    camera_query: Query<(Entity, &Camera), With<PrimaryCamera>>,
     mut resize_reader: EventReader<bevy::window::WindowResized>,
     mut images: ResMut<Assets<Image>>,
 ) {
     window.resizable = true;
-    println!(
-        "dims {:?} {:?}",
-        window.resolution.physical_width(),
-        window.resolution.physical_height()
-    );
     let mut image = Image::new_fill(
         Extent3d {
             width: window.resolution.physical_width(), // does this work?
@@ -61,7 +55,7 @@ fn recreate_camera(
         TextureDimension::D2,
         &[0, 0, 0, 0],
         TextureFormat::Bgra8UnormSrgb,
-        RenderAssetUsages::RENDER_WORLD,
+        RenderAssetUsages::default(),
     );
     image.texture_descriptor.usage =
         TextureUsages::TEXTURE_BINDING | TextureUsages::COPY_DST | TextureUsages::RENDER_ATTACHMENT;
@@ -69,9 +63,9 @@ fn recreate_camera(
     let image_handle = images.add(image);
 
     let camera = Camera {
-        target: image_handle.clone().into(),
-        // clear_color: ClearColorConfig::Custom(Color::linear_rgba(0.0, 0.0, 0.0, 0.0)),
-        // hdr: false,
+        target: RenderTarget::Image(image_handle.clone()),
+        clear_color: ClearColorConfig::Custom(Color::linear_rgba(0.0, 0.0, 0.0, 0.0)),
+        hdr: true,
         order: 0,
         ..default()
     };
@@ -87,7 +81,13 @@ fn recreate_camera(
                 .insert(camera);
         }
         Err(_) => {
-            commands.spawn((Camera2d, camera, RenderLayers::layer(1), PrimaryCamera));
+            commands.spawn((
+                Camera2d,
+                camera,
+                RenderLayers::layer(1),
+                PrimaryCamera,
+                Transform::from_translation(Vec3::new(0.0, 0.0, 3.0)),
+            ));
         }
     };
 
@@ -101,14 +101,12 @@ fn update_camera(
     player: Query<&Transform, (With<Player>, Without<PrimaryCamera>)>,
     time: Res<Time>,
 ) {
-    let Ok(mut camera) = camera.get_single_mut() else {
-        return;
-    };
-
     let Ok(player) = player.get_single() else {
         return;
     };
-
+    let Ok(mut camera) = camera.get_single_mut() else {
+        return;
+    };
     let Vec3 { x, y, .. } = player.translation;
     let direction = Vec3::new(x, y, camera.translation.z);
 
@@ -207,7 +205,7 @@ fn main() {
         .add_plugins(LogDiagnosticsPlugin::default())
         .add_plugins(world::WorldPlugin)
         .add_plugins(renderer::Renderer)
-        .add_systems(Startup, (recreate_camera, setup))
+        .add_systems(PreStartup, (recreate_camera, setup))
         .add_systems(Update, (update_camera, on_resize))
         .add_systems(FixedUpdate, move_player)
         .run();

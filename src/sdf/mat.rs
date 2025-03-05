@@ -7,13 +7,17 @@ use bevy::{
 #[derive(AsBindGroup, Clone, Default, Asset, TypePath)]
 pub struct SdfMaterial {
     #[texture(0)]
-    #[sampler(1)]
     pub screen_texture: Option<Handle<Image>>,
+    #[texture(1)]
+    pub edge_texture: Option<Handle<Image>>,
     #[texture(2)]
-    #[sampler(3)]
-    pub sdf: Option<Handle<Image>>,
-    #[uniform(4)]
+    pub seed_texture: Option<Handle<Image>>,
+    #[uniform(3)]
     pub iteration: i32,
+    #[uniform(4)]
+    pub probe_size: i32,
+    #[uniform(5)]
+    pub screen_size: IVec2,
 }
 
 impl Material2d for SdfMaterial {
