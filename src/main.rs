@@ -1,6 +1,6 @@
 use std::{f32::consts::PI, time::Duration};
 
-use bevy::{prelude::*, time::Stopwatch};
+use bevy::prelude::*;
 
 mod map;
 mod mapgen;
@@ -80,12 +80,13 @@ fn update_mouse_coords(
     query_camera: Query<(&Camera, &GlobalTransform), With<Camera2d>>,
 ) {
     let (camera, camera_transform) = query_camera.single();
-    let window = query_window.single();
-    if let Some(world_position) = window
-        .cursor_position()
-        .and_then(|cursor| camera.viewport_to_world_2d(camera_transform, cursor).ok())
-    {
-        mouse_world_coords.0 = world_position;
+    if let Ok(window) = query_window.get_single() {
+        if let Some(world_position) = window
+            .cursor_position()
+            .and_then(|cursor| camera.viewport_to_world_2d(camera_transform, cursor).ok())
+        {
+            mouse_world_coords.0 = world_position;
+        }
     }
 }
 
@@ -102,9 +103,11 @@ fn update_shooting(
     mouse_world_coords: Res<MouseWorldCoords>,
     time: Res<Time>,
     mut gizmos: Gizmos,
+    mouse_button: Res<ButtonInput<MouseButton>>,
 ) {
     let player_pos = player_query.single();
-    info!("{shoot_state:?}");
+
+    shoot_state.timer.tick(time.delta());
     if shoot_state.player_last_position != player_pos.translation.truncate() {
         shoot_state.player_last_position = player_pos.translation.truncate();
         shoot_state.focus -= 1.0;
@@ -112,6 +115,7 @@ fn update_shooting(
         shoot_state.focus += time.delta().as_secs_f32();
     }
     shoot_state.focus = shoot_state.focus.clamp(0.0, 2.5);
+
     let mouse_offset = mouse_world_coords.0 - player_pos.translation.truncate();
     let aim_angle_degrees = (30.0 - shoot_state.focus * 12.0).max(0.0);
     let left_angle = Vec2::from_angle(aim_angle_degrees / 2.0 * PI / 180.0);
@@ -130,6 +134,10 @@ fn update_shooting(
         bevy::color::palettes::basic::YELLOW.with_alpha(0.5),
         Color::NONE.into(),
     );
+
+    if mouse_button.just_pressed(MouseButton::Left) {
+        shoot_state.focus -= 1.0;
+    }
 }
 
 #[derive(Resource)]
