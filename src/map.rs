@@ -42,6 +42,15 @@ pub struct Tile(pub TileKind);
 #[derive(Default, Resource)]
 pub struct Map(pub HashMap<IVec2, Vec<Entity>>);
 
+impl Map {
+    pub fn get_nearby(&self, center: IVec2, radius: i32) -> impl Iterator<Item = &Entity> {
+        (center.x - radius..center.x + radius)
+            .flat_map(move |x| (center.y - radius..center.y + radius).map(move |y| (x, y)))
+            .filter_map(|(x, y)| self.0.get(&IVec2 { x, y }))
+            .flatten()
+    }
+}
+
 fn update_tilemap(mut tile_map: ResMut<Map>, query: Query<(Entity, &MapPos)>) {
     tile_map.0.clear();
     for (entity, MapPos(vec2)) in query.iter() {

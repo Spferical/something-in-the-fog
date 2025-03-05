@@ -13,6 +13,7 @@ use bevy::{
 };
 
 use map::{Map, MapPos, Mob, TILE_SIZE, Tile};
+use rand::Rng as _;
 
 mod edge;
 mod map;
@@ -191,10 +192,10 @@ fn update_shooting(
 
     let mouse_offset = mouse_world_coords.0 - player_pos.translation.truncate();
     let aim_angle_degrees = (30.0 - shoot_state.focus * 12.0).max(0.0);
-    let left_angle = Vec2::from_angle(aim_angle_degrees / 2.0 * PI / 180.0);
-    let right_angle = Vec2::from_angle(-aim_angle_degrees / 2.0 * PI / 180.0);
-    let left_ray = left_angle.rotate(mouse_offset.normalize());
-    let right_ray = right_angle.rotate(mouse_offset.normalize());
+    let left_angle = aim_angle_degrees / 2.0 * PI / 180.0;
+    let right_angle = -left_angle;
+    let left_ray = Vec2::from_angle(left_angle).rotate(mouse_offset.normalize());
+    let right_ray = Vec2::from_angle(right_angle).rotate(mouse_offset.normalize());
     gizmos.line_gradient_2d(
         player_pos.translation.truncate() + left_ray * 60.0,
         player_pos.translation.truncate() + left_ray * 240.0,
@@ -210,29 +211,22 @@ fn update_shooting(
 
     if mouse_button.just_pressed(MouseButton::Left) {
         // shoot
-        // let angle_degrees = rand::thread_rng().gen_range(left_angle..right_angle);
         let line_start = player_pos.translation.truncate();
         shoot_state.focus -= 1.0;
         let mut collisions = vec![];
         let player_pos_ivec2 = MapPos::from_vec3(player_pos.translation).0;
-        for x in player_pos_ivec2.x - 100..player_pos_ivec2.x + 100 {
-            for y in player_pos_ivec2.y - 100..player_pos_ivec2.y + 100 {
-                if let Some(entities) = map.0.get(&IVec2 { x, y }) {
-                    for (_mob, transform) in mobs.iter_many(entities) {
-                        collisions.push(Aabb2d::new(
-                            transform.translation.truncate(),
-                            Vec2::splat(TILE_SIZE / 2.0),
-                        ));
-                    }
-                    for (tile, transform) in tiles.iter_many(entities) {
-                        if tile.0.blocks_movement() {
-                            collisions.push(Aabb2d::new(
-                                transform.translation.truncate(),
-                                Vec2::splat(TILE_SIZE / 2.0),
-                            ));
-                        }
-                    }
-                }
+        for (_mob, transform) in mobs.iter_many(map.get_nearby(player_pos_ivec2, 100)) {
+            collisions.push(Aabb2d::new(
+                transform.translation.truncate(),
+                Vec2::splat(TILE_SIZE / 2.0),
+            ));
+        }
+        for (tile, transform) in tiles.iter_many(map.get_nearby(player_pos_ivec2, 100)) {
+            if tile.0.blocks_movement() {
+                collisions.push(Aabb2d::new(
+                    transform.translation.truncate(),
+                    Vec2::splat(TILE_SIZE / 2.0),
+                ));
             }
         }
         let dist_to_player = |point| player_pos.translation.truncate().distance_squared(point);
@@ -241,7 +235,11 @@ fn update_shooting(
                 .partial_cmp(&dist_to_player((b.min + b.max) / 2.0))
                 .unwrap()
         });
-        if let Ok(dir) = Dir2::new(mouse_offset) {
+
+        let angle_radians =
+            left_angle + rand::thread_rng().r#gen::<f32>() * (right_angle - left_angle);
+        let dir = Vec2::from_angle(angle_radians).rotate(mouse_offset);
+        if let Ok(dir) = Dir2::new(dir) {
             let ray = RayCast2d::new(line_start, dir, 4000.0);
             let mut collided = false;
             for c in collisions {
