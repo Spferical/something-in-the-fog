@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use bevy_egui::{
     EguiContexts, EguiPlugin,
-    egui::{self, FontData, FontFamily, TextStyle},
+    egui::{self, Color32, FontData, FontFamily, TextStyle},
 };
 
 pub mod performance;
@@ -33,11 +33,20 @@ fn startup(mut contexts: EguiContexts) {
 
     egui_ctx.style_mut(|style| {
         style.override_text_style = Some(TextStyle::Monospace);
+        style.visuals.widgets.noninteractive.fg_stroke.color = Color32::WHITE;
     })
+}
+
+fn update(mut contexts: EguiContexts) {
+    egui::TopBottomPanel::bottom("bottom_panel").show(contexts.ctx_mut(), |ui| {
+        ui.centered_and_justified(|ui| ui.label("move: WASD  shoot: click"))
+    });
 }
 
 impl Plugin for UiPlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugins(EguiPlugin).add_systems(Startup, startup);
+        app.add_plugins(EguiPlugin)
+            .add_systems(Startup, startup)
+            .add_systems(Update, update);
     }
 }
