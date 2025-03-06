@@ -179,7 +179,7 @@ fn clear_after(
     for (entity, mut bullet_trail) in query.iter_mut() {
         bullet_trail.0.tick(time.delta());
         if bullet_trail.0.finished() {
-            commands.entity(entity).clear();
+            commands.entity(entity).despawn();
         }
     }
 }
