@@ -13,7 +13,8 @@ use bevy::{
         view::RenderLayers,
     },
 };
-use map::{Map, MapPos, Mob, MobDamageEvent, TILE_SIZE, Tile, Zones};
+use map::{Map, MapPos, TILE_SIZE, Tile, Zones};
+use mob::{Mob, MobDamageEvent};
 use rand::Rng as _;
 use ui::{UiEvent, UiSettings};
 
@@ -22,8 +23,10 @@ mod assets;
 mod edge;
 mod map;
 mod mapgen;
+mod mob;
 mod renderer;
 mod sdf;
+mod spawn;
 mod ui;
 
 const CAMERA_DECAY_RATE: f32 = 2.;
@@ -248,7 +251,7 @@ fn update_shooting(
     time: Res<Time>,
     mouse_button: Res<ButtonInput<MouseButton>>,
     map: Res<Map>,
-    mobs: Query<(Entity, &Transform), Without<Player>>,
+    mobs: Query<(Entity, &Transform), (With<Mob>, Without<Player>)>,
     tiles: Query<(&Tile, &Transform), (Without<Mob>, Without<Player>)>,
     mut ev_spawn_bullet: EventWriter<ShootEvent>,
     mut ev_damage_mob: EventWriter<MobDamageEvent>,
@@ -460,13 +463,17 @@ fn handle_ui_event(
 fn main() {
     App::new()
         .add_plugins(DefaultPlugins.set(ImagePlugin::default_nearest()))
-        .add_plugins(ui::UiPlugin)
-        .add_plugins(ui::performance::PerformanceUiPlugin)
-        .add_plugins(LogDiagnosticsPlugin::default())
-        .add_plugins(assets::AssetsPlugin)
-        .add_plugins(map::WorldPlugin)
-        .add_plugins(animation::AnimatePlugin)
-        .add_plugins(renderer::Renderer)
+        .add_plugins((
+            ui::UiPlugin,
+            ui::performance::PerformanceUiPlugin,
+            LogDiagnosticsPlugin::default(),
+            assets::AssetsPlugin,
+            map::WorldPlugin,
+            animation::AnimatePlugin,
+            renderer::Renderer,
+            spawn::SpawnPlugin,
+            mob::MobPlugin,
+        ))
         .add_systems(Startup, (create_camera, setup, make_sight_lines))
         .add_systems(
             Update,

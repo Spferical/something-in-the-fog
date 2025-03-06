@@ -5,7 +5,7 @@ use bevy::prelude::*;
 use rand::{Rng, seq::SliceRandom as _};
 use rogue_algebra::{Pos, Rect};
 
-use crate::map::{MobKind, Spawn, TileKind};
+use crate::{map::TileKind, mob::MobKind, spawn::Spawn};
 
 fn get_connecting_wall(room1: Rect, room2: Rect) -> Option<Rect> {
     // one-tile-wall between them

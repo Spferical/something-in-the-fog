@@ -1,15 +1,10 @@
-use std::{
-    collections::{HashMap, HashSet},
-    time::Duration,
-};
+use std::collections::{HashMap, HashSet};
 
-use bevy::{prelude::*, render::view::RenderLayers};
-use line_drawing::Bresenham;
+use bevy::prelude::*;
 
-use crate::{Player, animation::MoveAnimation, assets::GameAssets};
+use crate::spawn::SpawnEvent;
 
 pub const TILE_SIZE: f32 = 48.0;
-pub const ZOMBIE_MOVE_DELAY: Duration = Duration::from_secs(1);
 
 #[derive(Component)]
 pub struct MapPos(pub IVec2);
@@ -94,105 +89,8 @@ impl TileKind {
     }
 }
 
-pub enum MobKind {
-    Zombie,
-}
-
-pub enum Spawn {
-    Tile(TileKind),
-    Mob(MobKind),
-}
-
-impl Spawn {
-    fn blocks_movement(&self) -> bool {
-        match self {
-            Self::Tile(tk) => tk.blocks_movement(),
-            Self::Mob(_) => true,
-        }
-    }
-}
-
-#[derive(Component)]
-pub struct Mob {
-    saw_player_at: Option<IVec2>,
-    #[allow(unused)]
-    move_timer: Timer,
-    damage: i32,
-}
-
-#[derive(Event)]
-pub struct MobDamageEvent {
-    pub damage: i32,
-    pub entity: Entity,
-}
-
-fn damage_mobs(
-    mut commands: Commands,
-    mut q_mob: Query<(Entity, &mut Mob)>,
-    mut ev_mob_damage: EventReader<MobDamageEvent>,
-) {
-    for MobDamageEvent { damage, entity } in ev_mob_damage.read() {
-        if let Ok((entity, mut mob)) = q_mob.get_mut(*entity) {
-            mob.damage += damage;
-            if mob.damage >= 3 {
-                commands.entity(entity).despawn();
-            }
-        }
-    }
-}
-
-#[derive(Event)]
-struct SpawnEvent(IVec2, Spawn);
-
-fn spawn(
-    mut commands: Commands,
-    world_assets: Res<GameAssets>,
-    mut ev_new_tile: EventReader<SpawnEvent>,
-) {
-    for SpawnEvent(pos, spawn) in ev_new_tile.read() {
-        let color = match spawn {
-            Spawn::Tile(TileKind::Wall) => world_assets.white.clone(),
-            Spawn::Tile(TileKind::Crate) => world_assets.gray.clone(),
-            Spawn::Tile(TileKind::Bush) => world_assets.green.clone(),
-            Spawn::Tile(TileKind::Tree) => world_assets.dark_green.clone(),
-            Spawn::Mob(MobKind::Zombie) => world_assets.purple.clone(),
-        };
-        let mesh = match spawn {
-            Spawn::Tile(_) => world_assets.square.clone(),
-            Spawn::Mob(_) => world_assets.circle.clone(),
-        };
-        let mut entity_commands = commands.spawn((
-            Mesh2d(mesh),
-            MeshMaterial2d(color),
-            MapPos(*pos),
-            Transform::from_translation(Vec3::new(
-                TILE_SIZE * pos.x as f32,
-                TILE_SIZE * pos.y as f32,
-                0.0,
-            )),
-            RenderLayers::layer(1),
-        ));
-        if spawn.blocks_movement() {
-            entity_commands.insert(BlocksMovement);
-        }
-        if let Spawn::Tile(t) = spawn {
-            if t.blocks_sight() {
-                entity_commands.insert(BlocksSight);
-            }
-            entity_commands.insert(Tile(*t));
-        }
-        if let Spawn::Mob(_) = spawn {
-            entity_commands.insert(Mob {
-                saw_player_at: None,
-                move_timer: Timer::new(ZOMBIE_MOVE_DELAY, TimerMode::Once),
-                damage: 0,
-            });
-        }
-    }
-}
-
 #[derive(Default, Resource)]
-struct SightBlockedMap(HashSet<IVec2>);
+pub struct SightBlockedMap(pub HashSet<IVec2>);
 
 fn update_visibility(
     query: Query<&MapPos, With<BlocksSight>>,
@@ -217,61 +115,6 @@ fn update_walkability(
     }
 }
 
-fn move_mobs(
-    mut commands: Commands,
-    mut mobs: Query<(Entity, &mut Mob, &mut MapPos, &mut Transform)>,
-    player: Query<&MapPos, (With<Player>, Without<Mob>)>,
-    sight_blocked_map: Res<SightBlockedMap>,
-    mut walk_blocked_map: ResMut<WalkBlockedMap>,
-    time: Res<Time>,
-) {
-    let player_pos = player.single();
-    for (entity, mut mob, mut pos, transform) in mobs.iter_mut() {
-        let player_visible = Bresenham::new((pos.0.x, pos.0.y), (player_pos.0.x, player_pos.0.y))
-            .skip(1)
-            .all(|(x, y)| !sight_blocked_map.0.contains(&IVec2::new(x, y)));
-        if player_visible {
-            mob.saw_player_at = Some(player_pos.0);
-        }
-        mob.move_timer.tick(time.delta());
-        if mob.move_timer.finished() {
-            if let Some(player_pos) = mob.saw_player_at {
-                let path = rogue_algebra::path::bfs_paths(
-                    &[rogue_algebra::Pos::new(pos.0.x, pos.0.y)],
-                    10,
-                    |pos| {
-                        rogue_algebra::CARDINALS
-                            .iter()
-                            .copied()
-                            .map(|c| pos + c)
-                            .filter(|&rogue_algebra::Pos { x, y }| {
-                                !walk_blocked_map.0.contains(&IVec2 { x, y })
-                            })
-                            .collect()
-                    },
-                )
-                .find(|path| {
-                    (*path.last().unwrap() - rogue_algebra::Pos::from(player_pos)).mhn_dist() == 1
-                });
-                if let Some(path) = path {
-                    if let Some(move_pos) = path.get(1) {
-                        let move_pos = IVec2::from(*move_pos);
-                        walk_blocked_map.0.insert(move_pos);
-                        pos.0 = move_pos;
-                        commands.entity(entity).insert(MoveAnimation {
-                            from: transform.translation.truncate(),
-                            to: pos.to_vec2(),
-                            timer: Timer::new(Duration::from_millis(300), TimerMode::Once),
-                            ease: EaseFunction::BounceIn,
-                        });
-                        mob.move_timer.reset();
-                    }
-                }
-            }
-        }
-    }
-}
-
 #[derive(Default)]
 pub(crate) struct WorldPlugin;
 
@@ -282,18 +125,7 @@ impl Plugin for WorldPlugin {
         app.init_resource::<WalkBlockedMap>();
         app.add_systems(Startup, startup);
         app.add_systems(PreUpdate, update_tilemap);
-        app.add_systems(
-            Update,
-            (
-                spawn,
-                update_visibility,
-                update_walkability,
-                damage_mobs,
-                move_mobs,
-            )
-                .chain(),
-        );
+        app.add_systems(Update, (update_visibility, update_walkability).chain());
         app.add_event::<SpawnEvent>();
-        app.add_event::<MobDamageEvent>();
     }
 }
