@@ -192,7 +192,7 @@ struct RightSightLine;
 fn make_sight_lines(mut commands: Commands, assets: Res<WorldAssets>) {
     let bundle = (
         Mesh2d(assets.pixel.clone()),
-        MeshMaterial2d(assets.yellow.clone()),
+        MeshMaterial2d(assets.sight_line.clone()),
         RenderLayers::layer(1),
         Transform::IDENTITY,
     );
@@ -202,34 +202,30 @@ fn make_sight_lines(mut commands: Commands, assets: Res<WorldAssets>) {
 
 #[allow(clippy::type_complexity)]
 fn update_sight_lines(
-    mut left: Query<&mut Transform, With<LeftSightLine>>,
-    mut right: Query<&mut Transform, (With<RightSightLine>, Without<LeftSightLine>)>,
-    player: Query<
-        &Transform,
-        (
-            With<Player>,
-            Without<LeftSightLine>,
-            Without<RightSightLine>,
-        ),
-    >,
+    mut set: ParamSet<(
+        Query<&mut Transform, With<LeftSightLine>>,
+        Query<&mut Transform, With<RightSightLine>>,
+        Query<&Transform, With<Player>>,
+    )>,
     shoot_state: Res<ShootState>,
     mouse_world_coords: Res<MouseWorldCoords>,
 ) {
-    let left = left.single_mut();
-    let right = right.single_mut();
-    let player = player.single();
-    let mouse_offset = mouse_world_coords.0 - player.translation.truncate();
+    let player_translation = set.p2().single().translation;
+    let mouse_offset = mouse_world_coords.0 - player_translation.truncate();
     let left_dir = Vec2::from_angle(shoot_state.jitter_radians).rotate(mouse_offset.normalize());
     let right_dir = Vec2::from_angle(-shoot_state.jitter_radians).rotate(mouse_offset.normalize());
     let line_start_distance = 60.0;
     let line_length = 180.0;
-    for (mut transform, dir) in [(left, left_dir), (right, right_dir)] {
-        transform.translation = (player.translation.truncate()
+
+    let set_sight_line_transform = |transform: &mut Transform, dir: Vec2| {
+        transform.translation = (player_translation.truncate()
             + dir * (line_start_distance + line_length / 2.0))
             .extend(0.0);
         transform.rotation = Quat::from_rotation_z((dir).to_angle());
         transform.scale = Vec3::new(line_length, 1.0, 1.0);
-    }
+    };
+    set_sight_line_transform(&mut set.p0().single_mut(), left_dir);
+    set_sight_line_transform(&mut set.p1().single_mut(), right_dir);
 }
 
 #[allow(clippy::complexity)]

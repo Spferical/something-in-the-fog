@@ -65,10 +65,10 @@ pub struct WorldAssets {
     pub pixel: Handle<Mesh>,
     pub white: Handle<ColorMaterial>,
     pub green: Handle<ColorMaterial>,
-    pub yellow: Handle<ColorMaterial>,
     pub dark_green: Handle<ColorMaterial>,
     pub red: Handle<ColorMaterial>,
     pub purple: Handle<ColorMaterial>,
+    pub sight_line: Handle<ColorMaterial>,
 }
 
 fn init_assets(
@@ -82,10 +82,12 @@ fn init_assets(
         pixel: meshes.add(Rectangle::new(1.0, 1.0)),
         white: materials.add(Color::LinearRgba(LinearRgba::WHITE)),
         green: materials.add(Color::LinearRgba(LinearRgba::GREEN)),
-        yellow: materials.add(Color::Srgba(bevy::color::palettes::basic::YELLOW)),
         dark_green: materials.add(Color::LinearRgba(LinearRgba::rgb(0.0, 0.5, 0.0))),
         red: materials.add(Color::LinearRgba(LinearRgba::RED)),
         purple: materials.add(Color::LinearRgba(LinearRgba::rgb(1.0, 0.0, 1.0))),
+        sight_line: materials.add(Color::Srgba(
+            bevy::color::palettes::basic::YELLOW.with_alpha(0.5),
+        )),
     });
 }
 
