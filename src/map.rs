@@ -221,6 +221,7 @@ fn move_mobs(
     let player_pos = player.single();
     for (entity, mut mob, mut pos, transform) in mobs.iter_mut() {
         let player_visible = Bresenham::new((pos.0.x, pos.0.y), (player_pos.0.x, player_pos.0.y))
+            .skip(1)
             .all(|(x, y)| !sight_blocked_map.0.contains(&IVec2::new(x, y)));
         if player_visible {
             mob.saw_player_at = Some(player_pos.0);
