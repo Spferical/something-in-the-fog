@@ -115,7 +115,6 @@ fn update_camera(
 
 fn setup(mut commands: Commands, mut window: Query<&mut Window>, assets: Res<GameAssets>) {
     window.single_mut().resizable = true;
-    window.single_mut().present_mode = bevy::window::PresentMode::AutoNoVsync;
     let player_start_translation = Vec3::new(PLAYER_START.x as f32, PLAYER_START.y as f32, 1.0);
     commands.spawn((
         Player,
@@ -412,9 +411,10 @@ fn move_player(
             world_pos.0 += movement;
             if movement != IVec2::ZERO {
                 commands.entity(entity).insert(MoveAnimation {
-                    from: transform.translation.truncate(),
+                    from: MapPos(world_pos.0 - movement).to_vec2(),
                     to: world_pos.to_vec2(),
                     timer: Timer::new(Duration::from_millis(100), TimerMode::Once),
+                    ease: EaseFunction::QuadraticOut,
                 });
                 local_state.last_move_direction = movement;
                 timer.0.reset();

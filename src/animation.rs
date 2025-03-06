@@ -5,6 +5,7 @@ pub struct MoveAnimation {
     pub from: Vec2,
     pub to: Vec2,
     pub timer: Timer,
+    pub ease: EaseFunction,
 }
 
 fn animate(
@@ -14,9 +15,8 @@ fn animate(
 ) {
     for (entity, mut transform, mut animation) in query.iter_mut() {
         animation.timer.tick(time.delta());
-        let Vec2 { x, y } = animation
-            .from
-            .lerp(animation.to, animation.timer.fraction());
+        let Vec2 { x, y } = EasingCurve::new(animation.from, animation.to, animation.ease)
+            .sample_clamped(animation.timer.fraction());
         transform.translation.x = x;
         transform.translation.y = y;
         if animation.timer.finished() {

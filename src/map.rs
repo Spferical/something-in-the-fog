@@ -6,7 +6,7 @@ use std::{
 use bevy::{prelude::*, render::view::RenderLayers};
 use line_drawing::Bresenham;
 
-use crate::{Player, assets::GameAssets, animation::MoveAnimation};
+use crate::{Player, animation::MoveAnimation, assets::GameAssets};
 
 pub const TILE_SIZE: f32 = 48.0;
 pub const ZOMBIE_MOVE_DELAY: Duration = Duration::from_secs(1);
@@ -253,7 +253,8 @@ fn move_mobs(
                         commands.entity(entity).insert(MoveAnimation {
                             from: transform.translation.truncate(),
                             to: pos.to_vec2(),
-                            timer: Timer::new(Duration::from_millis(100), TimerMode::Once),
+                            timer: Timer::new(Duration::from_millis(300), TimerMode::Once),
+                            ease: EaseFunction::BounceIn,
                         });
                         mob.move_timer.reset();
                     }
