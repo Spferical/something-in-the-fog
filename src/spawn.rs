@@ -1,5 +1,3 @@
-use std::time::Duration;
-
 use bevy::{prelude::*, render::view::RenderLayers};
 
 use crate::{
@@ -7,8 +5,6 @@ use crate::{
     map::{BlocksMovement, BlocksSight, MapPos, TILE_SIZE, Tile, TileKind},
     mob::{Mob, MobKind},
 };
-
-pub const ZOMBIE_MOVE_DELAY: Duration = Duration::from_secs(1);
 
 pub enum Spawn {
     Tile(TileKind),
@@ -66,12 +62,12 @@ fn spawn(
             }
             entity_commands.insert(Tile(*t));
         }
-        if let Spawn::Mob(_) = spawn {
+        if let Spawn::Mob(kind) = spawn {
             entity_commands.insert(Mob {
                 saw_player_at: None,
-                move_timer: Timer::new(ZOMBIE_MOVE_DELAY, TimerMode::Once),
+                move_timer: Timer::new(kind.get_move_delay(), TimerMode::Once),
                 damage: 0,
-                kind: MobKind::Zombie,
+                kind: *kind,
             });
         }
     }

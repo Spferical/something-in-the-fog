@@ -413,6 +413,13 @@ pub fn gen_map() -> MapgenResult {
             tile_map[door] = None;
         }
     }
+    let sculpture_room = warehouse_room_graph.choose(&mut rng).unwrap();
+    let sculpture_room_free_spots = sculpture_room
+        .into_iter()
+        .filter(|p| tile_map[*p].filter(|t| t.blocks_movement()).is_none())
+        .collect::<Vec<_>>();
+    let sculpture_pos = sculpture_room_free_spots.choose(&mut rng).unwrap();
+    mob_spawns.insert(*sculpture_pos, MobKind::Sculpture);
 
     // Railyard. Wide open but with large shipping containers obscuring vision.
     let mut railyard_rect = warehouse_zone_rect.right_edge();

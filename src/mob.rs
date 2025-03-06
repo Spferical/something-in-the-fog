@@ -8,9 +8,28 @@ use crate::{
     animation::MoveAnimation,
     map::{MapPos, SightBlockedMap, WalkBlockedMap},
 };
+#[derive(Clone, Copy)]
 pub enum MobKind {
     Zombie,
     Sculpture,
+}
+
+impl MobKind {
+    pub fn get_move_delay(&self) -> Duration {
+        use MobKind::*;
+        match self {
+            Zombie => Duration::from_secs(1),
+            Sculpture => Duration::from_millis(16),
+        }
+    }
+
+    pub fn max_damage(&self) -> i32 {
+        use MobKind::*;
+        match self {
+            Zombie => 3,
+            Sculpture => 99,
+        }
+    }
 }
 
 #[derive(Component)]
@@ -35,7 +54,7 @@ fn damage_mobs(
     for MobDamageEvent { damage, entity } in ev_mob_damage.read() {
         if let Ok((entity, mut mob)) = q_mob.get_mut(*entity) {
             mob.damage += damage;
-            if mob.damage >= 3 {
+            if mob.damage >= mob.kind.max_damage() {
                 commands.entity(entity).despawn();
             }
         }
@@ -70,7 +89,7 @@ fn move_mobs(
                             commands.entity(entity).insert(MoveAnimation {
                                 from: transform.translation.truncate(),
                                 to: pos.to_vec2(),
-                                timer: Timer::new(Duration::from_millis(300), TimerMode::Once),
+                                timer: Timer::new(mob.kind.get_move_delay() / 2, TimerMode::Once),
                                 ease: EaseFunction::BounceIn,
                             });
                             mob.move_timer.reset();
