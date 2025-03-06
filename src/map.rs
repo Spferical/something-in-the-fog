@@ -6,7 +6,7 @@ use std::{
 use bevy::{prelude::*, render::view::RenderLayers};
 use line_drawing::Bresenham;
 
-use crate::{assets::GameAssets, Player};
+use crate::{Player, assets::GameAssets};
 
 pub const TILE_SIZE: f32 = 48.0;
 pub const ZOMBIE_MOVE_DELAY: Duration = Duration::from_secs(1);
@@ -57,7 +57,6 @@ fn update_tilemap(mut tile_map: ResMut<Map>, query: Query<(Entity, &MapPos)>) {
         tile_map.0.entry(*vec2).or_default().push(entity);
     }
 }
-
 
 fn startup(mut ev_spawn: EventWriter<SpawnEvent>) {
     for (pos, spawn_list) in crate::mapgen::gen_map() {
@@ -113,6 +112,28 @@ pub struct Mob {
     saw_player_at: Option<IVec2>,
     #[allow(unused)]
     move_timer: Timer,
+    damage: i32,
+}
+
+#[derive(Event)]
+pub struct MobDamageEvent {
+    pub damage: i32,
+    pub entity: Entity,
+}
+
+fn damage_mobs(
+    mut commands: Commands,
+    mut q_mob: Query<(Entity, &mut Mob)>,
+    mut ev_mob_damage: EventReader<MobDamageEvent>,
+) {
+    for MobDamageEvent { damage, entity } in ev_mob_damage.read() {
+        if let Ok((entity, mut mob)) = q_mob.get_mut(*entity) {
+            mob.damage += damage;
+            if mob.damage >= 3 {
+                commands.entity(entity).despawn();
+            }
+        }
+    }
 }
 
 #[derive(Event)]
@@ -158,6 +179,7 @@ fn spawn(
             entity_commands.insert(Mob {
                 saw_player_at: None,
                 move_timer: Timer::new(ZOMBIE_MOVE_DELAY, TimerMode::Once),
+                damage: 0,
             });
         }
     }
@@ -250,8 +272,16 @@ impl Plugin for WorldPlugin {
         app.add_systems(PreUpdate, update_tilemap);
         app.add_systems(
             Update,
-            (spawn, update_visibility, update_walkability, move_mobs).chain(),
+            (
+                spawn,
+                update_visibility,
+                update_walkability,
+                damage_mobs,
+                move_mobs,
+            )
+                .chain(),
         );
         app.add_event::<SpawnEvent>();
+        app.add_event::<MobDamageEvent>();
     }
 }

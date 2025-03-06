@@ -11,7 +11,7 @@ use bevy::{
         view::RenderLayers,
     },
 };
-use map::{Map, MapPos, Mob, TILE_SIZE, Tile};
+use map::{Map, MapPos, Mob, MobDamageEvent, TILE_SIZE, Tile};
 use rand::Rng as _;
 
 mod assets;
@@ -226,9 +226,10 @@ fn update_shooting(
     time: Res<Time>,
     mouse_button: Res<ButtonInput<MouseButton>>,
     map: Res<Map>,
-    mobs: Query<(&Mob, &Transform), Without<Player>>,
+    mobs: Query<(Entity, &Transform), Without<Player>>,
     tiles: Query<(&Tile, &Transform), (Without<Mob>, Without<Player>)>,
-    mut ev_spawn_bullet: EventWriter<SpawnBulletEvent>,
+    mut ev_spawn_bullet: EventWriter<ShootEvent>,
+    mut ev_damage_mob: EventWriter<MobDamageEvent>,
 ) {
     let player_pos = player_query.single();
 
@@ -251,24 +252,30 @@ fn update_shooting(
         shoot_state.focus -= 1.0;
         let mut collisions = vec![];
         let player_pos_ivec2 = MapPos::from_vec3(player_pos.translation).0;
-        for (_mob, transform) in mobs.iter_many(map.get_nearby(player_pos_ivec2, 100)) {
-            collisions.push(Aabb2d::new(
-                transform.translation.truncate(),
-                Vec2::splat(TILE_SIZE / 2.0),
+        for (entity, transform) in mobs.iter_many(map.get_nearby(player_pos_ivec2, 100)) {
+            collisions.push((
+                Some(entity),
+                Aabb2d::new(
+                    transform.translation.truncate(),
+                    Vec2::splat(TILE_SIZE / 2.0),
+                ),
             ));
         }
         for (tile, transform) in tiles.iter_many(map.get_nearby(player_pos_ivec2, 100)) {
             if tile.0.blocks_movement() {
-                collisions.push(Aabb2d::new(
-                    transform.translation.truncate(),
-                    Vec2::splat(TILE_SIZE / 2.0),
+                collisions.push((
+                    None,
+                    Aabb2d::new(
+                        transform.translation.truncate(),
+                        Vec2::splat(TILE_SIZE / 2.0),
+                    ),
                 ));
             }
         }
         let dist_to_player = |point| player_pos.translation.truncate().distance_squared(point);
         collisions.sort_by(|a, b| {
-            dist_to_player((a.min + a.max) / 2.0)
-                .partial_cmp(&dist_to_player((b.min + b.max) / 2.0))
+            dist_to_player((a.1.min + a.1.max) / 2.0)
+                .partial_cmp(&dist_to_player((b.1.min + b.1.max) / 2.0))
                 .unwrap()
         });
 
@@ -278,32 +285,41 @@ fn update_shooting(
         if let Ok(dir) = Dir2::new(dir) {
             let ray = RayCast2d::new(line_start, dir, 4000.0);
             let mut line = None;
-            for c in collisions {
-                if let Some(distance) = ray.aabb_intersection_at(&c) {
+            let mut hit_mob = None;
+            for (mob, aabb) in collisions {
+                if let Some(distance) = ray.aabb_intersection_at(&aabb) {
                     line = Some((line_start, line_start + dir * distance));
+                    hit_mob = mob;
                     break;
                 }
             }
             // did not collide with any wall or mob.
             let line = line.unwrap_or((line_start, line_start + dir * 4000.0));
             let (start, end) = line;
-            ev_spawn_bullet.send(SpawnBulletEvent { start, end });
+            ev_spawn_bullet.send(ShootEvent { start, end });
+            if let Some(hit_mob) = hit_mob {
+                ev_damage_mob.send(MobDamageEvent {
+                    damage: 1,
+                    entity: hit_mob,
+                });
+            }
         }
     }
 }
 
+/// Player fired their gun and it hit something.
 #[derive(Event)]
-struct SpawnBulletEvent {
+struct ShootEvent {
     start: Vec2,
     end: Vec2,
 }
 
 fn spawn_bullets(
     mut commands: Commands,
-    mut ev_spawn_bullet: EventReader<SpawnBulletEvent>,
+    mut ev_spawn_bullet: EventReader<ShootEvent>,
     assets: Res<GameAssets>,
 ) {
-    for SpawnBulletEvent { start, end } in ev_spawn_bullet.read() {
+    for ShootEvent { start, end } in ev_spawn_bullet.read() {
         // create a rectangle stretching between start and end.
         commands.spawn((
             ClearAfter(Timer::new(Duration::from_millis(100), TimerMode::Once)),
@@ -411,6 +427,6 @@ fn main() {
                 .chain(),
         )
         .add_systems(FixedUpdate, move_player)
-        .add_event::<SpawnBulletEvent>()
+        .add_event::<ShootEvent>()
         .run();
 }
