@@ -16,8 +16,6 @@ pub struct SdfMaterial {
     pub iteration: i32,
     #[uniform(4)]
     pub probe_size: i32,
-    #[uniform(5)]
-    pub screen_size: IVec2,
 }
 
 impl Material2d for SdfMaterial {

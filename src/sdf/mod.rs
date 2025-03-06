@@ -31,8 +31,8 @@ pub fn setup_sdf_pass(
     mut materials: ResMut<Assets<SdfMaterial>>,
 ) {
     let (width, height) = (
-        window.resolution.physical_width() as f32,
-        window.resolution.physical_height() as f32,
+        (window.resolution.physical_width()) as f32,
+        (window.resolution.physical_height()) as f32,
     );
 
     let larger_dim = width.max(height);
@@ -50,7 +50,10 @@ pub fn setup_sdf_pass(
     };
 
     let fullscreen_mesh = meshes.add(Rectangle::new(width, height));
-
+    let proj = OrthographicProjection {
+        scale: 1.0,
+        ..OrthographicProjection::default_2d()
+    };
     for i in 0..endpoint {
         let ping_it = SDF_START_LAYER - i;
         let ping_image = sdf_texture.iters[i].clone();
@@ -63,7 +66,12 @@ pub fn setup_sdf_pass(
                 order: (SDF_ORDER_OFFSET + i) as isize,
                 ..default()
             };
-            commands.spawn((Camera2d, camera_postprocess, RenderLayers::layer(ping_it)));
+            commands.spawn((
+                Camera2d,
+                proj.clone(),
+                camera_postprocess,
+                RenderLayers::layer(ping_it),
+            ));
         } else {
             let camera_postprocess = Camera {
                 clear_color: ClearColorConfig::Custom(Color::linear_rgba(0.0, 0.0, 0.0, 0.0)),
@@ -72,9 +80,13 @@ pub fn setup_sdf_pass(
                 order: (SDF_ORDER_OFFSET + i) as isize,
                 ..default()
             };
-            commands.spawn((Camera2d, camera_postprocess, RenderLayers::layer(ping_it)));
+            commands.spawn((
+                Camera2d,
+                proj.clone(),
+                camera_postprocess,
+                RenderLayers::layer(ping_it),
+            ));
         }
-
         commands.spawn((
             Mesh2d(fullscreen_mesh.clone()),
             Transform::from_translation(Vec3::new(0.0, 0.0, 1.5)),
@@ -84,7 +96,6 @@ pub fn setup_sdf_pass(
                 seed_texture: Some(ping_image.clone()),
                 iteration: i as i32,
                 probe_size: 1 << (num_passes - i - 1),
-                screen_size: IVec2::new(width as i32, height as i32),
             })),
             RenderLayers::layer(ping_it),
         ));

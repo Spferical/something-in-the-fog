@@ -47,8 +47,8 @@ fn create_camera(
     window.resizable = true;
     let mut image = Image::new_fill(
         Extent3d {
-            width: window.resolution.physical_width(), // does this work?
-            height: window.resolution.physical_height(),
+            width: window.resolution.physical_width() / 1, // does this work?
+            height: window.resolution.physical_height() / 1,
             ..default()
         },
         TextureDimension::D2,
@@ -77,25 +77,11 @@ fn create_camera(
         RenderLayers::layer(1),
         PrimaryCamera,
         Transform::from_translation(Vec3::new(0.0, 0.0, 3.0)),
+        OrthographicProjection {
+            scale: 1.0,
+            ..OrthographicProjection::default_2d()
+        },
     ));
-
-    /*match camera_query.get_single() {
-        Ok((camera_entity, _)) => {
-            commands
-                .entity(camera_entity)
-                .remove::<Camera>()
-                .insert(camera);
-        }
-        Err(_) => {
-            commands.spawn((
-                Camera2d,
-                camera,
-                RenderLayers::layer(1),
-                PrimaryCamera,
-                Transform::from_translation(Vec3::new(0.0, 0.0, 3.0)),
-            ));
-        }
-    };*/
 
     for e in resize_reader.read() {
         println!("Resize happened {:?}", e);

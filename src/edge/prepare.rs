@@ -39,8 +39,8 @@ pub fn prepare_edge_texture(
     mut images: ResMut<Assets<Image>>,
 ) {
     let target_size = Extent3d {
-        width: window.resolution.physical_width(),
-        height: window.resolution.physical_height(),
+        width: window.resolution.physical_width() / 1,
+        height: window.resolution.physical_height() / 1,
         ..default()
     };
     let mut image = Image {

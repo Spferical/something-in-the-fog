@@ -24,8 +24,8 @@ pub fn setup_edge_pass(
     mut materials: ResMut<Assets<EdgeMaterial>>,
 ) {
     let (width, height) = (
-        window.resolution.physical_width() as f32,
-        window.resolution.physical_height() as f32,
+        (window.resolution.physical_width()) as f32,
+        (window.resolution.physical_height()) as f32,
     );
 
     let Ok(edge_texture) = edge_texture_query.get_single() else {
@@ -47,6 +47,10 @@ pub fn setup_edge_pass(
         Camera2d,
         camera_postprocess,
         RenderLayers::layer(EDGE_LAYER),
+        OrthographicProjection {
+            scale: 1.0,
+            ..OrthographicProjection::default_2d()
+        },
     ));
 
     commands.spawn((
