@@ -26,6 +26,10 @@ const CAMERA_DECAY_RATE: f32 = 2.;
 const PLAYER_MOVE_DELAY: Duration = Duration::from_millis(100);
 const PLAYER_SHOOT_DELAY: Duration = Duration::from_millis(500);
 const PLAYER_START: IVec2 = IVec2::new(0, 0);
+const PLAYER_FOCUS_TIME_SECS: f32 = 2.5;
+const PLAYER_MOVE_FOCUS_PENALTY_SECS: f32 = 1.0;
+const PLAYER_SHOOT_FOCUS_PENALTY_SECS: f32 = 1.0;
+const PLAYER_AIM_JITTER_MAX_DEGREES: f32 = 15.0;
 
 fn on_resize(mut resize_reader: EventReader<bevy::window::WindowResized>) {
     for _e in resize_reader.read() {}
@@ -152,6 +156,7 @@ fn update_mouse_coords(
 struct ShootState {
     timer: Timer,
     player_last_position: Vec2,
+    // At 0, player fires wildly. At 1.0, player fires perfectly accurately.
     focus: f32,
     jitter_radians: f32,
 }
@@ -198,6 +203,8 @@ fn update_sight_lines(
     )>,
     shoot_state: Res<ShootState>,
     mouse_world_coords: Res<MouseWorldCoords>,
+    mut materials: ResMut<Assets<ColorMaterial>>,
+    assets: Res<GameAssets>,
 ) {
     let player_translation = set.p2().single().translation;
     let mouse_offset = mouse_world_coords.0 - player_translation.truncate();
@@ -213,6 +220,9 @@ fn update_sight_lines(
         transform.rotation = Quat::from_rotation_z((dir).to_angle());
         transform.scale = Vec3::new(line_length, 1.0, 1.0);
     };
+    let alpha = ((shoot_state.focus - 0.2) / 2.0).clamp(0.0, 0.4);
+    materials.get_mut(assets.sight_line.id()).unwrap().color =
+        Color::Srgba(bevy::color::palettes::basic::YELLOW.with_alpha(alpha));
     set_sight_line_transform(&mut set.p0().single_mut(), left_dir);
     set_sight_line_transform(&mut set.p1().single_mut(), right_dir);
 }
@@ -235,20 +245,20 @@ fn update_shooting(
     shoot_state.timer.tick(time.delta());
     if shoot_state.player_last_position != player_pos.translation.truncate() {
         shoot_state.player_last_position = player_pos.translation.truncate();
-        shoot_state.focus -= 1.0;
+        shoot_state.focus -= PLAYER_MOVE_FOCUS_PENALTY_SECS / PLAYER_FOCUS_TIME_SECS;
     } else {
-        shoot_state.focus += time.delta().as_secs_f32();
+        shoot_state.focus += time.delta().as_secs_f32() / PLAYER_FOCUS_TIME_SECS;
     }
-    shoot_state.focus = shoot_state.focus.clamp(0.0, 2.5);
+    shoot_state.focus = shoot_state.focus.clamp(0.0, 1.0);
 
     let mouse_offset = mouse_world_coords.0 - player_pos.translation.truncate();
-    let aim_angle_degrees = (15.0 - shoot_state.focus * 6.0).max(0.0);
-    shoot_state.jitter_radians = aim_angle_degrees * PI / 180.0;
+    let jitter_degrees = PLAYER_AIM_JITTER_MAX_DEGREES * (1.0 - shoot_state.focus).max(0.0);
+    shoot_state.jitter_radians = jitter_degrees * PI / 180.0;
 
     if mouse_button.just_pressed(MouseButton::Left) {
         // shoot
         let line_start = player_pos.translation.truncate();
-        shoot_state.focus -= 1.0;
+        shoot_state.focus -= PLAYER_SHOOT_FOCUS_PENALTY_SECS / PLAYER_FOCUS_TIME_SECS;
         let mut collisions = vec![];
         let player_pos_ivec2 = MapPos::from_vec3(player_pos.translation).0;
         for (entity, transform) in mobs.iter_many(map.get_nearby(player_pos_ivec2, 100)) {
