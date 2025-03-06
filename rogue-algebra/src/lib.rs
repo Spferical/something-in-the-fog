@@ -590,6 +590,16 @@ impl Rect {
     pub fn intersects(&self, other: &Rect) -> bool {
         self.x1 <= other.x2 && self.x2 >= other.x1 && self.y1 <= other.y2 && self.y2 >= other.y1
     }
+
+    #[must_use]
+    pub fn intersect(&self, other: &Rect) -> Option<Rect> {
+        self.intersects(other).then_some(Rect {
+            x1: self.x1.max(other.x1),
+            y1: self.y1.max(other.y1),
+            x2: self.x2.min(other.x2),
+            y2: self.y2.min(other.y2),
+        })
+    }
 }
 
 /// Iterator over the positions in a rectangle. Goes row-by-row from the

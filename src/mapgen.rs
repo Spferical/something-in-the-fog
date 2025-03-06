@@ -414,6 +414,53 @@ pub fn gen_map() -> MapgenResult {
         }
     }
 
+    // Railyard. Wide open but with large shipping containers obscuring vision.
+    let mut railyard_rect = warehouse_zone_rect.right_edge();
+    railyard_rect.x1 += 1;
+    railyard_rect.x2 += 81;
+    let mut boxes_zone = railyard_rect;
+    boxes_zone.x1 += 1;
+    tile_map.set_rect(boxes_zone, Some(TileKind::ShippingContainer));
+    loop {
+        let mut walkable = railyard_rect.into_iter().collect::<HashSet<_>>();
+        for _ in 0..80 {
+            let center = boxes_zone.choose(&mut rng);
+            let width = rng.gen_range(1..=8);
+            let height = rng.gen_range(1..=8);
+            let box_rect = Rect::new_centered(center, width, height)
+                .intersect(&boxes_zone)
+                .unwrap();
+            for p in box_rect {
+                walkable.remove(&p);
+            }
+        }
+        let starts: Vec<Pos> = railyard_rect.left_edge().into_iter().collect();
+        let reachable = |p: Pos| {
+            p.adjacent_cardinal()
+                .iter()
+                .cloned()
+                .filter(|p| railyard_rect.contains(*p))
+                .filter(|p| walkable.contains(p))
+                .collect::<Vec<Pos>>()
+        };
+
+        // flood fill to verify connectivity
+        walkable = walkable
+            .union(&dfs(&starts, reachable).collect::<HashSet<_>>())
+            .cloned()
+            .collect();
+        if boxes_zone
+            .right_edge()
+            .into_iter()
+            .any(|p| walkable.contains(&p))
+        {
+            for p in walkable {
+                tile_map[p] = None;
+            }
+            break;
+        }
+    }
+
     let mut spawns: HashMap<IVec2, Vec<Spawn>> = HashMap::new();
     for (pos, tile) in tile_map.iter() {
         if let Some(tile) = tile {
@@ -435,6 +482,7 @@ pub fn gen_map() -> MapgenResult {
             field_rect.into(),
             forest_rect.into(),
             warehouse_zone_rect.into(),
+            railyard_rect.into(),
         ],
     }
 }

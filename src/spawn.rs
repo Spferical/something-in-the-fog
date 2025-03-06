@@ -35,6 +35,7 @@ fn spawn(
     for SpawnEvent(pos, spawn) in ev_new_tile.read() {
         let color = match spawn {
             Spawn::Tile(TileKind::Wall) => world_assets.white.clone(),
+            Spawn::Tile(TileKind::ShippingContainer) => world_assets.brown.clone(),
             Spawn::Tile(TileKind::Crate) => world_assets.gray.clone(),
             Spawn::Tile(TileKind::Bush) => world_assets.green.clone(),
             Spawn::Tile(TileKind::Tree) => world_assets.dark_green.clone(),

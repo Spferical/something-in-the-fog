@@ -150,6 +150,7 @@ fn main() {
             animation::AnimatePlugin,
             renderer::Renderer,
             spawn::SpawnPlugin,
+            player::PlayerPlugin,
             mob::MobPlugin,
         ))
         .add_systems(Startup, (create_camera, setup))

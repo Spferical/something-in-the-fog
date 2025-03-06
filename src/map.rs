@@ -71,20 +71,21 @@ pub enum TileKind {
     Bush,
     Tree,
     Crate,
+    ShippingContainer,
 }
 
 impl TileKind {
     pub fn blocks_movement(&self) -> bool {
         use TileKind::*;
         match self {
-            Wall | Tree => true,
+            Wall | Tree | ShippingContainer => true,
             Bush | Crate => false,
         }
     }
     pub fn blocks_sight(&self) -> bool {
         use TileKind::*;
         match self {
-            Wall | Tree | Bush | Crate => true,
+            Wall | Tree | Bush | Crate | ShippingContainer => true,
         }
     }
 }
