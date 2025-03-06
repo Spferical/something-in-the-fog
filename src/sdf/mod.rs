@@ -8,7 +8,7 @@ use crate::edge::EdgeTexture;
 use crate::renderer::OccluderTextureCpu;
 use bevy::render::view::RenderLayers;
 pub use mat::SdfMaterial;
-pub use prepare::{prepare_sdf_texture, on_resize_sdf_texture};
+pub use prepare::{on_resize_sdf_texture, prepare_sdf_texture};
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone, RenderLabel)]
 pub struct SdfPass;

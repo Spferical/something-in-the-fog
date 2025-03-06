@@ -12,7 +12,7 @@ use bevy::{
     },
 };
 
-use map::{Map, MapPos, Mob, Tile, TILE_SIZE};
+use map::{Map, MapPos, Mob, TILE_SIZE, Tile};
 
 mod edge;
 mod map;
@@ -61,7 +61,6 @@ fn create_camera(
     let image_handle = images.add(image);
 
     let camera = Camera {
-        target: RenderTarget::Image(image_handle.clone()),
         clear_color: ClearColorConfig::Custom(Color::linear_rgba(0.0, 0.0, 0.0, 0.0)),
         hdr: true,
         order: 0,
@@ -270,8 +269,8 @@ fn update_shooting(
 #[allow(unused)]
 fn line_grid_intersection(start: Vec2, direction: Vec2) -> impl Iterator<Item = (Vec2, IVec2)> {
     // let direction = direction.normalize(); // not sure if this is necessary
-    use grid_ray::ilattice::glam;
     use grid_ray::GridRayIter2;
+    use grid_ray::ilattice::glam;
     let Vec2 { x, y } = start;
     let mut glam_start = glam::Vec2 { x, y } / TILE_SIZE;
     glam_start.x += 0.5;

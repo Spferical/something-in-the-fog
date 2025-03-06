@@ -1,9 +1,10 @@
+#![allow(unused)]
 use bevy::prelude::*;
 use bevy::render::render_resource::Extent3d;
 use bevy::sprite::Material2dPlugin;
 
-use crate::edge::{on_resize_edge_texture, prepare_edge_texture, setup_edge_pass, EdgeMaterial};
-use crate::sdf::{on_resize_sdf_texture, prepare_sdf_texture, setup_sdf_pass, SdfMaterial};
+use crate::edge::{EdgeMaterial, on_resize_edge_texture, prepare_edge_texture, setup_edge_pass};
+use crate::sdf::{SdfMaterial, on_resize_sdf_texture, prepare_sdf_texture, setup_sdf_pass};
 
 #[derive(Component, Clone)]
 pub struct OccluderTextureCpu(pub Handle<Image>);
@@ -48,9 +49,9 @@ fn on_resize_occluder_texture(
 impl Plugin for Renderer {
     fn build(&self, app: &mut App) {
         app.add_plugins(Material2dPlugin::<SdfMaterial>::default())
-            .add_plugins(Material2dPlugin::<EdgeMaterial>::default())
-            .add_systems(PreStartup, (prepare_sdf_texture, prepare_edge_texture))
-            .add_systems(PostStartup, (setup_sdf_pass, setup_edge_pass));
+            .add_plugins(Material2dPlugin::<EdgeMaterial>::default());
+        //  .add_systems(PreStartup, (prepare_sdf_texture, prepare_edge_texture))
+        //  .add_systems(PostStartup, (setup_sdf_pass, setup_edge_pass));
         //  .add_systems(Update, (on_resize_edge_texture, on_resize_sdf_texture));
         // .add_systems(Update, on_resize_occluder_texture);
         // .add_systems(Update, debug_render_targets);
