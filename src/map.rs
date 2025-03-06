@@ -106,6 +106,26 @@ fn update_visibility(
 #[derive(Default, Resource)]
 pub struct WalkBlockedMap(pub HashSet<IVec2>);
 
+impl WalkBlockedMap {
+    pub fn path(&self, start: IVec2, dest: IVec2, max_distance: i32) -> Option<Vec<IVec2>> {
+        pathfinding::directed::astar::astar(
+            &start,
+            |&p| {
+                rogue_algebra::CARDINALS
+                    .iter()
+                    .copied()
+                    .map(move |c| p + IVec2::from(c))
+                    .filter(|p| *p == dest || !self.0.contains(p))
+                    .filter(|p| p.distance_squared(dest) <= max_distance * max_distance)
+                    .map(|p| (p, 1))
+            },
+            |p| p.distance_squared(dest),
+            |p| *p == dest,
+        )
+        .map(|(path, _cost)| path)
+    }
+}
+
 fn update_walkability(
     query: Query<&MapPos, With<BlocksMovement>>,
     mut walk_map: ResMut<WalkBlockedMap>,

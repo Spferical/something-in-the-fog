@@ -40,6 +40,7 @@ fn spawn(
             Spawn::Tile(TileKind::Bush) => world_assets.green.clone(),
             Spawn::Tile(TileKind::Tree) => world_assets.dark_green.clone(),
             Spawn::Mob(MobKind::Zombie) => world_assets.purple.clone(),
+            Spawn::Mob(MobKind::Sculpture) => world_assets.brown.clone(),
         };
         let mesh = match spawn {
             Spawn::Tile(_) => world_assets.square.clone(),
@@ -70,6 +71,7 @@ fn spawn(
                 saw_player_at: None,
                 move_timer: Timer::new(ZOMBIE_MOVE_DELAY, TimerMode::Once),
                 damage: 0,
+                kind: MobKind::Zombie,
             });
         }
     }

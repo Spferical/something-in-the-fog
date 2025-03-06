@@ -642,6 +642,12 @@ mod bevy15 {
             Self { x, y }
         }
     }
+    impl From<Offset> for bevy15_math::IVec2 {
+        fn from(offset: Offset) -> Self {
+            let Offset { x, y } = offset;
+            Self { x, y }
+        }
+    }
 
     impl From<bevy15_math::IVec2> for Pos {
         fn from(ivec: bevy15_math::IVec2) -> Self {

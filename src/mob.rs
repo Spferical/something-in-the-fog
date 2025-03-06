@@ -10,10 +10,12 @@ use crate::{
 };
 pub enum MobKind {
     Zombie,
+    Sculpture,
 }
 
 #[derive(Component)]
 pub struct Mob {
+    pub kind: MobKind,
     pub saw_player_at: Option<IVec2>,
     pub move_timer: Timer,
     pub damage: i32,
@@ -59,35 +61,20 @@ fn move_mobs(
         mob.move_timer.tick(time.delta());
         if mob.move_timer.finished() {
             if let Some(player_pos) = mob.saw_player_at {
-                let path = rogue_algebra::path::bfs_paths(
-                    &[rogue_algebra::Pos::new(pos.0.x, pos.0.y)],
-                    10,
-                    |pos| {
-                        rogue_algebra::CARDINALS
-                            .iter()
-                            .copied()
-                            .map(|c| pos + c)
-                            .filter(|&rogue_algebra::Pos { x, y }| {
-                                !walk_blocked_map.0.contains(&IVec2 { x, y })
-                            })
-                            .collect()
-                    },
-                )
-                .find(|path| {
-                    (*path.last().unwrap() - rogue_algebra::Pos::from(player_pos)).mhn_dist() == 1
-                });
+                let path = walk_blocked_map.path(pos.0, player_pos, 100);
                 if let Some(path) = path {
                     if let Some(move_pos) = path.get(1) {
-                        let move_pos = IVec2::from(*move_pos);
-                        walk_blocked_map.0.insert(move_pos);
-                        pos.0 = move_pos;
-                        commands.entity(entity).insert(MoveAnimation {
-                            from: transform.translation.truncate(),
-                            to: pos.to_vec2(),
-                            timer: Timer::new(Duration::from_millis(300), TimerMode::Once),
-                            ease: EaseFunction::BounceIn,
-                        });
-                        mob.move_timer.reset();
+                        if *move_pos != player_pos {
+                            walk_blocked_map.0.insert(*move_pos);
+                            pos.0 = *move_pos;
+                            commands.entity(entity).insert(MoveAnimation {
+                                from: transform.translation.truncate(),
+                                to: pos.to_vec2(),
+                                timer: Timer::new(Duration::from_millis(300), TimerMode::Once),
+                                ease: EaseFunction::BounceIn,
+                            });
+                            mob.move_timer.reset();
+                        }
                     }
                 }
             }
