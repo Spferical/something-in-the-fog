@@ -1,6 +1,6 @@
 use std::{f32::consts::PI, time::Duration};
 
-use bevy::diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin};
+use bevy::diagnostic::LogDiagnosticsPlugin;
 use bevy::math::bounding::{Aabb2d, RayCast2d};
 use bevy::{
     asset::RenderAssetUsages,
@@ -16,9 +16,9 @@ use rand::Rng as _;
 mod edge;
 mod map;
 mod mapgen;
-// mod performance_ui;
 mod renderer;
 mod sdf;
+mod performance_ui;
 
 const CAMERA_DECAY_RATE: f32 = 2.;
 const PLAYER_MOVE_DELAY: Duration = Duration::from_millis(100);
@@ -401,8 +401,7 @@ fn move_player(
 fn main() {
     App::new()
         .add_plugins(DefaultPlugins.set(ImagePlugin::default_nearest()))
-        // .add_plugins(performance_ui::PerformanceUiPlugin)
-        .add_plugins(FrameTimeDiagnosticsPlugin::default())
+        .add_plugins(performance_ui::PerformanceUiPlugin)
         .add_plugins(LogDiagnosticsPlugin::default())
         .add_plugins(map::WorldPlugin)
         .add_plugins(renderer::Renderer)
