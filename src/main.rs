@@ -121,6 +121,7 @@ fn update_camera(
 
 fn setup(mut commands: Commands, mut window: Query<&mut Window>, assets: Res<map::WorldAssets>) {
     window.single_mut().resizable = true;
+    window.single_mut().present_mode = bevy::window::PresentMode::AutoNoVsync;
     let player_start_translation = Vec3::new(PLAYER_START.x as f32, PLAYER_START.y as f32, 1.0);
     commands.spawn((
         Player,
