@@ -1,5 +1,6 @@
 use std::{f32::consts::PI, time::Duration};
 
+use animation::MoveAnimation;
 use assets::GameAssets;
 use bevy::diagnostic::LogDiagnosticsPlugin;
 use bevy::math::bounding::{Aabb2d, RayCast2d};
@@ -14,6 +15,7 @@ use bevy::{
 use map::{Map, MapPos, Mob, MobDamageEvent, TILE_SIZE, Tile};
 use rand::Rng as _;
 
+mod animation;
 mod assets;
 mod edge;
 mod map;
@@ -23,7 +25,7 @@ mod sdf;
 mod ui;
 
 const CAMERA_DECAY_RATE: f32 = 2.;
-const PLAYER_MOVE_DELAY: Duration = Duration::from_millis(100);
+const PLAYER_MOVE_DELAY: Duration = Duration::from_millis(200);
 const PLAYER_SHOOT_DELAY: Duration = Duration::from_millis(500);
 const PLAYER_START: IVec2 = IVec2::new(0, 0);
 const PLAYER_FOCUS_TIME_SECS: f32 = 2.5;
@@ -127,7 +129,6 @@ fn setup(mut commands: Commands, mut window: Query<&mut Window>, assets: Res<Gam
     commands.insert_resource(MouseWorldCoords(player_start_translation.truncate()));
     commands.insert_resource(ShootState {
         timer: Timer::new(PLAYER_SHOOT_DELAY, TimerMode::Once),
-        player_last_position: player_start_translation.truncate(),
         focus: 0.0,
         jitter_radians: 0.0,
     });
@@ -155,23 +156,22 @@ fn update_mouse_coords(
 #[derive(Debug, Resource)]
 struct ShootState {
     timer: Timer,
-    player_last_position: Vec2,
     // At 0, player fires wildly. At 1.0, player fires perfectly accurately.
     focus: f32,
     jitter_radians: f32,
 }
 
 #[derive(Component)]
-struct ClearAfter(Timer);
+struct DespawnAfter(Timer);
 
-fn clear_after(
+fn despawn_after(
     mut commands: Commands,
-    mut query: Query<(Entity, &mut ClearAfter)>,
+    mut query: Query<(Entity, &mut DespawnAfter)>,
     time: Res<Time>,
 ) {
-    for (entity, mut bullet_trail) in query.iter_mut() {
-        bullet_trail.0.tick(time.delta());
-        if bullet_trail.0.finished() {
+    for (entity, mut clear_after) in query.iter_mut() {
+        clear_after.0.tick(time.delta());
+        if clear_after.0.finished() {
             commands.entity(entity).despawn();
         }
     }
@@ -239,12 +239,12 @@ fn update_shooting(
     tiles: Query<(&Tile, &Transform), (Without<Mob>, Without<Player>)>,
     mut ev_spawn_bullet: EventWriter<ShootEvent>,
     mut ev_damage_mob: EventWriter<MobDamageEvent>,
+    mut ev_player_move: EventReader<PlayerMoveEvent>,
 ) {
     let player_pos = player_query.single();
 
     shoot_state.timer.tick(time.delta());
-    if shoot_state.player_last_position != player_pos.translation.truncate() {
-        shoot_state.player_last_position = player_pos.translation.truncate();
+    if ev_player_move.read().count() > 0 {
         shoot_state.focus -= PLAYER_MOVE_FOCUS_PENALTY_SECS / PLAYER_FOCUS_TIME_SECS;
     } else {
         shoot_state.focus += time.delta().as_secs_f32() / PLAYER_FOCUS_TIME_SECS;
@@ -331,7 +331,7 @@ fn spawn_bullets(
     for ShootEvent { start, end } in ev_spawn_bullet.read() {
         // create a rectangle stretching between start and end.
         commands.spawn((
-            ClearAfter(Timer::new(Duration::from_millis(100), TimerMode::Once)),
+            DespawnAfter(Timer::new(Duration::from_millis(100), TimerMode::Once)),
             Mesh2d(assets.pixel.clone()),
             MeshMaterial2d(assets.white.clone()),
             RenderLayers::layer(1),
@@ -352,18 +352,24 @@ struct MovePlayerState {
     last_move_direction: IVec2,
 }
 
+#[derive(Event)]
+struct PlayerMoveEvent;
+
+#[allow(clippy::complexity)]
 fn move_player(
+    mut commands: Commands,
     keyboard_input: Res<ButtonInput<KeyCode>>,
-    mut player_query: Query<(&mut Transform, &mut map::MapPos), With<Player>>,
+    mut player_query: Query<(Entity, &mut Transform, &mut map::MapPos), With<Player>>,
     blocked_query: Query<&mut map::MapPos, (With<map::BlocksMovement>, Without<Player>)>,
     mut timer: ResMut<MoveTimer>,
     mut local_state: Local<MovePlayerState>,
     tile_map: Res<map::Map>,
     time: Res<Time>,
+    mut ev_player_move: EventWriter<PlayerMoveEvent>,
 ) {
     timer.0.tick(time.delta());
     if timer.0.finished() {
-        if let Ok((mut transform, mut world_pos)) = player_query.get_single_mut() {
+        if let Ok((entity, transform, mut world_pos)) = player_query.get_single_mut() {
             let mut movement = IVec2::ZERO;
             for (key, dir) in [
                 (KeyCode::KeyW, IVec2::new(0, 1)),
@@ -404,10 +410,15 @@ fn move_player(
                 }
             }
             world_pos.0 += movement;
-            transform.translation = world_pos.to_vec3(transform.translation.z);
             if movement != IVec2::ZERO {
+                commands.entity(entity).insert(MoveAnimation {
+                    from: transform.translation.truncate(),
+                    to: world_pos.to_vec2(),
+                    timer: Timer::new(Duration::from_millis(100), TimerMode::Once),
+                });
                 local_state.last_move_direction = movement;
                 timer.0.reset();
+                ev_player_move.send(PlayerMoveEvent);
             }
         }
     }
@@ -421,6 +432,7 @@ fn main() {
         .add_plugins(LogDiagnosticsPlugin::default())
         .add_plugins(assets::AssetsPlugin)
         .add_plugins(map::WorldPlugin)
+        .add_plugins(animation::AnimatePlugin)
         .add_plugins(renderer::Renderer)
         .add_systems(Startup, (create_camera, setup, make_sight_lines))
         .add_systems(
@@ -433,10 +445,11 @@ fn main() {
                 update_shooting,
                 update_sight_lines,
                 spawn_bullets,
-                clear_after,
+                despawn_after,
             )
                 .chain(),
         )
         .add_event::<ShootEvent>()
+        .add_event::<PlayerMoveEvent>()
         .run();
 }

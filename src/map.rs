@@ -6,7 +6,7 @@ use std::{
 use bevy::{prelude::*, render::view::RenderLayers};
 use line_drawing::Bresenham;
 
-use crate::{Player, assets::GameAssets};
+use crate::{Player, assets::GameAssets, animation::MoveAnimation};
 
 pub const TILE_SIZE: f32 = 48.0;
 pub const ZOMBIE_MOVE_DELAY: Duration = Duration::from_secs(1);
@@ -15,11 +15,10 @@ pub const ZOMBIE_MOVE_DELAY: Duration = Duration::from_secs(1);
 pub struct MapPos(pub IVec2);
 
 impl MapPos {
-    pub fn to_vec3(&self, z: f32) -> Vec3 {
-        Vec3 {
+    pub fn to_vec2(&self) -> Vec2 {
+        Vec2 {
             x: TILE_SIZE * self.0.x as f32,
             y: TILE_SIZE * self.0.y as f32,
-            z,
         }
     }
     pub fn from_vec3(vec3: Vec3) -> Self {
@@ -212,14 +211,15 @@ fn update_walkability(
 }
 
 fn move_mobs(
-    mut mobs: Query<(&mut Mob, &mut MapPos, &mut Transform)>,
+    mut commands: Commands,
+    mut mobs: Query<(Entity, &mut Mob, &mut MapPos, &mut Transform)>,
     player: Query<&MapPos, (With<Player>, Without<Mob>)>,
     sight_blocked_map: Res<SightBlockedMap>,
     mut walk_blocked_map: ResMut<WalkBlockedMap>,
     time: Res<Time>,
 ) {
     let player_pos = player.single();
-    for (mut mob, mut pos, mut transform) in mobs.iter_mut() {
+    for (entity, mut mob, mut pos, transform) in mobs.iter_mut() {
         let player_visible = Bresenham::new((pos.0.x, pos.0.y), (player_pos.0.x, player_pos.0.y))
             .all(|(x, y)| !sight_blocked_map.0.contains(&IVec2::new(x, y)));
         if player_visible {
@@ -250,8 +250,11 @@ fn move_mobs(
                         let move_pos = IVec2::from(*move_pos);
                         walk_blocked_map.0.insert(move_pos);
                         pos.0 = move_pos;
-                        transform.translation.x = pos.0.x as f32 * TILE_SIZE;
-                        transform.translation.y = pos.0.y as f32 * TILE_SIZE;
+                        commands.entity(entity).insert(MoveAnimation {
+                            from: transform.translation.truncate(),
+                            to: pos.to_vec2(),
+                            timer: Timer::new(Duration::from_millis(100), TimerMode::Once),
+                        });
                         mob.move_timer.reset();
                     }
                 }
