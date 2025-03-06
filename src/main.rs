@@ -16,9 +16,9 @@ use rand::Rng as _;
 mod edge;
 mod map;
 mod mapgen;
+mod performance_ui;
 mod renderer;
 mod sdf;
-mod performance_ui;
 
 const CAMERA_DECAY_RATE: f32 = 2.;
 const PLAYER_MOVE_DELAY: Duration = Duration::from_millis(100);

@@ -2,7 +2,10 @@ use bevy::{
     diagnostic::{DiagnosticsStore, EntityCountDiagnosticsPlugin, FrameTimeDiagnosticsPlugin},
     prelude::*,
 };
-use bevy_egui::{EguiContexts, EguiPlugin, egui};
+use bevy_egui::{
+    EguiContexts, EguiPlugin,
+    egui::{self, Color32},
+};
 
 #[derive(Default, Resource)]
 struct PerformanceUiState {
@@ -24,26 +27,32 @@ fn draw_performance_overlay(
     diagnostics: Res<DiagnosticsStore>,
 ) {
     if settings.show_performance_overlay {
-        egui::SidePanel::right("performance_ui_panel").show(contexts.ctx_mut(), |ui| {
-            if let Some(value) = diagnostics
-                .get(&FrameTimeDiagnosticsPlugin::FPS)
-                .and_then(|fps| fps.smoothed())
-            {
-                ui.label(format!("FPS: {value:>4.0}"));
-            }
-            if let Some(value) = diagnostics
-                .get(&FrameTimeDiagnosticsPlugin::FRAME_TIME)
-                .and_then(|time| time.smoothed())
-            {
-                ui.label(format!("Frame Time: {value:.3}ms"));
-            }
-            if let Some(value) = diagnostics
-                .get(&EntityCountDiagnosticsPlugin::ENTITY_COUNT)
-                .and_then(|v| v.value())
-            {
-                ui.label(format!("Entities: {value:>4}"));
-            }
-        });
+        egui::SidePanel::right("performance_ui_panel")
+            .frame(
+                egui::Frame::new()
+                    .fill(Color32::from_black_alpha(200))
+                    .inner_margin(12.0),
+            )
+            .show(contexts.ctx_mut(), |ui| {
+                if let Some(value) = diagnostics
+                    .get(&FrameTimeDiagnosticsPlugin::FPS)
+                    .and_then(|fps| fps.smoothed())
+                {
+                    ui.label(format!("FPS: {value:>4.0}"));
+                }
+                if let Some(value) = diagnostics
+                    .get(&FrameTimeDiagnosticsPlugin::FRAME_TIME)
+                    .and_then(|time| time.smoothed())
+                {
+                    ui.label(format!("Frame Time: {value:.3}ms"));
+                }
+                if let Some(value) = diagnostics
+                    .get(&EntityCountDiagnosticsPlugin::ENTITY_COUNT)
+                    .and_then(|v| v.value())
+                {
+                    ui.label(format!("Entities: {value:>4}"));
+                }
+            });
     }
 }
 
