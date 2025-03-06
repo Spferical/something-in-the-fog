@@ -11,15 +11,11 @@ pub(crate) struct UiPlugin;
 
 fn startup(mut contexts: EguiContexts) {
     let mut fonts = egui::FontDefinitions::default();
-    // Install my own font (maybe supporting non-latin characters):
     fonts.font_data.insert(
         "pressstart2p".to_owned(),
-        std::sync::Arc::new(
-            // .ttf and .otf supported
-            FontData::from_static(include_bytes!(
-                "../../assets/PressStart2P/PressStart2P-Regular.ttf"
-            )),
-        ),
+        std::sync::Arc::new(FontData::from_static(include_bytes!(
+            "../../assets/PressStart2P/PressStart2P-Regular.ttf"
+        ))),
     );
 
     fonts
