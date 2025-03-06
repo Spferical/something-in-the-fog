@@ -47,6 +47,12 @@ fn draw_performance_overlay(
                     ui.label(format!("Frame Time: {value:.3}ms"));
                 }
                 if let Some(value) = diagnostics
+                    .get(&FrameTimeDiagnosticsPlugin::FRAME_TIME)
+                    .map(|time| time.values().fold(f64::NEG_INFINITY, |a, &b| a.max(b)))
+                {
+                    ui.label(format!("Worst Frame Time: {value:.3}ms"));
+                }
+                if let Some(value) = diagnostics
                     .get(&EntityCountDiagnosticsPlugin::ENTITY_COUNT)
                     .and_then(|v| v.value())
                 {

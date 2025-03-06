@@ -415,6 +415,7 @@ fn main() {
         .add_systems(
             Update,
             (
+                move_player,
                 update_camera,
                 on_resize,
                 update_mouse_coords,
@@ -425,7 +426,6 @@ fn main() {
             )
                 .chain(),
         )
-        .add_systems(FixedUpdate, move_player)
         .add_event::<ShootEvent>()
         .run();
 }
