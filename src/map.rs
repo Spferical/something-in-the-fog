@@ -6,7 +6,7 @@ use std::{
 use bevy::{prelude::*, render::view::RenderLayers};
 use line_drawing::Bresenham;
 
-use crate::Player;
+use crate::{assets::GameAssets, Player};
 
 pub const TILE_SIZE: f32 = 48.0;
 pub const ZOMBIE_MOVE_DELAY: Duration = Duration::from_secs(1);
@@ -58,38 +58,6 @@ fn update_tilemap(mut tile_map: ResMut<Map>, query: Query<(Entity, &MapPos)>) {
     }
 }
 
-#[derive(Resource)]
-pub struct WorldAssets {
-    pub circle: Handle<Mesh>,
-    pub square: Handle<Mesh>,
-    pub pixel: Handle<Mesh>,
-    pub white: Handle<ColorMaterial>,
-    pub green: Handle<ColorMaterial>,
-    pub dark_green: Handle<ColorMaterial>,
-    pub red: Handle<ColorMaterial>,
-    pub purple: Handle<ColorMaterial>,
-    pub sight_line: Handle<ColorMaterial>,
-}
-
-fn init_assets(
-    mut commands: Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<ColorMaterial>>,
-) {
-    commands.insert_resource(WorldAssets {
-        square: meshes.add(Rectangle::new(TILE_SIZE, TILE_SIZE)),
-        circle: meshes.add(Circle::new(TILE_SIZE / 2.0)),
-        pixel: meshes.add(Rectangle::new(1.0, 1.0)),
-        white: materials.add(Color::LinearRgba(LinearRgba::WHITE)),
-        green: materials.add(Color::LinearRgba(LinearRgba::GREEN)),
-        dark_green: materials.add(Color::LinearRgba(LinearRgba::rgb(0.0, 0.5, 0.0))),
-        red: materials.add(Color::LinearRgba(LinearRgba::RED)),
-        purple: materials.add(Color::LinearRgba(LinearRgba::rgb(1.0, 0.0, 1.0))),
-        sight_line: materials.add(Color::Srgba(
-            bevy::color::palettes::basic::YELLOW.with_alpha(0.5),
-        )),
-    });
-}
 
 fn startup(mut ev_spawn: EventWriter<SpawnEvent>) {
     for (pos, spawn_list) in crate::mapgen::gen_map() {
@@ -152,7 +120,7 @@ struct SpawnEvent(IVec2, Spawn);
 
 fn spawn(
     mut commands: Commands,
-    world_assets: Res<WorldAssets>,
+    world_assets: Res<GameAssets>,
     mut ev_new_tile: EventReader<SpawnEvent>,
 ) {
     for SpawnEvent(pos, spawn) in ev_new_tile.read() {
@@ -278,7 +246,6 @@ impl Plugin for WorldPlugin {
         app.init_resource::<Map>();
         app.init_resource::<SightBlockedMap>();
         app.init_resource::<WalkBlockedMap>();
-        app.add_systems(PreStartup, init_assets);
         app.add_systems(Startup, startup);
         app.add_systems(PreUpdate, update_tilemap);
         app.add_systems(

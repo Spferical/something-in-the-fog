@@ -1,5 +1,6 @@
 use std::{f32::consts::PI, time::Duration};
 
+use assets::GameAssets;
 use bevy::diagnostic::LogDiagnosticsPlugin;
 use bevy::math::bounding::{Aabb2d, RayCast2d};
 use bevy::{
@@ -10,9 +11,10 @@ use bevy::{
         view::RenderLayers,
     },
 };
-use map::{Map, MapPos, Mob, TILE_SIZE, Tile, WorldAssets};
+use map::{Map, MapPos, Mob, TILE_SIZE, Tile};
 use rand::Rng as _;
 
+mod assets;
 mod edge;
 mod map;
 mod mapgen;
@@ -119,7 +121,7 @@ fn update_camera(
         .smooth_nudge(&direction, CAMERA_DECAY_RATE, time.delta_secs());
 }
 
-fn setup(mut commands: Commands, mut window: Query<&mut Window>, assets: Res<map::WorldAssets>) {
+fn setup(mut commands: Commands, mut window: Query<&mut Window>, assets: Res<GameAssets>) {
     window.single_mut().resizable = true;
     window.single_mut().present_mode = bevy::window::PresentMode::AutoNoVsync;
     let player_start_translation = Vec3::new(PLAYER_START.x as f32, PLAYER_START.y as f32, 1.0);
@@ -190,7 +192,7 @@ struct LeftSightLine;
 #[derive(Component)]
 struct RightSightLine;
 
-fn make_sight_lines(mut commands: Commands, assets: Res<WorldAssets>) {
+fn make_sight_lines(mut commands: Commands, assets: Res<GameAssets>) {
     let bundle = (
         Mesh2d(assets.pixel.clone()),
         MeshMaterial2d(assets.sight_line.clone()),
@@ -312,7 +314,7 @@ struct SpawnBulletEvent {
 fn spawn_bullets(
     mut commands: Commands,
     mut ev_spawn_bullet: EventReader<SpawnBulletEvent>,
-    assets: Res<WorldAssets>,
+    assets: Res<GameAssets>,
 ) {
     for SpawnBulletEvent { start, end } in ev_spawn_bullet.read() {
         // create a rectangle stretching between start and end.
@@ -404,6 +406,7 @@ fn main() {
         .add_plugins(DefaultPlugins.set(ImagePlugin::default_nearest()))
         .add_plugins(performance_ui::PerformanceUiPlugin)
         .add_plugins(LogDiagnosticsPlugin::default())
+        .add_plugins(assets::AssetsPlugin)
         .add_plugins(map::WorldPlugin)
         .add_plugins(renderer::Renderer)
         .add_systems(Startup, (create_camera, setup, make_sight_lines))
