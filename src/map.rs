@@ -75,6 +75,7 @@ pub enum TileKind {
     Wall,
     Bush,
     Tree,
+    Crate,
 }
 
 impl TileKind {
@@ -82,13 +83,13 @@ impl TileKind {
         use TileKind::*;
         match self {
             Wall | Tree => true,
-            Bush => false,
+            Bush | Crate => false,
         }
     }
     pub fn blocks_sight(&self) -> bool {
         use TileKind::*;
         match self {
-            Wall | Tree | Bush => true,
+            Wall | Tree | Bush | Crate => true,
         }
     }
 }
@@ -151,6 +152,7 @@ fn spawn(
     for SpawnEvent(pos, spawn) in ev_new_tile.read() {
         let color = match spawn {
             Spawn::Tile(TileKind::Wall) => world_assets.white.clone(),
+            Spawn::Tile(TileKind::Crate) => world_assets.gray.clone(),
             Spawn::Tile(TileKind::Bush) => world_assets.green.clone(),
             Spawn::Tile(TileKind::Tree) => world_assets.dark_green.clone(),
             Spawn::Mob(MobKind::Zombie) => world_assets.purple.clone(),

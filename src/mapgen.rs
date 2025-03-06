@@ -381,6 +381,12 @@ pub fn gen_map() -> MapgenResult {
     // Carve out rooms, including doors between each two adjacent rooms.
     for room1 in warehouse_room_graph.iter() {
         tile_map.set_rect(room1, None);
+        // throw some crates in here
+        for p in room1 {
+            if rng.gen_bool(0.02) {
+                tile_map[p] = Some(TileKind::Crate);
+            }
+        }
         for room2 in warehouse_room_graph.find_spatially_adjacent(room1) {
             // avoid double counting
             if room1.topleft() < room2.topleft() {
