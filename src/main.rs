@@ -3,6 +3,7 @@ use std::{f32::consts::PI, time::Duration};
 use animation::MoveAnimation;
 use assets::GameAssets;
 use bevy::diagnostic::LogDiagnosticsPlugin;
+use bevy::input::mouse::{MouseScrollUnit, MouseWheel};
 use bevy::math::bounding::{Aabb2d, RayCast2d};
 use bevy::{
     asset::RenderAssetUsages,
@@ -14,7 +15,7 @@ use bevy::{
 };
 use map::{Map, MapPos, Mob, MobDamageEvent, TILE_SIZE, Tile, Zones};
 use rand::Rng as _;
-use ui::UiEvent;
+use ui::{UiEvent, UiSettings};
 
 mod animation;
 mod assets;
@@ -99,6 +100,8 @@ fn update_camera(
     mut camera: Query<&mut Transform, (With<PrimaryCamera>, Without<Player>)>,
     player: Query<&Transform, (With<Player>, Without<PrimaryCamera>)>,
     time: Res<Time>,
+    mut ev_scroll: EventReader<MouseWheel>,
+    ui_settings: Res<UiSettings>,
 ) {
     let Ok(player) = player.get_single() else {
         return;
@@ -112,6 +115,16 @@ fn update_camera(
     camera
         .translation
         .smooth_nudge(&direction, CAMERA_DECAY_RATE, time.delta_secs());
+
+    for event in ev_scroll.read() {
+        if ui_settings.debug_scroll {
+            let factor = match event.unit {
+                MouseScrollUnit::Line => 0.2,
+                MouseScrollUnit::Pixel => 0.01,
+            };
+            camera.scale -= event.y * factor;
+        }
+    }
 }
 
 fn setup(mut commands: Commands, mut window: Query<&mut Window>, assets: Res<GameAssets>) {

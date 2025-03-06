@@ -9,10 +9,21 @@ pub mod performance;
 #[derive(Default)]
 pub(crate) struct UiPlugin;
 
-#[derive(Default, Resource)]
+#[derive(Resource)]
 pub struct UiSettings {
     pub show_performance_overlay: bool,
     pub show_debug_settings: bool,
+    pub debug_scroll: bool,
+}
+
+impl Default for UiSettings {
+    fn default() -> Self {
+        Self {
+            show_performance_overlay: false,
+            show_debug_settings: true,
+            debug_scroll: true,
+        }
+    }
 }
 
 fn startup(mut contexts: EguiContexts) {
@@ -39,23 +50,29 @@ fn startup(mut contexts: EguiContexts) {
     })
 }
 
-fn update(keyboard_input: Res<ButtonInput<KeyCode>>, mut settings: ResMut<UiSettings>) {
-    settings.show_performance_overlay ^= keyboard_input.just_pressed(KeyCode::F3);
-    settings.show_debug_settings ^= keyboard_input.just_pressed(KeyCode::F4);
-}
-
 #[derive(Event)]
 pub enum UiEvent {
     TeleportPlayer(usize),
 }
 
-fn draw(mut contexts: EguiContexts, settings: Res<UiSettings>, mut ev: EventWriter<UiEvent>) {
+fn update(
+    mut contexts: EguiContexts,
+    keyboard_input: Res<ButtonInput<KeyCode>>,
+    mut settings: ResMut<UiSettings>,
+    mut ev: EventWriter<UiEvent>,
+) {
+    settings.show_performance_overlay ^= keyboard_input.just_pressed(KeyCode::F3);
+    settings.show_debug_settings ^= keyboard_input.just_pressed(KeyCode::F4);
     egui::TopBottomPanel::bottom("bottom_panel").show(contexts.ctx_mut(), |ui| {
         ui.centered_and_justified(|ui| ui.label("move: WASD  shoot: click"))
     });
     if settings.show_debug_settings {
         egui::TopBottomPanel::bottom("debug_panel").show(contexts.ctx_mut(), |ui| {
             ui.horizontal(|ui| {
+                ui.colored_label(Color32::RED, "DEBUG SETTINGS");
+                ui.separator();
+                ui.checkbox(&mut settings.debug_scroll, "allow scroll");
+                ui.separator();
                 ui.label("Teleport to... ");
                 for i in 0..=5 {
                     if ui.button(format!("{i}")).clicked() {
@@ -73,6 +90,6 @@ impl Plugin for UiPlugin {
             .init_resource::<UiSettings>()
             .add_event::<UiEvent>()
             .add_systems(Startup, startup)
-            .add_systems(Update, (update, draw).chain());
+            .add_systems(Update, update);
     }
 }
