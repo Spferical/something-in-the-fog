@@ -62,7 +62,6 @@ fn create_camera(
     let image_handle = images.add(image);
 
     let camera = Camera {
-        target: image_handle.clone().into(),
         clear_color: ClearColorConfig::Custom(Color::linear_rgba(0.0, 0.0, 0.0, 0.0)),
         hdr: true,
         order: 0,
