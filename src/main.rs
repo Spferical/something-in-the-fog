@@ -23,7 +23,7 @@ mod sdf;
 const CAMERA_DECAY_RATE: f32 = 2.;
 const PLAYER_MOVE_DELAY: Duration = Duration::from_millis(100);
 const PLAYER_SHOOT_DELAY: Duration = Duration::from_millis(500);
-const PLAYER_START: IVec2 = IVec2::new(100, 0);
+const PLAYER_START: IVec2 = IVec2::new(0, 0);
 
 fn on_resize(mut resize_reader: EventReader<bevy::window::WindowResized>) {
     for _e in resize_reader.read() {}
@@ -136,6 +136,7 @@ fn setup(mut commands: Commands, mut window: Query<&mut Window>, assets: Res<map
         timer: Timer::new(PLAYER_SHOOT_DELAY, TimerMode::Once),
         player_last_position: player_start_translation.truncate(),
         focus: 0.0,
+        jitter_radians: 0.0,
     });
 }
 
@@ -145,7 +146,7 @@ struct MouseWorldCoords(Vec2);
 fn update_mouse_coords(
     mut mouse_world_coords: ResMut<MouseWorldCoords>,
     query_window: Query<&Window, With<bevy::window::PrimaryWindow>>,
-    query_camera: Query<(&Camera, &GlobalTransform), (With<Camera2d>, With<PrimaryCamera>)>,
+    query_camera: Query<(&Camera, &GlobalTransform), With<PrimaryCamera>>,
 ) {
     let (camera, camera_transform) = query_camera.single();
     if let Ok(window) = query_window.get_single() {
@@ -163,6 +164,7 @@ struct ShootState {
     timer: Timer,
     player_last_position: Vec2,
     focus: f32,
+    jitter_radians: f32,
 }
 
 #[derive(Component)]
@@ -181,13 +183,61 @@ fn clear_after(
     }
 }
 
+#[derive(Component)]
+struct LeftSightLine;
+
+#[derive(Component)]
+struct RightSightLine;
+
+fn make_sight_lines(mut commands: Commands, assets: Res<WorldAssets>) {
+    let bundle = (
+        Mesh2d(assets.pixel.clone()),
+        MeshMaterial2d(assets.yellow.clone()),
+        RenderLayers::layer(1),
+        Transform::IDENTITY,
+    );
+    commands.spawn(bundle.clone()).insert(LeftSightLine);
+    commands.spawn(bundle).insert(RightSightLine);
+}
+
+#[allow(clippy::type_complexity)]
+fn update_sight_lines(
+    mut left: Query<&mut Transform, With<LeftSightLine>>,
+    mut right: Query<&mut Transform, (With<RightSightLine>, Without<LeftSightLine>)>,
+    player: Query<
+        &Transform,
+        (
+            With<Player>,
+            Without<LeftSightLine>,
+            Without<RightSightLine>,
+        ),
+    >,
+    shoot_state: Res<ShootState>,
+    mouse_world_coords: Res<MouseWorldCoords>,
+) {
+    let left = left.single_mut();
+    let right = right.single_mut();
+    let player = player.single();
+    let mouse_offset = mouse_world_coords.0 - player.translation.truncate();
+    let left_dir = Vec2::from_angle(shoot_state.jitter_radians).rotate(mouse_offset.normalize());
+    let right_dir = Vec2::from_angle(-shoot_state.jitter_radians).rotate(mouse_offset.normalize());
+    let line_start_distance = 60.0;
+    let line_length = 180.0;
+    for (mut transform, dir) in [(left, left_dir), (right, right_dir)] {
+        transform.translation = (player.translation.truncate()
+            + dir * (line_start_distance + line_length / 2.0))
+            .extend(0.0);
+        transform.rotation = Quat::from_rotation_z((dir).to_angle());
+        transform.scale = Vec3::new(line_length, 1.0, 1.0);
+    }
+}
+
 #[allow(clippy::complexity)]
 fn update_shooting(
     player_query: Query<&Transform, With<Player>>,
     mut shoot_state: ResMut<ShootState>,
     mouse_world_coords: Res<MouseWorldCoords>,
     time: Res<Time>,
-    mut gizmos: Gizmos,
     mouse_button: Res<ButtonInput<MouseButton>>,
     map: Res<Map>,
     mobs: Query<(&Mob, &Transform), Without<Player>>,
@@ -206,23 +256,8 @@ fn update_shooting(
     shoot_state.focus = shoot_state.focus.clamp(0.0, 2.5);
 
     let mouse_offset = mouse_world_coords.0 - player_pos.translation.truncate();
-    let aim_angle_degrees = (30.0 - shoot_state.focus * 12.0).max(0.0);
-    let left_angle = aim_angle_degrees / 2.0 * PI / 180.0;
-    let right_angle = -left_angle;
-    let left_ray = Vec2::from_angle(left_angle).rotate(mouse_offset.normalize());
-    let right_ray = Vec2::from_angle(right_angle).rotate(mouse_offset.normalize());
-    gizmos.line_gradient_2d(
-        player_pos.translation.truncate() + left_ray * 60.0,
-        player_pos.translation.truncate() + left_ray * 240.0,
-        bevy::color::palettes::basic::YELLOW.with_alpha(0.5),
-        Color::NONE.into(),
-    );
-    gizmos.line_gradient_2d(
-        player_pos.translation.truncate() + right_ray * 60.0,
-        player_pos.translation.truncate() + right_ray * 240.0,
-        bevy::color::palettes::basic::YELLOW.with_alpha(0.5),
-        Color::NONE.into(),
-    );
+    let aim_angle_degrees = (15.0 - shoot_state.focus * 6.0).max(0.0);
+    shoot_state.jitter_radians = aim_angle_degrees * PI / 180.0;
 
     if mouse_button.just_pressed(MouseButton::Left) {
         // shoot
@@ -252,7 +287,7 @@ fn update_shooting(
         });
 
         let angle_radians =
-            left_angle + rand::thread_rng().r#gen::<f32>() * (right_angle - left_angle);
+            (rand::thread_rng().r#gen::<f32>() - 0.5) * (shoot_state.jitter_radians * 2.0);
         let dir = Vec2::from_angle(angle_radians).rotate(mouse_offset);
         if let Ok(dir) = Dir2::new(dir) {
             let ray = RayCast2d::new(line_start, dir, 4000.0);
@@ -283,11 +318,12 @@ fn spawn_bullets(
     assets: Res<WorldAssets>,
 ) {
     for SpawnBulletEvent { start, end } in ev_spawn_bullet.read() {
-        // we want to create a rectangle stretching between start and end.
+        // create a rectangle stretching between start and end.
         commands.spawn((
             ClearAfter(Timer::new(Duration::from_millis(100), TimerMode::Once)),
-            Mesh2d(assets.bullet.clone()),
+            Mesh2d(assets.pixel.clone()),
             MeshMaterial2d(assets.white.clone()),
+            RenderLayers::layer(1),
             Transform {
                 translation: ((start + end) / 2.0).extend(0.0),
                 rotation: Quat::from_rotation_z((end - start).to_angle()),
@@ -374,7 +410,7 @@ fn main() {
         .add_plugins(LogDiagnosticsPlugin::default())
         .add_plugins(map::WorldPlugin)
         .add_plugins(renderer::Renderer)
-        .add_systems(Startup, (create_camera, setup))
+        .add_systems(Startup, (create_camera, setup, make_sight_lines))
         .add_systems(
             Update,
             (
@@ -382,6 +418,7 @@ fn main() {
                 on_resize,
                 update_mouse_coords,
                 update_shooting,
+                update_sight_lines,
                 spawn_bullets,
                 clear_after,
             )
