@@ -63,9 +63,9 @@ fn fragment(@builtin(position) position: vec4f) -> @location(0) vec4<f32> {
     }
 
     if (probe_size == 1) {
-        // return textureLoad(screen_texture, vec2i(position.xy), 0);
+        return textureLoad(screen_texture, vec2i(position.xy), 0);
         // Uncomment me to get sdf vis!
-        return vec4(vec2f(nearest_dist) / screen_size_sdf, 0.0, 1.0);
+        // return vec4(vec2f(nearest_dist) / screen_size_sdf, 0.0, 1.0);
         // return vec4(nearest_seed / screen_size_sdf, 0.0, 1.0);
     } else {
         return vec4(nearest_seed / screen_size_sdf, 0.0, 1.0);
