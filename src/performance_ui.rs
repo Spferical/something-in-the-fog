@@ -30,7 +30,7 @@ fn draw_performance_overlay(
         egui::SidePanel::right("performance_ui_panel")
             .frame(
                 egui::Frame::new()
-                    .fill(Color32::from_black_alpha(200))
+                    .fill(Color32::from_black_alpha(240))
                     .inner_margin(12.0),
             )
             .show(contexts.ctx_mut(), |ui| {
