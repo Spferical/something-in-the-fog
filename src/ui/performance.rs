@@ -3,7 +3,7 @@ use bevy::{
     prelude::*,
 };
 use bevy_egui::{
-    EguiContexts, EguiPlugin,
+    EguiContexts,
     egui::{self, Color32},
 };
 
@@ -34,6 +34,7 @@ fn draw_performance_overlay(
                     .inner_margin(12.0),
             )
             .show(contexts.ctx_mut(), |ui| {
+                ui.style_mut().wrap_mode = Some(egui::TextWrapMode::Extend);
                 if let Some(value) = diagnostics
                     .get(&FrameTimeDiagnosticsPlugin::FPS)
                     .and_then(|fps| fps.smoothed())
@@ -44,13 +45,13 @@ fn draw_performance_overlay(
                     .get(&FrameTimeDiagnosticsPlugin::FRAME_TIME)
                     .and_then(|time| time.smoothed())
                 {
-                    ui.label(format!("Frame Time: {value:.3}ms"));
+                    ui.label(format!("Frame Time: {value:>7.3}ms"));
                 }
                 if let Some(value) = diagnostics
                     .get(&FrameTimeDiagnosticsPlugin::FRAME_TIME)
                     .map(|time| time.values().fold(f64::NEG_INFINITY, |a, &b| a.max(b)))
                 {
-                    ui.label(format!("Worst Frame Time: {value:.3}ms"));
+                    ui.label(format!("Worst Frame: {value:>7.3}ms"));
                 }
                 if let Some(value) = diagnostics
                     .get(&EntityCountDiagnosticsPlugin::ENTITY_COUNT)
@@ -70,7 +71,6 @@ impl Plugin for PerformanceUiPlugin {
         app.add_plugins(bevy::diagnostic::FrameTimeDiagnosticsPlugin)
             .add_plugins(bevy::diagnostic::EntityCountDiagnosticsPlugin)
             .add_plugins(bevy::diagnostic::SystemInformationDiagnosticsPlugin)
-            .add_plugins(EguiPlugin)
             .init_resource::<PerformanceUiState>()
             .add_systems(
                 Update,

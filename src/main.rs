@@ -18,9 +18,9 @@ mod assets;
 mod edge;
 mod map;
 mod mapgen;
-mod performance_ui;
 mod renderer;
 mod sdf;
+mod ui;
 
 const CAMERA_DECAY_RATE: f32 = 2.;
 const PLAYER_MOVE_DELAY: Duration = Duration::from_millis(100);
@@ -406,7 +406,8 @@ fn move_player(
 fn main() {
     App::new()
         .add_plugins(DefaultPlugins.set(ImagePlugin::default_nearest()))
-        .add_plugins(performance_ui::PerformanceUiPlugin)
+        .add_plugins(ui::UiPlugin)
+        .add_plugins(ui::performance::PerformanceUiPlugin)
         .add_plugins(LogDiagnosticsPlugin::default())
         .add_plugins(assets::AssetsPlugin)
         .add_plugins(map::WorldPlugin)
