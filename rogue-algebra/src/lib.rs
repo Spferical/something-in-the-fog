@@ -66,22 +66,6 @@ impl Pos {
     }
 }
 
-#[cfg(feature = "bevy15")]
-impl From<Pos> for bevy15_math::IVec2 {
-    fn from(pos: Pos) -> Self {
-        let Pos { x, y } = pos;
-        Self { x, y }
-    }
-}
-
-#[cfg(feature = "bevy15")]
-impl From<bevy15_math::IVec2> for Pos {
-    fn from(ivec: bevy15_math::IVec2) -> Self {
-        let bevy15_math::IVec2 { x, y } = ivec;
-        Self { x, y }
-    }
-}
-
 #[derive(PartialEq, Eq, Hash, Debug, Clone, Copy)]
 /// An offset between two positions.
 pub struct Offset {
@@ -639,6 +623,29 @@ impl IntoIterator for Rect {
     }
 }
 
+#[cfg(feature = "bevy15")]
+mod bevy15 {
+    use super::*;
+    impl From<Pos> for bevy15_math::IVec2 {
+        fn from(pos: Pos) -> Self {
+            let Pos { x, y } = pos;
+            Self { x, y }
+        }
+    }
+
+    impl From<bevy15_math::IVec2> for Pos {
+        fn from(ivec: bevy15_math::IVec2) -> Self {
+            let bevy15_math::IVec2 { x, y } = ivec;
+            Self { x, y }
+        }
+    }
+    impl From<Rect> for bevy15_math::IRect {
+        fn from(value: Rect) -> Self {
+            let Rect { x1, y1, x2, y2 } = value;
+            Self::new(x1, y1, x2, y2)
+        }
+    }
+}
 #[cfg(test)]
 mod tests {
     use super::*;

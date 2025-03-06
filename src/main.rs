@@ -12,8 +12,9 @@ use bevy::{
         view::RenderLayers,
     },
 };
-use map::{Map, MapPos, Mob, MobDamageEvent, TILE_SIZE, Tile};
+use map::{Map, MapPos, Mob, MobDamageEvent, TILE_SIZE, Tile, Zones};
 use rand::Rng as _;
+use ui::UiEvent;
 
 mod animation;
 mod assets;
@@ -358,7 +359,7 @@ struct PlayerMoveEvent;
 fn move_player(
     mut commands: Commands,
     keyboard_input: Res<ButtonInput<KeyCode>>,
-    mut player_query: Query<(Entity, &mut Transform, &mut map::MapPos), With<Player>>,
+    mut player_query: Query<(Entity, &mut map::MapPos), With<Player>>,
     blocked_query: Query<&mut map::MapPos, (With<map::BlocksMovement>, Without<Player>)>,
     mut timer: ResMut<MoveTimer>,
     mut local_state: Local<MovePlayerState>,
@@ -368,7 +369,7 @@ fn move_player(
 ) {
     timer.0.tick(time.delta());
     if timer.0.finished() {
-        if let Ok((entity, transform, mut world_pos)) = player_query.get_single_mut() {
+        if let Ok((entity, mut world_pos)) = player_query.get_single_mut() {
             let mut movement = IVec2::ZERO;
             for (key, dir) in [
                 (KeyCode::KeyW, IVec2::new(0, 1)),
@@ -424,6 +425,31 @@ fn move_player(
     }
 }
 
+fn handle_ui_event(
+    mut ev: EventReader<UiEvent>,
+    zones: Res<Zones>,
+    mut player_query: Query<(&mut Transform, &mut map::MapPos), With<Player>>,
+) {
+    for ev in ev.read() {
+        match ev {
+            UiEvent::TeleportPlayer(zone_idx) => {
+                let crate::mapgen::Zones {
+                    field,
+                    forest,
+                    warehouse,
+                } = zones.0;
+                let zones = [field, forest, warehouse];
+                if let Some(zone) = zones.get(*zone_idx) {
+                    let (mut transform, mut map_pos) = player_query.single_mut();
+                    let dest = zone.center();
+                    map_pos.0 = dest;
+                    transform.translation = map_pos.to_vec2().extend(transform.translation.z);
+                }
+            }
+        }
+    }
+}
+
 fn main() {
     App::new()
         .add_plugins(DefaultPlugins.set(ImagePlugin::default_nearest()))
@@ -438,6 +464,7 @@ fn main() {
         .add_systems(
             Update,
             (
+                handle_ui_event,
                 move_player,
                 update_camera,
                 on_resize,

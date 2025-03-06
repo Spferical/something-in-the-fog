@@ -7,25 +7,9 @@ use bevy_egui::{
     egui::{self, Color32},
 };
 
-#[derive(Default, Resource)]
-struct PerformanceUiState {
-    show_performance_overlay: bool,
-}
+use super::UiSettings;
 
-fn toggle_performance_display(
-    keyboard_input: Res<ButtonInput<KeyCode>>,
-    mut settings: ResMut<PerformanceUiState>,
-) {
-    if keyboard_input.just_pressed(KeyCode::F3) {
-        settings.show_performance_overlay = !settings.show_performance_overlay;
-    }
-}
-
-fn draw_performance_overlay(
-    mut contexts: EguiContexts,
-    settings: Res<PerformanceUiState>,
-    diagnostics: Res<DiagnosticsStore>,
-) {
+fn draw(mut contexts: EguiContexts, settings: Res<UiSettings>, diagnostics: Res<DiagnosticsStore>) {
     if settings.show_performance_overlay {
         egui::SidePanel::right("performance_ui_panel")
             .frame(
@@ -71,10 +55,6 @@ impl Plugin for PerformanceUiPlugin {
         app.add_plugins(bevy::diagnostic::FrameTimeDiagnosticsPlugin)
             .add_plugins(bevy::diagnostic::EntityCountDiagnosticsPlugin)
             .add_plugins(bevy::diagnostic::SystemInformationDiagnosticsPlugin)
-            .init_resource::<PerformanceUiState>()
-            .add_systems(
-                Update,
-                (toggle_performance_display, draw_performance_overlay),
-            );
+            .add_systems(Update, draw);
     }
 }

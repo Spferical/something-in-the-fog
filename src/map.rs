@@ -57,12 +57,17 @@ fn update_tilemap(mut tile_map: ResMut<Map>, query: Query<(Entity, &MapPos)>) {
     }
 }
 
-fn startup(mut ev_spawn: EventWriter<SpawnEvent>) {
-    for (pos, spawn_list) in crate::mapgen::gen_map() {
+#[derive(Resource)]
+pub struct Zones(pub crate::mapgen::Zones);
+
+fn startup(mut commands: Commands, mut ev_spawn: EventWriter<SpawnEvent>) {
+    let crate::mapgen::MapgenResult { spawns, zones } = crate::mapgen::gen_map();
+    for (pos, spawn_list) in spawns {
         for spawn in spawn_list.into_iter() {
             ev_spawn.send(SpawnEvent(pos, spawn));
         }
     }
+    commands.insert_resource(Zones(zones));
 }
 
 #[derive(Debug, Clone, Copy)]

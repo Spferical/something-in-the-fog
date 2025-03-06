@@ -7,11 +7,6 @@ use rogue_algebra::{Pos, Rect};
 
 use crate::map::{MobKind, Spawn, TileKind};
 
-fn pos2ivec(pos: Pos) -> IVec2 {
-    let Pos { x, y } = pos;
-    IVec2 { x, y }
-}
-
 fn get_connecting_wall(room1: Rect, room2: Rect) -> Option<Rect> {
     // one-tile-wall between them
     for (room1, room2) in &[(room1, room2), (room2, room1)] {
@@ -296,7 +291,18 @@ pub fn gen_forest_room(
     }
 }
 
-pub fn gen_map() -> HashMap<IVec2, Vec<Spawn>> {
+pub struct MapgenResult {
+    pub spawns: HashMap<IVec2, Vec<Spawn>>,
+    pub zones: Zones,
+}
+
+pub struct Zones {
+    pub field: IRect,
+    pub forest: IRect,
+    pub warehouse: IRect,
+}
+
+pub fn gen_map() -> MapgenResult {
     let mut rng = rand::thread_rng();
     let mut tile_map = rogue_algebra::TileMap::<Option<TileKind>>::new(Some(TileKind::Wall));
 
@@ -358,6 +364,8 @@ pub fn gen_map() -> HashMap<IVec2, Vec<Spawn>> {
     let mut warehouse_zone_rect = forest_rect.right_edge();
     warehouse_zone_rect.x1 += 1;
     warehouse_zone_rect.x2 += 81;
+    warehouse_zone_rect.y1 -= 20;
+    warehouse_zone_rect.y2 += 20;
     tile_map.set_rect(warehouse_zone_rect, None);
     // clearing with one big building in it
     let warehouse_rect = Rect {
@@ -410,16 +418,23 @@ pub fn gen_map() -> HashMap<IVec2, Vec<Spawn>> {
     for (pos, tile) in tile_map.iter() {
         if let Some(tile) = tile {
             spawns
-                .entry(pos2ivec(pos))
+                .entry(pos.into())
                 .or_default()
                 .push(Spawn::Tile(tile));
         }
     }
     for (pos, mob_kind) in mob_spawns.into_iter() {
         spawns
-            .entry(pos2ivec(pos))
+            .entry(pos.into())
             .or_default()
             .push(Spawn::Mob(mob_kind));
     }
-    spawns
+    MapgenResult {
+        spawns,
+        zones: Zones {
+            field: field_rect.into(),
+            forest: forest_rect.into(),
+            warehouse: warehouse_zone_rect.into(),
+        },
+    }
 }
