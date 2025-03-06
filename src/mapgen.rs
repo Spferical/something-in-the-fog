@@ -293,13 +293,7 @@ pub fn gen_forest_room(
 
 pub struct MapgenResult {
     pub spawns: HashMap<IVec2, Vec<Spawn>>,
-    pub zones: Zones,
-}
-
-pub struct Zones {
-    pub field: IRect,
-    pub forest: IRect,
-    pub warehouse: IRect,
+    pub zones: Vec<IRect>,
 }
 
 pub fn gen_map() -> MapgenResult {
@@ -431,10 +425,10 @@ pub fn gen_map() -> MapgenResult {
     }
     MapgenResult {
         spawns,
-        zones: Zones {
-            field: field_rect.into(),
-            forest: forest_rect.into(),
-            warehouse: warehouse_zone_rect.into(),
-        },
+        zones: vec![
+            field_rect.into(),
+            forest_rect.into(),
+            warehouse_zone_rect.into(),
+        ],
     }
 }

@@ -446,13 +446,7 @@ fn handle_ui_event(
     for ev in ev.read() {
         match ev {
             UiEvent::TeleportPlayer(zone_idx) => {
-                let crate::mapgen::Zones {
-                    field,
-                    forest,
-                    warehouse,
-                } = zones.0;
-                let zones = [field, forest, warehouse];
-                if let Some(zone) = zones.get(*zone_idx) {
+                if let Some(zone) = zones.0.get(*zone_idx) {
                     let (mut transform, mut map_pos) = player_query.single_mut();
                     let dest = zone.center();
                     map_pos.0 = dest;

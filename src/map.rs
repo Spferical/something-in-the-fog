@@ -58,7 +58,7 @@ fn update_tilemap(mut tile_map: ResMut<Map>, query: Query<(Entity, &MapPos)>) {
 }
 
 #[derive(Resource)]
-pub struct Zones(pub crate::mapgen::Zones);
+pub struct Zones(pub Vec<IRect>);
 
 fn startup(mut commands: Commands, mut ev_spawn: EventWriter<SpawnEvent>) {
     let crate::mapgen::MapgenResult { spawns, zones } = crate::mapgen::gen_map();
