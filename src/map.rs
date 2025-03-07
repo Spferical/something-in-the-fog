@@ -111,7 +111,7 @@ impl TileKind {
 #[derive(Default, Resource)]
 pub struct SightBlockedMap(pub HashSet<IVec2>);
 
-fn update_visibility(
+pub fn update_visibility(
     query: Query<&MapPos, With<BlocksSight>>,
     mut vis_map: ResMut<SightBlockedMap>,
 ) {
@@ -144,7 +144,7 @@ impl WalkBlockedMap {
     }
 }
 
-fn update_walkability(
+pub fn update_walkability(
     query: Query<&MapPos, With<BlocksMovement>>,
     mut walk_map: ResMut<WalkBlockedMap>,
 ) {
@@ -164,8 +164,10 @@ impl Plugin for WorldPlugin {
         app.init_resource::<WalkBlockedMap>();
         app.add_systems(Startup, startup);
         app.add_systems(
-            PreUpdate,
-            (update_tilemap, update_visibility, update_walkability).chain(),
+            Update,
+            (update_tilemap, update_visibility, update_walkability)
+                .chain()
+                .after(crate::spawn::spawn),
         );
         app.add_event::<SpawnEvent>();
     }

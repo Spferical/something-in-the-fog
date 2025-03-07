@@ -26,7 +26,7 @@ impl Spawn {
 #[derive(Event)]
 pub struct SpawnEvent(pub IVec2, pub Spawn);
 
-fn spawn(
+pub fn spawn(
     mut commands: Commands,
     world_assets: Res<GameAssets>,
     mut ev_spawn: EventReader<SpawnEvent>,

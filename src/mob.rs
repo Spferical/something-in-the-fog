@@ -6,7 +6,7 @@ use line_drawing::Bresenham;
 use crate::{
     Player,
     animation::MoveAnimation,
-    map::{MapPos, SightBlockedMap, WalkBlockedMap},
+    map::{MapPos, SightBlockedMap, WalkBlockedMap, update_visibility, update_walkability},
 };
 #[derive(Clone, Copy)]
 pub enum MobKind {
@@ -91,11 +91,11 @@ fn move_mobs(
         }
         mob.move_timer.tick(time.delta());
         if mob.move_timer.finished() {
-            if let Some(player_pos) = mob.saw_player_at {
-                let path = walk_blocked_map.path(pos.0, player_pos, 100);
+            if let Some(target_pos) = mob.saw_player_at {
+                let path = walk_blocked_map.path(pos.0, target_pos, 100);
                 if let Some(path) = path {
                     if let Some(move_pos) = path.get(1) {
-                        if *move_pos != player_pos {
+                        if *move_pos != player_pos.0 {
                             walk_blocked_map.0.insert(*move_pos);
                             pos.0 = *move_pos;
                             commands.entity(entity).insert(MoveAnimation {
@@ -105,6 +105,8 @@ fn move_mobs(
                                 ease: mob.kind.get_ease_function_for_movement(),
                             });
                             mob.move_timer.reset();
+                        } else {
+                            // TODO: monster found the player by pathing through him
                         }
                     }
                 }
@@ -117,7 +119,13 @@ pub struct MobPlugin;
 
 impl Plugin for MobPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Update, (damage_mobs, move_mobs));
+        app.add_systems(
+            Update,
+            (damage_mobs, move_mobs)
+                .chain()
+                .after(update_visibility)
+                .after(update_walkability),
+        );
         app.add_event::<MobDamageEvent>();
     }
 }
