@@ -10,6 +10,9 @@ use bevy_egui::{
 use super::UiSettings;
 
 fn draw(mut contexts: EguiContexts, settings: Res<UiSettings>, diagnostics: Res<DiagnosticsStore>) {
+    let Some(ctx) = contexts.try_ctx_mut() else {
+        return;
+    };
     if settings.show_performance_overlay {
         egui::SidePanel::right("performance_ui_panel")
             .frame(
@@ -17,7 +20,7 @@ fn draw(mut contexts: EguiContexts, settings: Res<UiSettings>, diagnostics: Res<
                     .fill(Color32::from_black_alpha(240))
                     .inner_margin(12.0),
             )
-            .show(contexts.ctx_mut(), |ui| {
+            .show(ctx, |ui| {
                 ui.style_mut().wrap_mode = Some(egui::TextWrapMode::Extend);
                 if let Some(value) = diagnostics
                     .get(&FrameTimeDiagnosticsPlugin::FPS)

@@ -72,7 +72,10 @@ fn update(
 ) {
     settings.show_performance_overlay ^= keyboard_input.just_pressed(KeyCode::F3);
     settings.show_debug_settings ^= keyboard_input.just_pressed(KeyCode::F4);
-    egui::SidePanel::left("side_panel").show(contexts.ctx_mut(), |ui| {
+    let Some(ctx) = contexts.try_ctx_mut() else {
+        return;
+    };
+    egui::SidePanel::left("side_panel").show(ctx, |ui| {
         ui.style_mut().wrap_mode = Some(egui::TextWrapMode::Extend);
         ui.with_layout(egui::Layout::right_to_left(Align::Min), |ui| {
             ui.label("Equipped");
@@ -117,7 +120,7 @@ fn update(
         ui.label("reload: R");
     });
     if settings.show_debug_settings {
-        egui::TopBottomPanel::bottom("debug_panel").show(contexts.ctx_mut(), |ui| {
+        egui::TopBottomPanel::bottom("debug_panel").show(ctx, |ui| {
             ui.horizontal(|ui| {
                 ui.colored_label(Color32::RED, "DEBUG SETTINGS");
                 ui.separator();
