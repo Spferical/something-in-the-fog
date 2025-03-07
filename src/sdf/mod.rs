@@ -36,7 +36,7 @@ pub fn setup_sdf_pass(
     );
 
     let larger_dim = width.max(height);
-    let num_passes = (larger_dim as f32).log2().ceil() as usize;
+    let num_passes = larger_dim.log2().ceil() as usize;
     let endpoint = num_passes;
 
     let Ok(sdf_texture) = sdf_texture_query.get_single() else {

@@ -37,8 +37,8 @@ pub fn on_resize_sdf_texture(
 
 pub fn create_sdf_texture(window: &Single<&Window>, name: &'static str) -> Image {
     let target_size = Extent3d {
-        width: window.resolution.physical_width() / 1,
-        height: window.resolution.physical_height() / 1,
+        width: window.resolution.physical_width(),
+        height: window.resolution.physical_height(),
         ..default()
     };
     let mut image = Image {

@@ -43,8 +43,8 @@ fn create_camera(
     window.resizable = true;
     let mut image = Image::new_fill(
         Extent3d {
-            width: window.resolution.physical_width() / 1, // does this work?
-            height: window.resolution.physical_height() / 1,
+            width: window.resolution.physical_width(), // does this work?
+            height: window.resolution.physical_height(),
             ..default()
         },
         TextureDimension::D2,
