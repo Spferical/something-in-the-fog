@@ -39,4 +39,7 @@ features = [
     "bevy_sprite",
     "bevy_window",
     "bevy_text",
+    "bevy_audio",
+    "bevy_state",
+    "multi_threaded"
 ]
