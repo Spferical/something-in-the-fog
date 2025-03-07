@@ -3,9 +3,14 @@ use std::collections::{HashMap, HashSet};
 
 use bevy::prelude::*;
 use rand::{Rng, seq::SliceRandom as _};
-use rogue_algebra::{Pos, Rect};
+use rogue_algebra::{Pos, Rect, TileMap};
 
-use crate::{map::TileKind, mob::MobKind, spawn::Spawn};
+use crate::{
+    map::{ItemKind, TileKind},
+    mob::MobKind,
+    player::GunType,
+    spawn::Spawn,
+};
 
 fn get_connecting_wall(room1: Rect, room2: Rect) -> Option<Rect> {
     // one-tile-wall between them
@@ -182,7 +187,7 @@ pub fn gen_bsp_tree(rect: Rect, opts: BspSplitOpts, rng: &mut impl rand::Rng) ->
 }
 
 pub fn carve_line_drunk(
-    tile_map: &mut rogue_algebra::TileMap<Option<TileKind>>,
+    tile_map: &mut TileMap<Option<TileKind>>,
     start: Pos,
     end: Pos,
     rng: &mut impl Rng,
@@ -270,7 +275,7 @@ impl<R: FnMut(Pos) -> Vec<Pos>> Iterator for Dfs<R> {
 }
 
 pub fn gen_forest_room(
-    tile_map: &mut rogue_algebra::TileMap<Option<TileKind>>,
+    tile_map: &mut TileMap<Option<TileKind>>,
     rng: &mut impl Rng,
     entrances: &[Pos],
     rect: Rect,
@@ -296,11 +301,24 @@ pub struct MapgenResult {
     pub zones: Vec<IRect>,
 }
 
+pub fn get_random_empty_tile(
+    tile_map: &TileMap<Option<TileKind>>,
+    rect: Rect,
+    rng: &mut impl Rng,
+) -> Option<Pos> {
+    rect.into_iter()
+        .filter(|p| tile_map[*p].filter(|t| t.blocks_movement()).is_none())
+        .collect::<Vec<_>>()
+        .choose(rng)
+        .cloned()
+}
+
 pub fn gen_map() -> MapgenResult {
     let mut rng = rand::thread_rng();
-    let mut tile_map = rogue_algebra::TileMap::<Option<TileKind>>::new(Some(TileKind::Wall));
+    let mut tile_map = TileMap::<Option<TileKind>>::new(Some(TileKind::Wall));
 
     let mut mob_spawns = HashMap::new();
+    let mut item_spawns = HashMap::new();
 
     // field
     let start = Pos::new(0, 0);
@@ -342,16 +360,16 @@ pub fn gen_map() -> MapgenResult {
             break;
         }
     }
-    for _ in 0..30 {
-        loop {
-            let pos = forest_rect.choose(&mut rng);
-            if tile_map[pos].filter(TileKind::blocks_movement).is_none()
-                && !mob_spawns.contains_key(&pos)
-            {
-                mob_spawns.insert(pos, MobKind::Zombie);
-                break;
-            }
-        }
+    let free = forest_rect
+        .into_iter()
+        .filter(|p| tile_map[*p].filter(TileKind::blocks_movement).is_none())
+        .collect::<Vec<Pos>>();
+    let spawns = free.choose_multiple(&mut rng, 36).collect::<Vec<_>>();
+    for p in &spawns[0..30] {
+        mob_spawns.insert(**p, MobKind::Zombie);
+    }
+    for p in &spawns[30..] {
+        item_spawns.insert(**p, ItemKind::Ammo(GunType::Pistol, 15));
     }
 
     // warehouse
@@ -482,6 +500,12 @@ pub fn gen_map() -> MapgenResult {
             .entry(pos.into())
             .or_default()
             .push(Spawn::Mob(mob_kind));
+    }
+    for (pos, item_kind) in item_spawns.into_iter() {
+        spawns
+            .entry(pos.into())
+            .or_default()
+            .push(Spawn::Item(item_kind));
     }
     MapgenResult {
         spawns,

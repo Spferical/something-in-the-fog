@@ -2,11 +2,11 @@ use std::collections::{HashMap, HashSet};
 
 use bevy::prelude::*;
 
-use crate::spawn::SpawnEvent;
+use crate::{player::GunType, spawn::SpawnEvent};
 
 pub const TILE_SIZE: f32 = 48.0;
 
-#[derive(Component)]
+#[derive(Component, Clone)]
 pub struct MapPos(pub IVec2);
 
 impl MapPos {
@@ -32,6 +32,15 @@ pub struct BlocksSight;
 
 #[derive(Component)]
 pub struct Tile(pub TileKind);
+
+#[derive(Clone, Copy)]
+pub enum ItemKind {
+    Ammo(GunType, usize),
+    Gun(GunType),
+}
+
+#[derive(Component)]
+pub struct Pickup(pub ItemKind);
 
 #[derive(Default, Resource)]
 pub struct Map(pub HashMap<IVec2, Vec<Entity>>);

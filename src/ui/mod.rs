@@ -81,7 +81,10 @@ fn update(
         let equipped = inventory.equipped;
         let GunState { ammo_loaded, .. } =
             inventory.guns.get(&equipped).cloned().unwrap_or_default();
-        let GunInfo { max_loaded, .. } = equipped.get_info();
+        let GunInfo {
+            max_load: max_loaded,
+            ..
+        } = equipped.get_info();
         ui.label(format!("{equipped:>7} [{ammo_loaded}/{max_loaded}]"));
         ui.label("");
 
@@ -91,12 +94,14 @@ fn update(
         });
         ui.label("");
         for (gun, state) in inventory.guns.iter() {
-            if *gun != equipped {
-                ui.label(format!("{gun:>7}"));
+            if *gun != equipped && state.present {
+                let ammo_loaded = state.ammo_loaded;
+                let ammo_max = gun.get_info().max_load;
+                ui.label(format!("{gun:>7} [{ammo_loaded}/{ammo_max}]"));
             }
             let extra_ammo = state.ammo_available;
             if extra_ammo > 0 {
-                ui.label(format!("{extra_ammo:>3} {gun:>7} ammo"));
+                ui.label(format!("{extra_ammo} {gun:>7} ammo"));
             }
         }
         ui.label("");

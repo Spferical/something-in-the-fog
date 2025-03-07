@@ -11,24 +11,21 @@ use crate::{
     PrimaryCamera,
     animation::MoveAnimation,
     assets::GameAssets,
-    map::{BlocksMovement, Map, MapPos, TILE_SIZE, Tile},
+    map::{BlocksMovement, Map, MapPos, Pickup, TILE_SIZE, Tile},
     mob::{Mob, MobDamageEvent},
 };
 
 const PLAYER_MOVE_DELAY: Duration = Duration::from_millis(200);
-const PLAYER_SHOOT_DELAY: Duration = Duration::from_millis(500);
 const PLAYER_START: IVec2 = IVec2::new(0, 0);
 const PLAYER_FOCUS_TIME_SECS: f32 = 2.5;
 const PLAYER_MOVE_FOCUS_PENALTY_SECS: f32 = 1.0;
 const PLAYER_SHOOT_FOCUS_PENALTY_SECS: f32 = 1.0;
-const PLAYER_AIM_JITTER_MAX_DEGREES: f32 = 15.0;
 
 #[derive(Component)]
 pub struct Player;
 
 #[derive(Debug, Resource)]
 struct ShootState {
-    timer: Timer,
     // At 0, player fires wildly. At 1.0, player fires perfectly accurately.
     focus: f32,
     jitter_radians: f32,
@@ -53,7 +50,7 @@ pub struct GunInfo {
     pub min_jitter_degrees: f32,
     pub max_jitter_degrees: f32,
     pub num_projectiles: usize,
-    pub max_loaded: usize,
+    pub max_load: usize,
     pub loads_one_at_a_time: bool,
 }
 
@@ -64,14 +61,14 @@ impl GunType {
                 min_jitter_degrees: 0.0,
                 max_jitter_degrees: 15.0,
                 num_projectiles: 1,
-                max_loaded: 15,
+                max_load: 15,
                 loads_one_at_a_time: false,
             },
             GunType::Shotgun => GunInfo {
                 min_jitter_degrees: 5.0,
                 max_jitter_degrees: 15.0,
                 num_projectiles: 10,
-                max_loaded: 2,
+                max_load: 2,
                 loads_one_at_a_time: true,
             },
         }
@@ -80,6 +77,7 @@ impl GunType {
 
 #[derive(Default, Clone)]
 pub struct GunState {
+    pub present: bool,
     pub ammo_loaded: usize,
     pub ammo_available: usize,
 }
@@ -192,7 +190,6 @@ fn update_shooting(
 ) {
     let player_pos = player_query.single();
 
-    shoot_state.timer.tick(time.delta());
     if ev_player_move.read().count() > 0 {
         shoot_state.focus -= PLAYER_MOVE_FOCUS_PENALTY_SECS / PLAYER_FOCUS_TIME_SECS;
     } else {
@@ -201,15 +198,19 @@ fn update_shooting(
     shoot_state.focus = shoot_state.focus.clamp(0.0, 1.0);
 
     let mouse_offset = mouse_world_coords.0 - player_pos.translation.truncate();
-    let jitter_degrees = PLAYER_AIM_JITTER_MAX_DEGREES * (1.0 - shoot_state.focus).max(0.0);
+    let equipped = inventory.equipped;
+    let equipped_info = inventory.equipped.get_info();
+    let gun_state = inventory.guns.entry(equipped).or_default();
+    let jitter_degrees = equipped_info.min_jitter_degrees.lerp(
+        equipped_info.max_jitter_degrees,
+        (1.0 - shoot_state.focus).max(0.0),
+    );
     shoot_state.jitter_radians = jitter_degrees * PI / 180.0;
 
-    if mouse_button.just_pressed(MouseButton::Left) && shoot_state.timer.finished() {
-        let equipped = inventory.equipped;
-        let gun_state = inventory.guns.entry(equipped).or_default();
-        if gun_state.ammo_loaded > 0 {
-            gun_state.ammo_loaded -= 1;
-            // shoot
+    if mouse_button.just_pressed(MouseButton::Left) && gun_state.ammo_loaded > 0 {
+        // shoot
+        gun_state.ammo_loaded -= 1;
+        for _ in 0..equipped_info.num_projectiles {
             let line_start = player_pos.translation.truncate();
             shoot_state.focus -= PLAYER_SHOOT_FOCUS_PENALTY_SECS / PLAYER_FOCUS_TIME_SECS;
             let mut collisions = vec![];
@@ -307,7 +308,7 @@ struct MovePlayerState {
 }
 
 #[derive(Event)]
-struct PlayerMoveEvent;
+struct PlayerMoveEvent(MapPos);
 
 #[allow(clippy::complexity)]
 fn move_player(
@@ -373,7 +374,30 @@ fn move_player(
                 });
                 local_state.last_move_direction = movement;
                 timer.0.reset();
-                ev_player_move.send(PlayerMoveEvent);
+                ev_player_move.send(PlayerMoveEvent(world_pos.clone()));
+            }
+        }
+    }
+}
+
+fn pickup(
+    mut commands: Commands,
+    mut ev_player_move: EventReader<PlayerMoveEvent>,
+    tile_map: Res<Map>,
+    q_pickups: Query<(Entity, &Pickup)>,
+    mut inventory: ResMut<Inventory>,
+) {
+    for PlayerMoveEvent(pos) in ev_player_move.read() {
+        for (entity, Pickup(kind)) in q_pickups.iter_many(tile_map.0.get(&pos.0).unwrap_or(&vec![]))
+        {
+            commands.entity(entity).despawn();
+            match kind {
+                crate::map::ItemKind::Ammo(gun_type, num_ammo) => {
+                    inventory.guns.entry(*gun_type).or_default().ammo_available += num_ammo;
+                }
+                crate::map::ItemKind::Gun(gun_type) => {
+                    inventory.guns.entry(*gun_type).or_default().present = true;
+                }
             }
         }
     }
@@ -392,7 +416,6 @@ fn startup(mut commands: Commands, assets: Res<GameAssets>) {
     commands.insert_resource(MoveTimer(Timer::new(PLAYER_MOVE_DELAY, TimerMode::Once)));
     commands.insert_resource(MouseWorldCoords(player_start_translation.truncate()));
     commands.insert_resource(ShootState {
-        timer: Timer::new(PLAYER_SHOOT_DELAY, TimerMode::Once),
         focus: 0.0,
         jitter_radians: 0.0,
     });
@@ -400,7 +423,8 @@ fn startup(mut commands: Commands, assets: Res<GameAssets>) {
     guns.insert(
         GunType::Pistol,
         GunState {
-            ammo_loaded: GunType::Pistol.get_info().max_loaded,
+            present: true,
+            ammo_loaded: GunType::Pistol.get_info().max_load,
             ammo_available: 0,
         },
     );
@@ -419,6 +443,7 @@ impl Plugin for PlayerPlugin {
                 Update,
                 (
                     move_player,
+                    pickup,
                     update_mouse_coords,
                     update_shooting,
                     update_sight_lines,

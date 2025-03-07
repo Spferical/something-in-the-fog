@@ -2,13 +2,14 @@ use bevy::{prelude::*, render::view::RenderLayers};
 
 use crate::{
     assets::GameAssets,
-    map::{BlocksMovement, BlocksSight, MapPos, TILE_SIZE, Tile, TileKind},
+    map::{BlocksMovement, BlocksSight, ItemKind, MapPos, Pickup, TILE_SIZE, Tile, TileKind},
     mob::{Mob, MobKind},
 };
 
 pub enum Spawn {
     Tile(TileKind),
     Mob(MobKind),
+    Item(ItemKind),
 }
 
 impl Spawn {
@@ -16,6 +17,7 @@ impl Spawn {
         match self {
             Self::Tile(tk) => tk.blocks_movement(),
             Self::Mob(_) => true,
+            Self::Item(_) => false,
         }
     }
 }
@@ -26,9 +28,9 @@ pub struct SpawnEvent(pub IVec2, pub Spawn);
 fn spawn(
     mut commands: Commands,
     world_assets: Res<GameAssets>,
-    mut ev_new_tile: EventReader<SpawnEvent>,
+    mut ev_spawn: EventReader<SpawnEvent>,
 ) {
-    for SpawnEvent(pos, spawn) in ev_new_tile.read() {
+    for SpawnEvent(pos, spawn) in ev_spawn.read() {
         let color = match spawn {
             Spawn::Tile(TileKind::Wall) => world_assets.white.clone(),
             Spawn::Tile(TileKind::ShippingContainer) => world_assets.brown.clone(),
@@ -38,10 +40,14 @@ fn spawn(
             Spawn::Mob(MobKind::Zombie) => world_assets.purple.clone(),
             Spawn::Mob(MobKind::Sculpture) => world_assets.brown.clone(),
             Spawn::Mob(MobKind::Hider) => world_assets.aqua.clone(),
+            Spawn::Item(ItemKind::Ammo(..)) => world_assets.gray.clone(),
+            Spawn::Item(ItemKind::Gun(_)) => world_assets.gray.clone(),
         };
         let mesh = match spawn {
             Spawn::Tile(_) => world_assets.square.clone(),
             Spawn::Mob(_) => world_assets.circle.clone(),
+            Spawn::Item(ItemKind::Ammo(..)) => world_assets.small_square.clone(),
+            Spawn::Item(ItemKind::Gun(..)) => world_assets.small_square.clone(),
         };
         let mut entity_commands = commands.spawn((
             Mesh2d(mesh),
@@ -57,19 +63,24 @@ fn spawn(
         if spawn.blocks_movement() {
             entity_commands.insert(BlocksMovement);
         }
-        if let Spawn::Tile(t) = spawn {
-            if t.blocks_sight() {
-                entity_commands.insert(BlocksSight);
+        match spawn {
+            Spawn::Tile(t) => {
+                if t.blocks_sight() {
+                    entity_commands.insert(BlocksSight);
+                }
+                entity_commands.insert(Tile(*t));
             }
-            entity_commands.insert(Tile(*t));
-        }
-        if let Spawn::Mob(kind) = spawn {
-            entity_commands.insert(Mob {
-                saw_player_at: None,
-                move_timer: Timer::new(kind.get_move_delay(), TimerMode::Once),
-                damage: 0,
-                kind: *kind,
-            });
+            Spawn::Mob(kind) => {
+                entity_commands.insert(Mob {
+                    saw_player_at: None,
+                    move_timer: Timer::new(kind.get_move_delay(), TimerMode::Once),
+                    damage: 0,
+                    kind: *kind,
+                });
+            }
+            Spawn::Item(kind) => {
+                entity_commands.insert(Pickup(*kind));
+            }
         }
     }
 }

@@ -16,6 +16,7 @@ pub struct GameAssets {
     pub sight_line: Handle<ColorMaterial>,
     pub brown: Handle<ColorMaterial>,
     pub aqua: Handle<ColorMaterial>,
+    pub small_square: Handle<Mesh>,
 }
 
 fn init_assets(
@@ -27,6 +28,7 @@ fn init_assets(
         square: meshes.add(Rectangle::new(TILE_SIZE, TILE_SIZE)),
         circle: meshes.add(Circle::new(TILE_SIZE / 2.0)),
         pixel: meshes.add(Rectangle::new(1.0, 1.0)),
+        small_square: meshes.add(Rectangle::new(10.0, 10.0)),
         white: materials.add(Color::LinearRgba(LinearRgba::WHITE)),
         gray: materials.add(Color::LinearRgba(bevy::color::palettes::basic::GRAY.into())),
         brown: materials.add(Color::srgba_u8(0xad, 0x4e, 0x37, 0xff)),
