@@ -2,7 +2,11 @@ use std::collections::{HashMap, HashSet};
 
 use bevy::prelude::*;
 
-use crate::{player::GunType, spawn::SpawnEvent};
+use crate::{
+    player::{GunType, Player},
+    spawn::SpawnEvent,
+    ui::UiSettings,
+};
 
 pub const TILE_SIZE: f32 = 48.0;
 
@@ -154,6 +158,37 @@ pub fn update_walkability(
     }
 }
 
+#[derive(Default, Resource)]
+pub struct PlayerVisibilityMap(pub HashSet<IVec2>);
+
+pub fn update_player_visibility(
+    mut player_vis_map: ResMut<PlayerVisibilityMap>,
+    q_player: Query<&MapPos, With<Player>>,
+    sight_blocked_map: Res<SightBlockedMap>,
+) {
+    player_vis_map.0.clear();
+    let player_pos = q_player.single();
+    for pos in rogue_algebra::fov::calculate_fov(player_pos.0.into(), 99, |pos| {
+        sight_blocked_map.0.contains(&pos.into())
+    }) {
+        player_vis_map.0.insert(pos.into());
+    }
+}
+
+pub fn apply_visibility(
+    player_vis_map: Res<PlayerVisibilityMap>,
+    mut query: Query<(&MapPos, &mut Visibility)>,
+    settings: Res<UiSettings>,
+) {
+    for (map_pos, mut visibility) in query.iter_mut() {
+        *visibility = if !settings.show_visibility || player_vis_map.0.contains(&map_pos.0) {
+            Visibility::Inherited
+        } else {
+            Visibility::Hidden
+        };
+    }
+}
+
 #[derive(Default)]
 pub(crate) struct WorldPlugin;
 
@@ -162,10 +197,17 @@ impl Plugin for WorldPlugin {
         app.init_resource::<Map>();
         app.init_resource::<SightBlockedMap>();
         app.init_resource::<WalkBlockedMap>();
+        app.init_resource::<PlayerVisibilityMap>();
         app.add_systems(Startup, startup);
         app.add_systems(
             Update,
-            (update_tilemap, update_visibility, update_walkability)
+            (
+                update_tilemap,
+                update_visibility,
+                update_walkability,
+                update_player_visibility,
+                apply_visibility,
+            )
                 .chain()
                 .after(crate::spawn::spawn),
         );

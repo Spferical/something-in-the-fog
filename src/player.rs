@@ -62,7 +62,7 @@ impl GunType {
     pub fn get_info(&self) -> GunInfo {
         match self {
             GunType::Pistol => GunInfo {
-                min_jitter_degrees: 0.0,
+                min_jitter_degrees: 1.0,
                 max_jitter_degrees: 15.0,
                 num_projectiles: 1,
                 max_load: 15,
@@ -113,7 +113,7 @@ fn swap_gun(mut inventory: ResMut<Inventory>, mut ev_scroll: EventReader<MouseWh
 }
 
 #[derive(Resource)]
-struct MouseWorldCoords(Vec2);
+pub struct MouseWorldCoords(pub Vec2);
 
 fn update_mouse_coords(
     mut mouse_world_coords: ResMut<MouseWorldCoords>,

@@ -1,12 +1,14 @@
 use std::time::Duration;
 
 use bevy::prelude::*;
-use line_drawing::Bresenham;
 
 use crate::{
     Player,
     animation::MoveAnimation,
-    map::{MapPos, SightBlockedMap, WalkBlockedMap, update_visibility, update_walkability},
+    map::{
+        MapPos, PlayerVisibilityMap, SightBlockedMap, WalkBlockedMap, update_visibility,
+        update_walkability,
+    },
 };
 #[derive(Clone, Copy)]
 pub enum MobKind {
@@ -77,16 +79,13 @@ fn move_mobs(
     mut commands: Commands,
     mut mobs: Query<(Entity, &mut Mob, &mut MapPos, &mut Transform)>,
     player: Query<&MapPos, (With<Player>, Without<Mob>)>,
-    sight_blocked_map: Res<SightBlockedMap>,
     mut walk_blocked_map: ResMut<WalkBlockedMap>,
+    player_visibility_map: Res<PlayerVisibilityMap>,
     time: Res<Time>,
 ) {
     let player_pos = player.single();
     for (entity, mut mob, mut pos, transform) in mobs.iter_mut() {
-        let player_visible = Bresenham::new((pos.0.x, pos.0.y), (player_pos.0.x, player_pos.0.y))
-            .skip(1)
-            .all(|(x, y)| !sight_blocked_map.0.contains(&IVec2::new(x, y)));
-        if player_visible {
+        if player_visibility_map.0.contains(&pos.0) {
             mob.saw_player_at = Some(player_pos.0);
         }
         mob.move_timer.tick(time.delta());

@@ -19,6 +19,7 @@ pub struct UiSettings {
     pub show_performance_overlay: bool,
     pub show_debug_settings: bool,
     pub debug_scroll: bool,
+    pub show_visibility: bool,
 }
 
 impl Default for UiSettings {
@@ -26,7 +27,8 @@ impl Default for UiSettings {
         Self {
             show_performance_overlay: false,
             show_debug_settings: true,
-            debug_scroll: true,
+            debug_scroll: false,
+            show_visibility: false,
         }
     }
 }
@@ -124,7 +126,9 @@ fn update(
             ui.horizontal(|ui| {
                 ui.colored_label(Color32::RED, "DEBUG SETTINGS");
                 ui.separator();
-                ui.checkbox(&mut settings.debug_scroll, "allow scroll");
+                ui.checkbox(&mut settings.debug_scroll, "scroll zoom");
+                ui.separator();
+                ui.checkbox(&mut settings.show_visibility, "viz");
                 ui.separator();
                 ui.label("Teleport to... ");
                 for i in 0..=5 {
