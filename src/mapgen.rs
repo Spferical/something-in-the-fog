@@ -436,8 +436,16 @@ pub fn gen_map() -> MapgenResult {
         .into_iter()
         .filter(|p| tile_map[*p].filter(|t| t.blocks_movement()).is_none())
         .collect::<Vec<_>>();
-    let sculpture_pos = sculpture_room_free_spots.choose(&mut rng).unwrap();
+    let [sculpture_pos, shotgun_pos] = sculpture_room_free_spots
+        .choose_multiple(&mut rng, 2)
+        .collect::<Vec<_>>()
+        .try_into()
+        .unwrap();
     mob_spawns.insert(*sculpture_pos, MobKind::Sculpture);
+    item_spawns.insert(
+        *shotgun_pos,
+        ItemKind::Gun(GunType::Shotgun, GunType::Shotgun.get_info().max_load),
+    );
 
     // Railyard. Wide open but with large shipping containers obscuring vision.
     let mut railyard_rect = warehouse_zone_rect.right_edge();

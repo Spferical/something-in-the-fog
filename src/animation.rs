@@ -33,6 +33,7 @@ fn animate(
 pub struct TextEvent {
     pub text: String,
     pub position: Vec2,
+    pub duration: Duration,
 }
 
 fn spawn_text(
@@ -40,8 +41,13 @@ fn spawn_text(
     mut ev_text: EventReader<TextEvent>,
     assets: Res<GameAssets>,
 ) {
-    for TextEvent { text, position } in ev_text.read() {
-        let timer = Timer::new(Duration::from_secs(1), TimerMode::Once);
+    for TextEvent {
+        text,
+        position,
+        duration,
+    } in ev_text.read()
+    {
+        let timer = Timer::new(*duration, TimerMode::Once);
         commands.spawn((
             Transform::from_translation(position.extend(3.0)),
             Text2d::new(text),

@@ -1,6 +1,7 @@
 use std::{collections::HashMap, f32::consts::PI, time::Duration};
 
 use bevy::{
+    input::mouse::MouseWheel,
     math::bounding::{Aabb2d, RayCast2d},
     prelude::*,
     render::view::RenderLayers,
@@ -91,6 +92,24 @@ pub struct GunState {
 pub struct Inventory {
     pub equipped: GunType,
     pub guns: HashMap<GunType, GunState>,
+}
+
+fn swap_gun(mut inventory: ResMut<Inventory>, mut ev_scroll: EventReader<MouseWheel>) {
+    for event in ev_scroll.read() {
+        let gun_types = inventory.guns.keys().copied().collect::<Vec<GunType>>();
+        let mut i = gun_types
+            .iter()
+            .enumerate()
+            .find(|(_i, t)| **t == inventory.equipped)
+            .map(|(i, _t)| i)
+            .unwrap();
+        if event.y > 0.0 {
+            i = (i + 1) % gun_types.len();
+        } else {
+            i = i.wrapping_sub(1).min(gun_types.len() - 1);
+        }
+        inventory.equipped = gun_types[i];
+    }
 }
 
 #[derive(Resource)]
@@ -355,6 +374,7 @@ fn bang(mut ev_shoot: EventReader<ShootEvent>, mut ev_text: EventWriter<TextEven
         ev_text.send(TextEvent {
             text: "*bang*".into(),
             position: *start,
+            duration: Duration::from_secs(1),
         });
     }
 }
@@ -443,6 +463,7 @@ fn move_player(
 fn pickup(
     mut commands: Commands,
     mut ev_player_move: EventReader<PlayerMoveEvent>,
+    mut ev_text: EventWriter<TextEvent>,
     tile_map: Res<Map>,
     q_pickups: Query<(Entity, &Pickup)>,
     mut inventory: ResMut<Inventory>,
@@ -455,10 +476,17 @@ fn pickup(
                 crate::map::ItemKind::Ammo(gun_type, num_ammo) => {
                     inventory.guns.entry(*gun_type).or_default().ammo_available += num_ammo;
                 }
-                crate::map::ItemKind::Gun(gun_type) => {
-                    inventory.guns.entry(*gun_type).or_default().present = true;
+                crate::map::ItemKind::Gun(gun_type, ammo) => {
+                    let gun_state = inventory.guns.entry(*gun_type).or_default();
+                    gun_state.present = true;
+                    gun_state.ammo_loaded = *ammo;
                 }
             }
+            ev_text.send(TextEvent {
+                text: format!("got {kind}!"),
+                position: pos.to_vec2(),
+                duration: Duration::from_secs(5),
+            });
         }
     }
 }
@@ -508,6 +536,7 @@ impl Plugin for PlayerPlugin {
             (
                 move_player,
                 pickup,
+                swap_gun,
                 update_mouse_coords,
                 update_shooting,
                 update_sight_lines,

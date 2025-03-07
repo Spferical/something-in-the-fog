@@ -36,7 +36,16 @@ pub struct Tile(pub TileKind);
 #[derive(Clone, Copy)]
 pub enum ItemKind {
     Ammo(GunType, usize),
-    Gun(GunType),
+    Gun(GunType, usize),
+}
+
+impl std::fmt::Display for ItemKind {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ItemKind::Ammo(gun_type, ammo) => write!(f, "{ammo} {gun_type} ammo"),
+            ItemKind::Gun(gun_type, _ammo) => write!(f, "{gun_type}"),
+        }
+    }
 }
 
 #[derive(Component)]

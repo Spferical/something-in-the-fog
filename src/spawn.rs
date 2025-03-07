@@ -41,7 +41,7 @@ fn spawn(
             Spawn::Mob(MobKind::Sculpture) => world_assets.brown.clone(),
             Spawn::Mob(MobKind::Hider) => world_assets.aqua.clone(),
             Spawn::Item(ItemKind::Ammo(..)) => world_assets.gray.clone(),
-            Spawn::Item(ItemKind::Gun(_)) => world_assets.gray.clone(),
+            Spawn::Item(ItemKind::Gun(..)) => world_assets.gray.clone(),
         };
         let mesh = match spawn {
             Spawn::Tile(_) => world_assets.square.clone(),

@@ -114,6 +114,7 @@ fn update(
         ui.label("");
         ui.label("move: WASD");
         ui.label("shoot: click");
+        ui.label("reload: R");
     });
     if settings.show_debug_settings {
         egui::TopBottomPanel::bottom("debug_panel").show(contexts.ctx_mut(), |ui| {
