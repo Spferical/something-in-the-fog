@@ -29,6 +29,7 @@ struct ShootState {
     // At 0, player fires wildly. At 1.0, player fires perfectly accurately.
     focus: f32,
     jitter_radians: f32,
+    reloading: Option<Timer>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -52,6 +53,7 @@ pub struct GunInfo {
     pub num_projectiles: usize,
     pub max_load: usize,
     pub loads_one_at_a_time: bool,
+    reload_time: Duration,
 }
 
 impl GunType {
@@ -63,6 +65,7 @@ impl GunType {
                 num_projectiles: 1,
                 max_load: 15,
                 loads_one_at_a_time: false,
+                reload_time: Duration::from_secs(2),
             },
             GunType::Shotgun => GunInfo {
                 min_jitter_degrees: 5.0,
@@ -70,6 +73,7 @@ impl GunType {
                 num_projectiles: 10,
                 max_load: 2,
                 loads_one_at_a_time: true,
+                reload_time: Duration::from_secs(2),
             },
         }
     }
@@ -173,6 +177,42 @@ fn update_sight_lines(
     set_sight_line_transform(&mut set.p1().single_mut(), right_dir);
 }
 
+#[derive(Component)]
+struct ReloadIndicator;
+
+fn make_reload_indicator(
+    mut commands: Commands,
+    assets: Res<GameAssets>,
+    player: Query<Entity, With<Player>>,
+) {
+    commands
+        .spawn((
+            ReloadIndicator,
+            Mesh2d(assets.reload_indicator_mesh.clone()),
+            MeshMaterial2d(assets.reload_indicator_material.clone()),
+            RenderLayers::layer(1),
+            Transform::IDENTITY.with_translation(Vec3::ZERO.with_z(3.0)),
+        ))
+        .set_parent(player.single());
+}
+
+fn update_reload_indicator(
+    mut reload_indicator: Query<(&mut Transform, &Mesh2d), With<ReloadIndicator>>,
+    shoot_state: Res<ShootState>,
+    mut meshes: ResMut<Assets<Mesh>>,
+) {
+    let (mut transform, Mesh2d(mesh_handle)) = reload_indicator.single_mut();
+    let fraction_left = shoot_state
+        .reloading
+        .as_ref()
+        .map(|timer| timer.fraction_remaining())
+        .unwrap_or(0.0);
+    if let Some(mesh) = meshes.get_mut(mesh_handle.id()) {
+        *mesh = CircularSector::from_turns(TILE_SIZE, fraction_left).into();
+    }
+    transform.rotation = Quat::from_rotation_z(fraction_left * PI);
+}
+
 #[allow(clippy::complexity)]
 fn update_shooting(
     player_query: Query<&Transform, With<Player>>,
@@ -180,6 +220,7 @@ fn update_shooting(
     mouse_world_coords: Res<MouseWorldCoords>,
     time: Res<Time>,
     mouse_button: Res<ButtonInput<MouseButton>>,
+    keyboard_input: Res<ButtonInput<KeyCode>>,
     map: Res<Map>,
     mobs: Query<(Entity, &Transform), (With<Mob>, Without<Player>)>,
     tiles: Query<(&Tile, &Transform), (Without<Mob>, Without<Player>)>,
@@ -207,7 +248,32 @@ fn update_shooting(
     );
     shoot_state.jitter_radians = jitter_degrees * PI / 180.0;
 
-    if mouse_button.just_pressed(MouseButton::Left) && gun_state.ammo_loaded > 0 {
+    if keyboard_input.pressed(KeyCode::KeyR)
+        && shoot_state.reloading.is_none()
+        && gun_state.ammo_available > 0
+        && gun_state.ammo_loaded < equipped_info.max_load
+    {
+        shoot_state.reloading = Some(Timer::new(equipped_info.reload_time, TimerMode::Once))
+    }
+
+    if let Some(ref mut reload_timer) = shoot_state.reloading {
+        reload_timer.tick(time.delta());
+        if reload_timer.finished() {
+            let new_ammo = if equipped_info.loads_one_at_a_time {
+                1.min(gun_state.ammo_available)
+            } else {
+                (equipped_info.max_load - gun_state.ammo_loaded).min(gun_state.ammo_available)
+            };
+            gun_state.ammo_loaded += new_ammo;
+            gun_state.ammo_available -= new_ammo;
+            shoot_state.reloading = None;
+        }
+    }
+
+    if shoot_state.reloading.is_none()
+        && mouse_button.just_pressed(MouseButton::Left)
+        && gun_state.ammo_loaded > 0
+    {
         // shoot
         gun_state.ammo_loaded -= 1;
         for _ in 0..equipped_info.num_projectiles {
@@ -418,6 +484,7 @@ fn startup(mut commands: Commands, assets: Res<GameAssets>) {
     commands.insert_resource(ShootState {
         focus: 0.0,
         jitter_radians: 0.0,
+        reloading: None,
     });
     let mut guns = HashMap::new();
     guns.insert(
@@ -425,7 +492,7 @@ fn startup(mut commands: Commands, assets: Res<GameAssets>) {
         GunState {
             present: true,
             ammo_loaded: GunType::Pistol.get_info().max_load,
-            ammo_available: 0,
+            ammo_available: 15,
         },
     );
     commands.insert_resource(Inventory {
@@ -438,21 +505,25 @@ pub struct PlayerPlugin;
 
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, (startup, make_sight_lines))
-            .add_systems(
-                Update,
-                (
-                    move_player,
-                    pickup,
-                    update_mouse_coords,
-                    update_shooting,
-                    update_sight_lines,
-                    spawn_bullets,
-                    despawn_after,
-                )
-                    .chain(),
+        app.add_systems(
+            Startup,
+            (startup, make_sight_lines, make_reload_indicator).chain(),
+        )
+        .add_systems(
+            Update,
+            (
+                move_player,
+                pickup,
+                update_mouse_coords,
+                update_shooting,
+                update_sight_lines,
+                spawn_bullets,
+                despawn_after,
+                update_reload_indicator,
             )
-            .add_event::<ShootEvent>()
-            .add_event::<PlayerMoveEvent>();
+                .chain(),
+        )
+        .add_event::<ShootEvent>()
+        .add_event::<PlayerMoveEvent>();
     }
 }

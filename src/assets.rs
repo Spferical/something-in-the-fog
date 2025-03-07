@@ -17,6 +17,8 @@ pub struct GameAssets {
     pub brown: Handle<ColorMaterial>,
     pub aqua: Handle<ColorMaterial>,
     pub small_square: Handle<Mesh>,
+    pub reload_indicator_mesh: Handle<Mesh>,
+    pub reload_indicator_material: Handle<ColorMaterial>,
 }
 
 fn init_assets(
@@ -27,6 +29,7 @@ fn init_assets(
     commands.insert_resource(GameAssets {
         square: meshes.add(Rectangle::new(TILE_SIZE, TILE_SIZE)),
         circle: meshes.add(Circle::new(TILE_SIZE / 2.0)),
+        reload_indicator_mesh: meshes.add(CircularSector::from_degrees(TILE_SIZE, 360.0)),
         pixel: meshes.add(Rectangle::new(1.0, 1.0)),
         small_square: meshes.add(Rectangle::new(10.0, 10.0)),
         white: materials.add(Color::LinearRgba(LinearRgba::WHITE)),
@@ -39,6 +42,9 @@ fn init_assets(
         aqua: materials.add(Color::LinearRgba(bevy::color::palettes::basic::AQUA.into())),
         sight_line: materials.add(Color::Srgba(
             bevy::color::palettes::basic::YELLOW.with_alpha(0.5),
+        )),
+        reload_indicator_material: materials.add(Color::Srgba(
+            bevy::color::palettes::basic::YELLOW.with_alpha(0.25),
         )),
     });
 }
