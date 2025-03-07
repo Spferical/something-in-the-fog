@@ -1,6 +1,7 @@
 use bevy::{prelude::*, render::view::RenderLayers};
 
 use crate::{
+    Z_TILES,
     assets::GameAssets,
     map::{BlocksMovement, BlocksSight, ItemKind, MapPos, Pickup, TILE_SIZE, Tile, TileKind},
     mob::{Mob, MobKind},
@@ -56,7 +57,7 @@ fn spawn(
             Transform::from_translation(Vec3::new(
                 TILE_SIZE * pos.x as f32,
                 TILE_SIZE * pos.y as f32,
-                0.0,
+                Z_TILES,
             )),
             RenderLayers::layer(1),
         ));

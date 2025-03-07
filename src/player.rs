@@ -9,7 +9,7 @@ use bevy::{
 use rand::Rng as _;
 
 use crate::{
-    PrimaryCamera,
+    PrimaryCamera, Z_PLAYER,
     animation::{MoveAnimation, TextEvent},
     assets::GameAssets,
     despawn_after::DespawnAfter,
@@ -492,7 +492,8 @@ fn pickup(
 }
 
 fn startup(mut commands: Commands, assets: Res<GameAssets>) {
-    let player_start_translation = Vec3::new(PLAYER_START.x as f32, PLAYER_START.y as f32, 1.0);
+    let player_start_translation =
+        Vec3::new(PLAYER_START.x as f32, PLAYER_START.y as f32, Z_PLAYER);
     commands.spawn((
         Player,
         MapPos(PLAYER_START),
