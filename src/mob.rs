@@ -30,6 +30,14 @@ impl MobKind {
             Sculpture => 99,
         }
     }
+
+    pub fn get_ease_function_for_movement(&self) -> EaseFunction {
+        use MobKind::*;
+        match self {
+            Zombie => EaseFunction::BounceIn,
+            Sculpture => EaseFunction::Linear,
+        }
+    }
 }
 
 #[derive(Component)]
@@ -90,7 +98,7 @@ fn move_mobs(
                                 from: transform.translation.truncate(),
                                 to: pos.to_vec2(),
                                 timer: Timer::new(mob.kind.get_move_delay() / 2, TimerMode::Once),
-                                ease: EaseFunction::BounceIn,
+                                ease: mob.kind.get_ease_function_for_movement(),
                             });
                             mob.move_timer.reset();
                         }
