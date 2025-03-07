@@ -14,6 +14,7 @@ use ui::{UiEvent, UiSettings};
 
 mod animation;
 mod assets;
+mod despawn_after;
 mod edge;
 mod map;
 mod mapgen;
@@ -152,6 +153,7 @@ fn main() {
             spawn::SpawnPlugin,
             player::PlayerPlugin,
             mob::MobPlugin,
+            despawn_after::DespawnAfterPlugin,
         ))
         .add_systems(Startup, (create_camera, setup))
         .add_systems(Update, (handle_ui_event, update_camera, on_resize).chain())

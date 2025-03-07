@@ -2,8 +2,12 @@ use bevy::prelude::*;
 
 use crate::map::TILE_SIZE;
 
+pub static PRESS_START_2P_BYTES: &[u8] =
+    include_bytes!("../assets/PressStart2P/PressStart2P-Regular.ttf");
+
 #[derive(Resource)]
 pub struct GameAssets {
+    pub font: Handle<Font>,
     pub circle: Handle<Mesh>,
     pub square: Handle<Mesh>,
     pub pixel: Handle<Mesh>,
@@ -25,8 +29,10 @@ fn init_assets(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ColorMaterial>>,
+    mut fonts: ResMut<Assets<Font>>,
 ) {
     commands.insert_resource(GameAssets {
+        font: fonts.add(Font::try_from_bytes(PRESS_START_2P_BYTES.into()).unwrap()),
         square: meshes.add(Rectangle::new(TILE_SIZE, TILE_SIZE)),
         circle: meshes.add(Circle::new(TILE_SIZE / 2.0)),
         reload_indicator_mesh: meshes.add(CircularSector::from_degrees(TILE_SIZE, 360.0)),

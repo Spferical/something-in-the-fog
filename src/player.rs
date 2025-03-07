@@ -9,8 +9,9 @@ use rand::Rng as _;
 
 use crate::{
     PrimaryCamera,
-    animation::MoveAnimation,
+    animation::{MoveAnimation, TextEvent},
     assets::GameAssets,
+    despawn_after::DespawnAfter,
     map::{BlocksMovement, Map, MapPos, Pickup, TILE_SIZE, Tile},
     mob::{Mob, MobDamageEvent},
 };
@@ -107,22 +108,6 @@ fn update_mouse_coords(
             .and_then(|cursor| camera.viewport_to_world_2d(camera_transform, cursor).ok())
         {
             mouse_world_coords.0 = world_position;
-        }
-    }
-}
-
-#[derive(Component)]
-struct DespawnAfter(Timer);
-
-fn despawn_after(
-    mut commands: Commands,
-    mut query: Query<(Entity, &mut DespawnAfter)>,
-    time: Res<Time>,
-) {
-    for (entity, mut clear_after) in query.iter_mut() {
-        clear_after.0.tick(time.delta());
-        if clear_after.0.finished() {
-            commands.entity(entity).despawn();
         }
     }
 }
@@ -346,10 +331,10 @@ struct ShootEvent {
 
 fn spawn_bullets(
     mut commands: Commands,
-    mut ev_spawn_bullet: EventReader<ShootEvent>,
+    mut ev_shoot: EventReader<ShootEvent>,
     assets: Res<GameAssets>,
 ) {
-    for ShootEvent { start, end } in ev_spawn_bullet.read() {
+    for ShootEvent { start, end } in ev_shoot.read() {
         // create a rectangle stretching between start and end.
         commands.spawn((
             DespawnAfter(Timer::new(Duration::from_millis(100), TimerMode::Once)),
@@ -362,6 +347,15 @@ fn spawn_bullets(
                 scale: Vec3::new((start - end).length(), 1.0, 1.0),
             },
         ));
+    }
+}
+
+fn bang(mut ev_shoot: EventReader<ShootEvent>, mut ev_text: EventWriter<TextEvent>) {
+    for ShootEvent { start, .. } in ev_shoot.read() {
+        ev_text.send(TextEvent {
+            text: "*bang*".into(),
+            position: *start,
+        });
     }
 }
 
@@ -518,8 +512,8 @@ impl Plugin for PlayerPlugin {
                 update_shooting,
                 update_sight_lines,
                 spawn_bullets,
-                despawn_after,
                 update_reload_indicator,
+                bang,
             )
                 .chain(),
         )

@@ -4,7 +4,10 @@ use bevy_egui::{
     egui::{self, Align, Color32, FontData, FontFamily, Separator, TextStyle},
 };
 
-use crate::player::{GunInfo, GunState, Inventory};
+use crate::{
+    assets::PRESS_START_2P_BYTES,
+    player::{GunInfo, GunState, Inventory},
+};
 
 pub mod performance;
 
@@ -32,9 +35,7 @@ fn startup(mut contexts: EguiContexts) {
     let mut fonts = egui::FontDefinitions::default();
     fonts.font_data.insert(
         "pressstart2p".to_owned(),
-        std::sync::Arc::new(FontData::from_static(include_bytes!(
-            "../../assets/PressStart2P/PressStart2P-Regular.ttf"
-        ))),
+        std::sync::Arc::new(FontData::from_static(PRESS_START_2P_BYTES)),
     );
 
     fonts
