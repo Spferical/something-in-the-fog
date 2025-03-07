@@ -163,8 +163,10 @@ impl Plugin for WorldPlugin {
         app.init_resource::<SightBlockedMap>();
         app.init_resource::<WalkBlockedMap>();
         app.add_systems(Startup, startup);
-        app.add_systems(PreUpdate, update_tilemap);
-        app.add_systems(Update, (update_visibility, update_walkability).chain());
+        app.add_systems(
+            PreUpdate,
+            (update_tilemap, update_visibility, update_walkability).chain(),
+        );
         app.add_event::<SpawnEvent>();
     }
 }

@@ -1,7 +1,7 @@
 use bevy::{prelude::*, render::view::RenderLayers};
 
 use crate::{
-    Z_TILES,
+    Z_ITEMS, Z_MOBS, Z_TILES,
     assets::GameAssets,
     map::{BlocksMovement, BlocksSight, ItemKind, MapPos, Pickup, TILE_SIZE, Tile, TileKind},
     mob::{Mob, MobKind},
@@ -50,6 +50,11 @@ fn spawn(
             Spawn::Item(ItemKind::Ammo(..)) => world_assets.small_square.clone(),
             Spawn::Item(ItemKind::Gun(..)) => world_assets.small_square.clone(),
         };
+        let z = match spawn {
+            Spawn::Tile(..) => Z_TILES,
+            Spawn::Mob(..) => Z_MOBS,
+            Spawn::Item(..) => Z_ITEMS,
+        };
         let mut entity_commands = commands.spawn((
             Mesh2d(mesh),
             MeshMaterial2d(color),
@@ -57,7 +62,7 @@ fn spawn(
             Transform::from_translation(Vec3::new(
                 TILE_SIZE * pos.x as f32,
                 TILE_SIZE * pos.y as f32,
-                Z_TILES,
+                z,
             )),
             RenderLayers::layer(1),
         ));
