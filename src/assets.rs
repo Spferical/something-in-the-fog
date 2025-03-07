@@ -15,6 +15,7 @@ pub struct GameAssets {
     pub purple: Handle<ColorMaterial>,
     pub sight_line: Handle<ColorMaterial>,
     pub brown: Handle<ColorMaterial>,
+    pub aqua: Handle<ColorMaterial>,
 }
 
 fn init_assets(
@@ -33,6 +34,7 @@ fn init_assets(
         dark_green: materials.add(Color::LinearRgba(LinearRgba::rgb(0.0, 0.5, 0.0))),
         red: materials.add(Color::LinearRgba(LinearRgba::RED)),
         purple: materials.add(Color::LinearRgba(LinearRgba::rgb(1.0, 0.0, 1.0))),
+        aqua: materials.add(Color::LinearRgba(bevy::color::palettes::basic::AQUA.into())),
         sight_line: materials.add(Color::Srgba(
             bevy::color::palettes::basic::YELLOW.with_alpha(0.5),
         )),

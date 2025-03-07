@@ -12,6 +12,7 @@ use crate::{
 pub enum MobKind {
     Zombie,
     Sculpture,
+    Hider,
 }
 
 impl MobKind {
@@ -20,6 +21,7 @@ impl MobKind {
         match self {
             Zombie => Duration::from_secs(1),
             Sculpture => Duration::from_millis(16),
+            Hider => Duration::from_millis(200),
         }
     }
 
@@ -28,6 +30,7 @@ impl MobKind {
         match self {
             Zombie => 3,
             Sculpture => 99,
+            Hider => 3,
         }
     }
 
@@ -36,6 +39,7 @@ impl MobKind {
         match self {
             Zombie => EaseFunction::BounceIn,
             Sculpture => EaseFunction::Linear,
+            Hider => EaseFunction::CubicIn,
         }
     }
 }

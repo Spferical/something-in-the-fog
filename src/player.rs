@@ -1,4 +1,4 @@
-use std::{f32::consts::PI, time::Duration};
+use std::{collections::HashMap, f32::consts::PI, time::Duration};
 
 use bevy::{
     math::bounding::{Aabb2d, RayCast2d},
@@ -32,6 +32,62 @@ struct ShootState {
     // At 0, player fires wildly. At 1.0, player fires perfectly accurately.
     focus: f32,
     jitter_radians: f32,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum GunType {
+    Pistol,
+    Shotgun,
+}
+
+impl std::fmt::Display for GunType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(match self {
+            GunType::Pistol => "pistol",
+            GunType::Shotgun => "shotgun",
+        })
+    }
+}
+
+pub struct GunInfo {
+    pub min_jitter_degrees: f32,
+    pub max_jitter_degrees: f32,
+    pub num_projectiles: usize,
+    pub max_loaded: usize,
+    pub loads_one_at_a_time: bool,
+}
+
+impl GunType {
+    pub fn get_info(&self) -> GunInfo {
+        match self {
+            GunType::Pistol => GunInfo {
+                min_jitter_degrees: 0.0,
+                max_jitter_degrees: 15.0,
+                num_projectiles: 1,
+                max_loaded: 15,
+                loads_one_at_a_time: false,
+            },
+            GunType::Shotgun => GunInfo {
+                min_jitter_degrees: 5.0,
+                max_jitter_degrees: 15.0,
+                num_projectiles: 10,
+                max_loaded: 2,
+                loads_one_at_a_time: true,
+            },
+        }
+    }
+}
+
+#[derive(Default, Clone)]
+pub struct GunState {
+    pub ammo_loaded: usize,
+    pub ammo_available: usize,
+}
+
+#[derive(Resource)]
+pub struct Inventory {
+    pub equipped: GunType,
+    pub guns: HashMap<GunType, GunState>,
 }
 
 #[derive(Resource)]
@@ -132,6 +188,7 @@ fn update_shooting(
     mut ev_spawn_bullet: EventWriter<ShootEvent>,
     mut ev_damage_mob: EventWriter<MobDamageEvent>,
     mut ev_player_move: EventReader<PlayerMoveEvent>,
+    mut inventory: ResMut<Inventory>,
 ) {
     let player_pos = player_query.single();
 
@@ -148,61 +205,66 @@ fn update_shooting(
     shoot_state.jitter_radians = jitter_degrees * PI / 180.0;
 
     if mouse_button.just_pressed(MouseButton::Left) && shoot_state.timer.finished() {
-        // shoot
-        let line_start = player_pos.translation.truncate();
-        shoot_state.focus -= PLAYER_SHOOT_FOCUS_PENALTY_SECS / PLAYER_FOCUS_TIME_SECS;
-        let mut collisions = vec![];
-        let player_pos_ivec2 = MapPos::from_vec3(player_pos.translation).0;
-        for (entity, transform) in mobs.iter_many(map.get_nearby(player_pos_ivec2, 100)) {
-            collisions.push((
-                Some(entity),
-                Aabb2d::new(
-                    transform.translation.truncate(),
-                    Vec2::splat(TILE_SIZE / 2.0),
-                ),
-            ));
-        }
-        for (tile, transform) in tiles.iter_many(map.get_nearby(player_pos_ivec2, 100)) {
-            if tile.0.blocks_movement() {
+        let equipped = inventory.equipped;
+        let gun_state = inventory.guns.entry(equipped).or_default();
+        if gun_state.ammo_loaded > 0 {
+            gun_state.ammo_loaded -= 1;
+            // shoot
+            let line_start = player_pos.translation.truncate();
+            shoot_state.focus -= PLAYER_SHOOT_FOCUS_PENALTY_SECS / PLAYER_FOCUS_TIME_SECS;
+            let mut collisions = vec![];
+            let player_pos_ivec2 = MapPos::from_vec3(player_pos.translation).0;
+            for (entity, transform) in mobs.iter_many(map.get_nearby(player_pos_ivec2, 100)) {
                 collisions.push((
-                    None,
+                    Some(entity),
                     Aabb2d::new(
                         transform.translation.truncate(),
                         Vec2::splat(TILE_SIZE / 2.0),
                     ),
                 ));
             }
-        }
-        let dist_to_player = |point| player_pos.translation.truncate().distance_squared(point);
-        collisions.sort_by(|a, b| {
-            dist_to_player((a.1.min + a.1.max) / 2.0)
-                .partial_cmp(&dist_to_player((b.1.min + b.1.max) / 2.0))
-                .unwrap()
-        });
-
-        let angle_radians =
-            (rand::thread_rng().r#gen::<f32>() - 0.5) * (shoot_state.jitter_radians * 2.0);
-        let dir = Vec2::from_angle(angle_radians).rotate(mouse_offset);
-        if let Ok(dir) = Dir2::new(dir) {
-            let ray = RayCast2d::new(line_start, dir, 4000.0);
-            let mut line = None;
-            let mut hit_mob = None;
-            for (mob, aabb) in collisions {
-                if let Some(distance) = ray.aabb_intersection_at(&aabb) {
-                    line = Some((line_start, line_start + dir * distance));
-                    hit_mob = mob;
-                    break;
+            for (tile, transform) in tiles.iter_many(map.get_nearby(player_pos_ivec2, 100)) {
+                if tile.0.blocks_movement() {
+                    collisions.push((
+                        None,
+                        Aabb2d::new(
+                            transform.translation.truncate(),
+                            Vec2::splat(TILE_SIZE / 2.0),
+                        ),
+                    ));
                 }
             }
-            // did not collide with any wall or mob.
-            let line = line.unwrap_or((line_start, line_start + dir * 4000.0));
-            let (start, end) = line;
-            ev_spawn_bullet.send(ShootEvent { start, end });
-            if let Some(hit_mob) = hit_mob {
-                ev_damage_mob.send(MobDamageEvent {
-                    damage: 1,
-                    entity: hit_mob,
-                });
+            let dist_to_player = |point| player_pos.translation.truncate().distance_squared(point);
+            collisions.sort_by(|a, b| {
+                dist_to_player((a.1.min + a.1.max) / 2.0)
+                    .partial_cmp(&dist_to_player((b.1.min + b.1.max) / 2.0))
+                    .unwrap()
+            });
+
+            let angle_radians =
+                (rand::thread_rng().r#gen::<f32>() - 0.5) * (shoot_state.jitter_radians * 2.0);
+            let dir = Vec2::from_angle(angle_radians).rotate(mouse_offset);
+            if let Ok(dir) = Dir2::new(dir) {
+                let ray = RayCast2d::new(line_start, dir, 4000.0);
+                let mut line = None;
+                let mut hit_mob = None;
+                for (mob, aabb) in collisions {
+                    if let Some(distance) = ray.aabb_intersection_at(&aabb) {
+                        line = Some((line_start, line_start + dir * distance));
+                        hit_mob = mob;
+                        break;
+                    }
+                }
+                // did not collide with any wall or mob.
+                let line = line.unwrap_or((line_start, line_start + dir * 4000.0));
+                let (start, end) = line;
+                ev_spawn_bullet.send(ShootEvent { start, end });
+                if let Some(hit_mob) = hit_mob {
+                    ev_damage_mob.send(MobDamageEvent {
+                        damage: 1,
+                        entity: hit_mob,
+                    });
+                }
             }
         }
     }
@@ -333,6 +395,18 @@ fn startup(mut commands: Commands, assets: Res<GameAssets>) {
         timer: Timer::new(PLAYER_SHOOT_DELAY, TimerMode::Once),
         focus: 0.0,
         jitter_radians: 0.0,
+    });
+    let mut guns = HashMap::new();
+    guns.insert(
+        GunType::Pistol,
+        GunState {
+            ammo_loaded: GunType::Pistol.get_info().max_loaded,
+            ammo_available: 0,
+        },
+    );
+    commands.insert_resource(Inventory {
+        equipped: GunType::Pistol,
+        guns,
     });
 }
 

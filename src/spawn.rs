@@ -37,6 +37,7 @@ fn spawn(
             Spawn::Tile(TileKind::Tree) => world_assets.dark_green.clone(),
             Spawn::Mob(MobKind::Zombie) => world_assets.purple.clone(),
             Spawn::Mob(MobKind::Sculpture) => world_assets.brown.clone(),
+            Spawn::Mob(MobKind::Hider) => world_assets.aqua.clone(),
         };
         let mesh = match spawn {
             Spawn::Tile(_) => world_assets.square.clone(),
