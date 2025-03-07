@@ -6,10 +6,13 @@ use crate::{
     Player,
     animation::MoveAnimation,
     map::{
-        MapPos, PlayerVisibilityMap, SightBlockedMap, WalkBlockedMap, update_visibility,
+        MapPos, PlayerVisibilityMap, SightBlockedMap, WalkBlockedMap, path, update_visibility,
         update_walkability,
     },
 };
+
+const MAX_PATH: i32 = 100;
+
 #[derive(Clone, Copy)]
 pub enum MobKind {
     Zombie,
@@ -91,19 +94,47 @@ fn move_mobs(
         mob.move_timer.tick(time.delta());
         if mob.move_timer.finished() {
             if let Some(target_pos) = mob.saw_player_at {
-                let path = walk_blocked_map.path(pos.0, target_pos, 100);
+                let path = match mob.kind {
+                    MobKind::Sculpture => path(
+                        pos.0,
+                        target_pos,
+                        MAX_PATH,
+                        |p| walk_blocked_map.0.contains(&p),
+                        |p| {
+                            if player_visibility_map.0.contains(&p) {
+                                99
+                            } else {
+                                0
+                            }
+                        },
+                    ),
+                    _ => path(
+                        pos.0,
+                        target_pos,
+                        MAX_PATH,
+                        |p| walk_blocked_map.0.contains(&p),
+                        |_| 0,
+                    ),
+                };
                 if let Some(path) = path {
                     if let Some(move_pos) = path.get(1) {
                         if *move_pos != player_pos.0 {
-                            walk_blocked_map.0.insert(*move_pos);
-                            pos.0 = *move_pos;
-                            commands.entity(entity).insert(MoveAnimation {
-                                from: transform.translation.truncate(),
-                                to: pos.to_vec2(),
-                                timer: Timer::new(mob.kind.get_move_delay() / 2, TimerMode::Once),
-                                ease: mob.kind.get_ease_function_for_movement(),
-                            });
-                            mob.move_timer.reset();
+                            if !(matches!(mob.kind, MobKind::Sculpture)
+                                && player_visibility_map.0.contains(move_pos))
+                            {
+                                walk_blocked_map.0.insert(*move_pos);
+                                pos.0 = *move_pos;
+                                commands.entity(entity).insert(MoveAnimation {
+                                    from: transform.translation.truncate(),
+                                    to: pos.to_vec2(),
+                                    timer: Timer::new(
+                                        mob.kind.get_move_delay() / 2,
+                                        TimerMode::Once,
+                                    ),
+                                    ease: mob.kind.get_ease_function_for_movement(),
+                                });
+                                mob.move_timer.reset();
+                            }
                         } else {
                             // TODO: monster found the player by pathing through him
                         }
