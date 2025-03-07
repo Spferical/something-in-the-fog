@@ -54,7 +54,6 @@ impl Plugin for PerformanceUiPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins(bevy::diagnostic::FrameTimeDiagnosticsPlugin)
             .add_plugins(bevy::diagnostic::EntityCountDiagnosticsPlugin)
-            .add_plugins(bevy::diagnostic::SystemInformationDiagnosticsPlugin)
             .add_systems(Update, draw);
     }
 }

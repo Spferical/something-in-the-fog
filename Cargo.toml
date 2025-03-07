@@ -17,9 +17,26 @@ opt-level = "s"
 lto = true
 
 [dependencies]
-bevy = "0.15.3"
-bevy_egui = { version = "0.33.0", default-features = false, features = ["default_fonts", "render"] }
+bevy_egui = { version = "0.33.0", default-features = false, features = [
+    "default_fonts",
+    "render",
+] }
 line_drawing = "1.0.1"
 pathfinding = "4.14.0"
 rand = "0.8.5"
 rogue-algebra = { path = "./rogue-algebra/", features = ["bevy15"] }
+
+[dependencies.bevy]
+version = "0.15.3"
+default-features = false
+# https://github.com/bevyengine/bevy/blob/v0.15.3/docs/cargo_features.md
+features = [
+    "x11",
+    "wayland",
+    "webgl2",
+    "bevy_render",
+    "bevy_asset",
+    "bevy_sprite",
+    "bevy_window",
+    "bevy_text",
+]
