@@ -455,7 +455,9 @@ pub fn gen_map() -> MapgenResult {
     let free = warehouse_rect
         .into_iter()
         .filter(|p| {
-            tile_map[*p].filter(TileKind::blocks_movement).is_none()
+            tile_map[*p]
+                .filter(|t| t.blocks_movement() || t.blocks_sight())
+                .is_none()
                 && !mob_spawns.contains_key(p)
                 && !item_spawns.contains_key(p)
         })
