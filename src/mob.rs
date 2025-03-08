@@ -295,7 +295,7 @@ fn move_mobs(
                         timer.tick(time.delta());
                         if let Some(pos) = target_pos {
                             if timer.finished() {
-                                *kool_aid = KoolAidMovement::Moving(pos);
+                                *kool_aid = KoolAidMovement::Moving(pos + (pos - mob_pos.0));
                             } else {
                                 target_pos = None;
                             }
