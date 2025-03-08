@@ -1,14 +1,15 @@
 use std::time::Duration;
 
-use bevy::prelude::*;
+use bevy::{prelude::*, time::Stopwatch};
 
 use crate::{
     Player,
     animation::MoveAnimation,
     map::{
-        MapPos, PlayerVisibilityMap, SightBlockedMap, WalkBlockedMap, path, update_visibility,
+        Map, MapPos, PlayerVisibilityMap, SightBlockedMap, WalkBlockedMap, path, update_visibility,
         update_walkability,
     },
+    player::{PlayerMoveEvent, ShootEvent},
 };
 
 const MAX_PATH: i32 = 100;
@@ -123,25 +124,110 @@ fn find_hiding_spot(
 pub struct SeesPlayer;
 
 #[derive(Component)]
-pub struct SawPlayer(pub IVec2);
+pub struct SawPlayer {
+    pub pos: IVec2,
+    pub time_since: Stopwatch,
+}
+
+impl SawPlayer {
+    pub fn new(pos: IVec2) -> Self {
+        Self {
+            pos,
+            time_since: Stopwatch::new(),
+        }
+    }
+}
 
 fn update_mobs_seeing_player(
     mut commands: Commands,
     mobs: Query<(Entity, &MapPos, Option<&SawPlayer>), With<SeesPlayer>>,
     player_visibility_map: Res<PlayerVisibilityMap>,
+    sight_blocked_map: Res<SightBlockedMap>,
+    mut ev_player_move: EventReader<PlayerMoveEvent>,
     player: Query<&MapPos, (With<Player>, Without<Mob>)>,
 ) {
     let player_pos = player.single();
-    for (entity, pos, saw_player) in mobs.iter() {
-        if player_visibility_map.0.contains(&pos.0) {
-            commands.entity(entity).insert(SawPlayer(player_pos.0));
-        } else if saw_player.is_some_and(|p| p.0 == player_pos.0) {
+    let last_player_move = ev_player_move.read().last();
+    for (entity, mob_pos, saw_player) in mobs.iter() {
+        let player_sees_mob = player_visibility_map.0.contains(&mob_pos.0);
+        let player_is_hidden = sight_blocked_map.0.contains(&player_pos.0);
+        if player_sees_mob && !player_is_hidden {
+            commands.entity(entity).insert(SawPlayer::new(player_pos.0));
+        } else if let Some(PlayerMoveEvent { source, dest }) = last_player_move {
+            if let Some(SawPlayer {
+                pos: last_seen_player_pos,
+                ..
+            }) = saw_player
+            {
+                if *last_seen_player_pos == source.0 && player_sees_mob {
+                    // Mob saw player move into a hiding spot.
+                    commands.entity(entity).insert(SawPlayer::new(dest.0));
+                }
+            }
+        }
+    }
+}
+
+#[derive(Component)]
+pub struct HearsPlayer;
+
+#[derive(Component)]
+pub struct HeardPlayer {
+    pub pos: IVec2,
+    pub time_since: Stopwatch,
+}
+
+impl HeardPlayer {
+    pub fn new(pos: IVec2) -> Self {
+        Self {
+            pos,
+            time_since: Stopwatch::new(),
+        }
+    }
+}
+
+fn update_hearing_player(
+    mut commands: Commands,
+    mobs: Query<Entity, With<HearsPlayer>>,
+    mut ev_shoot: EventReader<ShootEvent>,
+    map: Res<Map>,
+) {
+    const HEARING_RADIUS: i32 = 20;
+    for ShootEvent { start, .. } in ev_shoot.read() {
+        let map_pos = MapPos::from_vec2(*start);
+        for entity in mobs.iter_many(map.get_nearby(map_pos.0, HEARING_RADIUS)) {
+            commands.entity(entity).insert(HeardPlayer::new(map_pos.0));
+        }
+    }
+}
+
+#[allow(clippy::type_complexity)]
+fn forget_player(
+    mut commands: Commands,
+    mut set: ParamSet<(
+        Query<(Entity, &MapPos, &mut HeardPlayer)>,
+        Query<(Entity, &MapPos, &mut SawPlayer)>,
+    )>,
+    time: Res<Time>,
+) {
+    const FORGET_DURATION: Duration = Duration::from_secs(30);
+    for (entity, pos, mut heard_player) in set.p0().iter_mut() {
+        heard_player.time_since.tick(time.delta());
+        if pos.0 == heard_player.pos || heard_player.time_since.elapsed() > FORGET_DURATION {
+            // Mob is standing on last seen player position.
+            commands.entity(entity).remove::<HeardPlayer>();
+        }
+    }
+    for (entity, pos, mut saw_player) in set.p1().iter_mut() {
+        saw_player.time_since.tick(time.delta());
+        if pos.0 == saw_player.pos || saw_player.time_since.elapsed() > FORGET_DURATION {
             // Mob is standing on last seen player position.
             commands.entity(entity).remove::<SawPlayer>();
         }
     }
 }
 
+#[allow(clippy::type_complexity)]
 fn move_mobs(
     mut commands: Commands,
     mut mobs: Query<(
@@ -150,6 +236,7 @@ fn move_mobs(
         &mut MapPos,
         &mut Transform,
         Option<&SawPlayer>,
+        Option<&HeardPlayer>,
     )>,
     player: Query<&MapPos, (With<Player>, Without<Mob>)>,
     mut walk_blocked_map: ResMut<WalkBlockedMap>,
@@ -158,17 +245,19 @@ fn move_mobs(
     time: Res<Time>,
 ) {
     let player_pos = player.single();
-    for (entity, mut mob, mut pos, transform, saw_player) in mobs.iter_mut() {
+    for (entity, mut mob, mut pos, transform, saw_player, heard_player) in mobs.iter_mut() {
         mob.move_timer.tick(time.delta());
         if mob.move_timer.finished() {
-            let last_seen_player_pos = saw_player.map(|saw| saw.0);
+            let last_known_player_pos = saw_player
+                .map(|saw| saw.pos)
+                .or(heard_player.map(|heard| heard.pos));
             let target_pos = match mob.kind {
-                MobKind::Hider => last_seen_player_pos
+                MobKind::Hider => last_known_player_pos
                     .filter(|p| {
                         p.distance_squared(pos.0) <= HIDER_CHASE_DISTANCE * HIDER_CHASE_DISTANCE
                     })
                     .or_else(|| find_hiding_spot(pos.0, &walk_blocked_map, &sight_blocked_map)),
-                _ => last_seen_player_pos,
+                _ => last_known_player_pos,
             };
             if let Some(target_pos) = target_pos {
                 let avoid_player_sight = matches!(mob.kind, MobKind::Sculpture);
@@ -213,7 +302,13 @@ impl Plugin for MobPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(
             Update,
-            (update_mobs_seeing_player, damage_mobs, move_mobs)
+            (
+                update_mobs_seeing_player,
+                update_hearing_player,
+                forget_player,
+                damage_mobs,
+                move_mobs,
+            )
                 .chain()
                 .after(update_visibility)
                 .after(update_walkability),

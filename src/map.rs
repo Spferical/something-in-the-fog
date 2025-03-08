@@ -10,7 +10,7 @@ use crate::{
 
 pub const TILE_SIZE: f32 = 48.0;
 
-#[derive(Component, Clone)]
+#[derive(Component, Debug, Clone)]
 pub struct MapPos(pub IVec2);
 
 impl MapPos {
@@ -21,9 +21,12 @@ impl MapPos {
         }
     }
     pub fn from_vec3(vec3: Vec3) -> Self {
+        Self::from_vec2(vec3.xy())
+    }
+    pub fn from_vec2(vec2: Vec2) -> Self {
         Self(IVec2 {
-            x: (vec3.x / TILE_SIZE) as i32,
-            y: (vec3.y / TILE_SIZE) as i32,
+            x: (vec2.x / TILE_SIZE) as i32,
+            y: (vec2.y / TILE_SIZE) as i32,
         })
     }
 }

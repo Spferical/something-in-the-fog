@@ -343,9 +343,9 @@ fn update_shooting(
 
 /// Player fired their gun and it hit something.
 #[derive(Event)]
-struct ShootEvent {
-    start: Vec2,
-    end: Vec2,
+pub struct ShootEvent {
+    pub start: Vec2,
+    pub end: Vec2,
 }
 
 fn spawn_bullets(
@@ -388,7 +388,10 @@ struct MovePlayerState {
 }
 
 #[derive(Event)]
-struct PlayerMoveEvent(MapPos);
+pub struct PlayerMoveEvent {
+    pub source: MapPos,
+    pub dest: MapPos,
+}
 
 #[allow(clippy::complexity)]
 fn move_player(
@@ -446,15 +449,19 @@ fn move_player(
             }
             world_pos.0 += movement;
             if movement != IVec2::ZERO {
+                let from = MapPos(world_pos.0 - movement);
                 commands.entity(entity).insert(MoveAnimation {
-                    from: MapPos(world_pos.0 - movement).to_vec2(),
+                    from: from.to_vec2(),
                     to: world_pos.to_vec2(),
                     timer: Timer::new(Duration::from_millis(100), TimerMode::Once),
                     ease: EaseFunction::QuadraticOut,
                 });
                 local_state.last_move_direction = movement;
                 timer.0.reset();
-                ev_player_move.send(PlayerMoveEvent(world_pos.clone()));
+                ev_player_move.send(PlayerMoveEvent {
+                    source: from,
+                    dest: world_pos.clone(),
+                });
             }
         }
     }
@@ -468,8 +475,9 @@ fn pickup(
     q_pickups: Query<(Entity, &Pickup)>,
     mut inventory: ResMut<Inventory>,
 ) {
-    for PlayerMoveEvent(pos) in ev_player_move.read() {
-        for (entity, Pickup(kind)) in q_pickups.iter_many(tile_map.0.get(&pos.0).unwrap_or(&vec![]))
+    for PlayerMoveEvent { dest, .. } in ev_player_move.read() {
+        for (entity, Pickup(kind)) in
+            q_pickups.iter_many(tile_map.0.get(&dest.0).unwrap_or(&vec![]))
         {
             commands.entity(entity).despawn();
             match kind {
@@ -484,7 +492,7 @@ fn pickup(
             }
             ev_text.send(TextEvent {
                 text: format!("got {kind}!"),
-                position: pos.to_vec2(),
+                position: dest.to_vec2(),
                 duration: Duration::from_secs(5),
             });
         }
