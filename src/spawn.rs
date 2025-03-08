@@ -41,6 +41,7 @@ pub fn spawn(
             Spawn::Mob(MobKind::Zombie) => world_assets.purple.clone(),
             Spawn::Mob(MobKind::Sculpture) => world_assets.brown.clone(),
             Spawn::Mob(MobKind::Hider) => world_assets.aqua.clone(),
+            Spawn::Mob(MobKind::KoolAidMan) => world_assets.red.clone(),
             Spawn::Item(ItemKind::Ammo(..)) => world_assets.gray.clone(),
             Spawn::Item(ItemKind::Gun(..)) => world_assets.gray.clone(),
         };

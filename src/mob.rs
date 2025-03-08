@@ -19,6 +19,7 @@ pub enum MobKind {
     Zombie,
     Sculpture,
     Hider,
+    KoolAidMan,
 }
 
 impl MobKind {
@@ -28,6 +29,7 @@ impl MobKind {
             Zombie => Duration::from_secs(1),
             Sculpture => Duration::from_millis(16),
             Hider => Duration::from_millis(200),
+            KoolAidMan => Duration::from_millis(100),
         }
     }
 
@@ -37,6 +39,7 @@ impl MobKind {
             Zombie => 3,
             Sculpture => 99,
             Hider => 3,
+            KoolAidMan => 5,
         }
     }
 
@@ -46,6 +49,7 @@ impl MobKind {
             Zombie => EaseFunction::BounceIn,
             Sculpture => EaseFunction::Linear,
             Hider => EaseFunction::CubicIn,
+            KoolAidMan => EaseFunction::BounceOut,
         }
     }
 }
