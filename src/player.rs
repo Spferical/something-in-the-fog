@@ -9,13 +9,14 @@ use bevy::{
 use rand::Rng as _;
 
 use crate::{
-    GameState, PrimaryCamera, Z_PLAYER,
     animation::{MoveAnimation, TextEvent},
     assets::{GameAssets, SpriteSheet},
     despawn_after::DespawnAfter,
-    map::{BlocksMovement, Map, MapPos, Pickup, TILE_SIZE, Tile},
+    map::{BlocksMovement, Map, MapPos, Pickup, Tile, TILE_SIZE},
     mob::{Mob, MobDamageEvent},
+    renderer::PlaneMouseMovedEvent,
     ui::UiSettings,
+    GameState, PrimaryCamera, Z_PLAYER,
 };
 
 const PLAYER_MOVE_DELAY: Duration = Duration::from_millis(200);
@@ -147,7 +148,7 @@ fn swap_gun(mut inventory: ResMut<Inventory>, mut ev_scroll: EventReader<MouseWh
 #[derive(Resource)]
 pub struct MouseWorldCoords(pub Vec2);
 
-fn update_mouse_coords(
+/*fn update_mouse_coords(
     mut mouse_world_coords: ResMut<MouseWorldCoords>,
     query_window: Query<&Window, With<bevy::window::PrimaryWindow>>,
     query_camera: Query<(&Camera, &GlobalTransform), With<PrimaryCamera>>,
@@ -159,6 +160,19 @@ fn update_mouse_coords(
             .and_then(|cursor| camera.viewport_to_world_2d(camera_transform, cursor).ok())
         {
             mouse_world_coords.0 = world_position;
+        }
+    }
+}*/
+
+fn update_mouse_coords(
+    mut mouse_world_coords: ResMut<MouseWorldCoords>,
+    query_camera: Query<(&Camera, &GlobalTransform), With<PrimaryCamera>>,
+    mut mouse_reader: EventReader<PlaneMouseMovedEvent>,
+) {
+    for ev in mouse_reader.read() {
+        let (camera, camera_transform) = query_camera.single();
+        if let Ok(world_pos) = camera.viewport_to_world_2d(camera_transform, ev.0) {
+            mouse_world_coords.0 = world_pos;
         }
     }
 }

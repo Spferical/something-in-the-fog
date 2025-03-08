@@ -7,6 +7,7 @@ mod mat;
 mod prepare;
 
 use crate::renderer::OccluderTextureCpu;
+use crate::SDF_RES;
 pub use mat::EdgeMaterial;
 pub use prepare::{on_resize_edge_texture, prepare_edge_texture};
 
@@ -25,8 +26,10 @@ pub fn setup_edge_pass(
     mut materials: ResMut<Assets<EdgeMaterial>>,
 ) {
     let (width, height) = (
-        (window.resolution.physical_width()) as f32,
-        (window.resolution.physical_height()) as f32,
+        // (window.resolution.physical_width()) as f32,
+        // (window.resolution.physical_height()) as f32,
+        SDF_RES as f32,
+        SDF_RES as f32,
     );
 
     let Ok(edge_texture) = edge_texture_query.get_single() else {

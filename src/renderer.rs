@@ -3,9 +3,9 @@ use bevy::prelude::*;
 use bevy::render::render_resource::Extent3d;
 use bevy::sprite::Material2dPlugin;
 
-use crate::edge::{EdgeMaterial, on_resize_edge_texture, prepare_edge_texture, setup_edge_pass};
-use crate::lighting::{LightingMaterial, setup_lighting_pass};
-use crate::sdf::{SdfMaterial, on_resize_sdf_texture, prepare_sdf_texture, setup_sdf_pass};
+use crate::edge::{on_resize_edge_texture, prepare_edge_texture, setup_edge_pass, EdgeMaterial};
+use crate::lighting::{get_mouse_location, setup_lighting_pass, LightingMaterial};
+use crate::sdf::{on_resize_sdf_texture, prepare_sdf_texture, setup_sdf_pass, SdfMaterial};
 
 #[derive(Component, Clone)]
 pub struct OccluderTextureCpu(pub Handle<Image>);
@@ -47,16 +47,22 @@ fn on_resize_occluder_texture(
     }
 }
 
+#[derive(Event)]
+pub struct PlaneMouseMovedEvent(pub Vec2);
+
 impl Plugin for Renderer {
     fn build(&self, app: &mut App) {
         app.add_plugins(Material2dPlugin::<SdfMaterial>::default())
             .add_plugins(Material2dPlugin::<EdgeMaterial>::default())
             .add_plugins(MaterialPlugin::<LightingMaterial>::default())
+            .add_plugins(MeshPickingPlugin)
+            .add_event::<PlaneMouseMovedEvent>()
             .add_systems(PreStartup, (prepare_sdf_texture, prepare_edge_texture))
             .add_systems(
                 PostStartup,
                 (setup_sdf_pass, setup_edge_pass, setup_lighting_pass),
-            );
+            )
+            .add_systems(Update, get_mouse_location);
         // .add_systems(Update, alter_fov);
         // .add_systems(Update, (on_resize_edge_texture, on_resize_sdf_texture))
         // .add_systems(Update, on_resize_occluder_texture);

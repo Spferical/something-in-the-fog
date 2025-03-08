@@ -224,7 +224,7 @@ fn lighting_simple(
     let ro_lighting = vec3(0.5, 0.5, 0.2);
 
     let rd = normalize(vec3(uv, 0.0) - ro);
-    let ray_outputs = trace_ray(ro, rd, u32(32), 0.01, 1000.0, 1e-4);
+    let ray_outputs = trace_ray(ro, rd, u32(16), 0.01, 1000.0, 1e-4);
     let endpoints = ray_outputs.intersection;
     let normal_sample_pt = endpoints - rd * 1e-4;
     let normal = sobel_gradient_estimate(normal_sample_pt);

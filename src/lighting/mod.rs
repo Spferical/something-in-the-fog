@@ -1,20 +1,25 @@
+use bevy::color::palettes::tailwind::RED_500;
 use bevy::core_pipeline::tonemapping::{DebandDither, Tonemapping};
+use bevy::picking::pointer::PointerInteraction;
 use bevy::prelude::*;
 use bevy::render::render_graph::RenderLabel;
 use mat::{Light, LightBundle, LightingSettings};
 
 mod mat;
 
-use crate::PrimaryCamera;
 use crate::edge::EdgeTexture;
 use crate::map::TILE_SIZE;
-use crate::renderer::OccluderTextureCpu;
+use crate::renderer::{OccluderTextureCpu, PlaneMouseMovedEvent};
 use crate::sdf::SdfTexture;
+use crate::{PrimaryCamera, SDF_RES};
 use bevy::render::view::RenderLayers;
 pub use mat::LightingMaterial;
 
 const LIGHTING_ORDER_OFFSET: isize = 20;
 const LIGHTING_LAYER: usize = 4;
+
+#[derive(Component)]
+pub struct RenderPlane;
 
 /*pub fn alter_fov(
     mut commands: Commands,
@@ -39,6 +44,20 @@ const LIGHTING_LAYER: usize = 4;
         .insert(proj);
 }*/
 
+pub fn get_mouse_location(
+    pointers: Query<&PointerInteraction>,
+    mut mouse_writer: EventWriter<PlaneMouseMovedEvent>,
+) {
+    for point in pointers
+        .iter()
+        .filter_map(|interaction| interaction.get_nearest_hit())
+        .filter_map(|(_entity, hit)| hit.position)
+    {
+        let pt = (Vec2::new(point.x, point.z) + 0.5) * SDF_RES as f32;
+        mouse_writer.send(PlaneMouseMovedEvent(pt));
+    }
+}
+
 pub fn setup_lighting_pass(
     window: Single<&Window>,
     mut commands: Commands,
@@ -54,6 +73,7 @@ pub fn setup_lighting_pass(
         (window.resolution.physical_width()) as f32,
         (window.resolution.physical_height()) as f32,
     );
+    let aspect_ratio = 1.0;
 
     let Ok(sdf_texture) = sdf_texture_query.get_single() else {
         return;
@@ -73,7 +93,7 @@ pub fn setup_lighting_pass(
     };
     let lights = [Light::default(); 8];
 
-    let plane = meshes.add(Plane3d::default().mesh().size(1.0, height / width));
+    let plane = meshes.add(Plane3d::default().mesh().size(1.0, aspect_ratio));
     commands.spawn((
         Mesh3d(plane),
         // MeshMaterial3d(standard_materials.add(Color::srgb(0.3, 0.5, 0.3))),
@@ -86,12 +106,13 @@ pub fn setup_lighting_pass(
             num_lights: 0,
         })),
         RenderLayers::layer(LIGHTING_LAYER),
+        RenderPlane,
     ));
 
     commands.spawn((
         Camera3d::default(),
         PerspectiveProjection {
-            fov: 60.0_f32.to_radians(),
+            fov: 100.0_f32.to_radians(),
             ..default()
         },
         // Tonemapping::None,
@@ -103,7 +124,7 @@ pub fn setup_lighting_pass(
             order: LIGHTING_ORDER_OFFSET,
             ..default()
         },
-        Transform::from_xyz(0.0, 0.5, 0.0).looking_at(Vec3::ZERO, -Vec3::Z),
+        Transform::from_xyz(0.0, 1.2, 0.0).looking_at(Vec3::ZERO, -Vec3::Z),
         RenderLayers::layer(LIGHTING_LAYER),
     ));
 }

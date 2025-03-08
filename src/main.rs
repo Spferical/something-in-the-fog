@@ -33,6 +33,8 @@ mod sdf;
 mod spawn;
 mod ui;
 
+pub const SDF_RES: u32 = 768;
+
 const CAMERA_DECAY_RATE: f32 = 2.;
 
 // Z-coordinates for everything in the game world.
@@ -58,8 +60,10 @@ fn create_camera(
     window.resizable = true;
     let mut image = Image::new_fill(
         Extent3d {
-            width: window.resolution.physical_width(), // does this work?
-            height: window.resolution.physical_height(),
+            // width: window.resolution.physical_width(), // does this work?
+            // height: window.resolution.physical_height(),
+            width: SDF_RES,
+            height: SDF_RES,
             ..default()
         },
         TextureDimension::D2,

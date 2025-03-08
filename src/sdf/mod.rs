@@ -8,6 +8,7 @@ mod prepare;
 use crate::edge::EdgeTexture;
 use crate::map::TILE_SIZE;
 use crate::renderer::OccluderTextureCpu;
+use crate::SDF_RES;
 use bevy::render::view::RenderLayers;
 pub use mat::SdfMaterial;
 pub use prepare::{on_resize_sdf_texture, prepare_sdf_texture};
@@ -33,8 +34,10 @@ pub fn setup_sdf_pass(
     mut materials: ResMut<Assets<SdfMaterial>>,
 ) {
     let (width, height) = (
-        (window.resolution.physical_width()) as f32,
-        (window.resolution.physical_height()) as f32,
+        // (window.resolution.physical_width()) as f32,
+        // (window.resolution.physical_height()) as f32,
+        SDF_RES as f32,
+        SDF_RES as f32,
     );
 
     let larger_dim = width.max(height);
@@ -62,20 +65,6 @@ pub fn setup_sdf_pass(
         let ping_image = sdf_texture.iters[j].clone();
         let pong_image = sdf_texture.iters[j - 1].clone();
 
-        /*if i == endpoint - 1 {
-            let camera_postprocess = Camera {
-                clear_color: ClearColorConfig::Custom(Color::linear_rgba(0.0, 0.0, 0.0, 0.0)),
-                hdr: true,
-                order: (SDF_ORDER_OFFSET + i) as isize,
-                ..default()
-            };
-            commands.spawn((
-                Camera2d,
-                proj.clone(),
-                camera_postprocess,
-                RenderLayers::layer(ping_it),
-            ));
-        } else {*/
         let camera_postprocess = Camera {
             clear_color: ClearColorConfig::Custom(Color::linear_rgba(0.0, 0.0, 0.0, 0.0)),
             target: pong_image.clone().into(),
@@ -92,7 +81,6 @@ pub fn setup_sdf_pass(
             camera_postprocess,
             RenderLayers::layer(ping_it),
         ));
-        // }
         commands.spawn((
             Mesh2d(fullscreen_mesh.clone()),
             Transform::from_translation(Vec3::new(0.0, 0.0, 1.5)),
