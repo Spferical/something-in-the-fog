@@ -5,11 +5,11 @@ use mat::{Light, LightBundle, LightingSettings};
 
 mod mat;
 
+use crate::PrimaryCamera;
 use crate::edge::EdgeTexture;
 use crate::map::TILE_SIZE;
 use crate::renderer::OccluderTextureCpu;
 use crate::sdf::SdfTexture;
-use crate::PrimaryCamera;
 use bevy::render::view::RenderLayers;
 pub use mat::LightingMaterial;
 

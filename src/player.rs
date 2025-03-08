@@ -11,7 +11,7 @@ use rand::Rng as _;
 use crate::{
     GameState, PrimaryCamera, Z_PLAYER,
     animation::{MoveAnimation, TextEvent},
-    assets::GameAssets,
+    assets::{GameAssets, SpriteSheet},
     despawn_after::DespawnAfter,
     map::{BlocksMovement, Map, MapPos, Pickup, TILE_SIZE, Tile},
     mob::{Mob, MobDamageEvent},
@@ -547,8 +547,8 @@ fn startup(mut commands: Commands, assets: Res<GameAssets>) {
     commands.spawn((
         Player { damage: 0 },
         MapPos(PLAYER_START),
-        assets.get_urizen_sprite(26),
-        Transform::from_translation(player_start_translation),
+        assets.get_sprite(SpriteSheet::OryxAvatar, 1),
+        Transform::from_translation(player_start_translation).with_scale(Vec3::splat(2.0)),
         RenderLayers::layer(1),
     ));
     commands.insert_resource(MoveTimer(Timer::new(PLAYER_MOVE_DELAY, TimerMode::Once)));

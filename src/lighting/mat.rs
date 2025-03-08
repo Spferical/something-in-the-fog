@@ -14,7 +14,7 @@ pub struct Light {
 
 #[derive(Clone, Default, ShaderType)]
 pub struct LightBundle {
-    pub lights: [Light; 8]
+    pub lights: [Light; 8],
 }
 
 #[derive(Clone, Default, ShaderType)]

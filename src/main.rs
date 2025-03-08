@@ -14,7 +14,7 @@ use bevy::{
     },
 };
 use map::Zones;
-use map::{Map, MapPos, Tile, TILE_SIZE};
+use map::{Map, MapPos, TILE_SIZE, Tile};
 use player::{Player, PlayerDamageEvent};
 use rand::Rng as _;
 use ui::{UiEvent, UiSettings};
