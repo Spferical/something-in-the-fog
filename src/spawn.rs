@@ -2,11 +2,12 @@ use bevy::{prelude::*, render::view::RenderLayers};
 
 use crate::{
     Z_ITEMS, Z_MOBS, Z_TILES,
-    assets::GameAssets,
+    assets::{GameAssets, SpriteKind},
     map::{BlocksMovement, BlocksSight, ItemKind, MapPos, Pickup, TILE_SIZE, Tile, TileKind},
     mob::{HearsPlayer, KoolAidMovement, Mob, MobKind, SeesPlayer},
 };
 
+#[derive(Clone)]
 pub enum Spawn {
     Tile(TileKind),
     Mob(MobKind),
@@ -32,20 +33,7 @@ pub fn spawn(
     mut ev_spawn: EventReader<SpawnEvent>,
 ) {
     for SpawnEvent(pos, spawn) in ev_spawn.read() {
-        let color = match spawn {
-            Spawn::Tile(TileKind::Wall) => world_assets.white.clone(),
-            Spawn::Tile(TileKind::ShippingContainer) => world_assets.brown.clone(),
-            Spawn::Tile(TileKind::Crate) => world_assets.gray.clone(),
-            Spawn::Tile(TileKind::Bush) => world_assets.green.clone(),
-            Spawn::Tile(TileKind::Tree) => world_assets.dark_green.clone(),
-            Spawn::Tile(TileKind::Door) => world_assets.brown.clone(),
-            Spawn::Mob(MobKind::Zombie) => world_assets.purple.clone(),
-            Spawn::Mob(MobKind::Sculpture) => world_assets.brown.clone(),
-            Spawn::Mob(MobKind::Hider) => world_assets.aqua.clone(),
-            Spawn::Mob(MobKind::KoolAidMan) => world_assets.red.clone(),
-            Spawn::Item(ItemKind::Ammo(..)) => world_assets.gray.clone(),
-            Spawn::Item(ItemKind::Gun(..)) => world_assets.gray.clone(),
-        };
+        let sprite = world_assets.get_sprite(SpriteKind::Spawn(spawn.clone()));
         let mesh = match spawn {
             Spawn::Tile(_) => world_assets.square.clone(),
             Spawn::Mob(_) => world_assets.circle.clone(),
@@ -59,7 +47,7 @@ pub fn spawn(
         };
         let mut entity_commands = commands.spawn((
             Mesh2d(mesh),
-            MeshMaterial2d(color),
+            sprite,
             MapPos(*pos),
             Transform::from_translation(Vec3::new(
                 TILE_SIZE * pos.x as f32,
