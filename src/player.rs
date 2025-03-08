@@ -10,7 +10,7 @@ use rand::Rng as _;
 
 use crate::{
     animation::{MoveAnimation, TextEvent},
-    assets::{GameAssets, SpriteKind, SpriteSheet},
+    assets::{GameAssets, SpriteKind},
     despawn_after::DespawnAfter,
     map::{BlocksMovement, Map, MapPos, Pickup, Tile, TILE_SIZE},
     mob::{Mob, MobDamageEvent},

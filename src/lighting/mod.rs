@@ -1,8 +1,6 @@
-use bevy::color::palettes::tailwind::RED_500;
-use bevy::core_pipeline::tonemapping::{DebandDither, Tonemapping};
+use bevy::core_pipeline::tonemapping::DebandDither;
 use bevy::picking::pointer::PointerInteraction;
 use bevy::prelude::*;
-use bevy::render::render_graph::RenderLabel;
 use mat::{Light, LightBundle, LightingSettings};
 
 mod mat;

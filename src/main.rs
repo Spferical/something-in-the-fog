@@ -2,7 +2,6 @@ use std::time::Duration;
 
 use animation::FadeColorMaterial;
 use assets::GameAssets;
-use bevy::core_pipeline::tonemapping::DebandDither;
 use bevy::diagnostic::LogDiagnosticsPlugin;
 use bevy::input::mouse::{MouseScrollUnit, MouseWheel};
 use bevy::{
@@ -14,9 +13,7 @@ use bevy::{
     },
 };
 use map::Zones;
-use map::{Map, MapPos, TILE_SIZE, Tile};
 use player::{Player, PlayerDamageEvent};
-use rand::Rng as _;
 use ui::{UiEvent, UiSettings};
 
 mod animation;
