@@ -1,0 +1,218 @@
+#import bevy_pbr::mesh_view_bindings as view_bindings
+#import bevy_pbr::{
+    forward_io::VertexOutput,
+    view_transformations,
+}
+#import bevy_pbr::utils::coords_to_viewport_uv
+
+struct RayTraceOutputs {
+    intersection: vec3f,
+    dist: f32,
+    hit: bool
+}
+
+struct Light {
+    color: vec4f,
+    intensity: f32,
+    center: vec4f,
+    direction: vec4f,
+    focus: f32
+}
+
+struct LightBundle {
+    lights: array<Light, 8>
+}
+
+struct LightingSettings {
+    tile_size: i32
+}
+
+@group(2) @binding(0) var screen_texture: texture_2d<f32>;
+@group(2) @binding(1) var edge_texture: texture_2d<f32>;
+@group(2) @binding(2) var seed_texture: texture_2d<f32>;
+@group(2) @binding(3) var seed_sampler: sampler;
+@group(2) @binding(4) var<uniform> settings: LightingSettings;
+@group(2) @binding(5) var<uniform> lights: LightBundle;
+@group(2) @binding(6) var<uniform> num_lights: i32;
+
+fn sample_2d_seed(uv: vec2f) -> vec2f {
+    let screen_size = vec2f(textureDimensions(seed_texture));
+
+    return textureSample(
+        seed_texture,
+        seed_sampler,
+        uv
+    ).xy;
+}
+
+fn sdf_2d(uv: vec3f) -> f32 {
+    let seed = sample_2d_seed(uv.xy);
+    let inside_texture = textureSample(screen_texture, seed_sampler, uv.xy).a > 0.1;
+    let sdf = length(uv.xy - seed.xy) * select(1., -1., inside_texture);
+    return sdf;
+}
+
+fn sdf_extruded(p: vec3<f32>) -> f32 {
+    let d = sdf_2d(p);
+    let h = 0.5;
+    let w = vec2f(d, abs(p.z) - h);
+    return min(max(w.x, w.y), 0.0) + length(max(w, vec2f(0.0, 0.0)));
+}
+
+fn sd_plane(p: vec3f) -> f32 {
+    return dot(p, vec3f(0.0, 0.0, 1.0));
+}
+
+fn sdf(p: vec3f) -> f32 {
+    return min(sd_plane(p), sdf_extruded(p));
+    // return sdf_extruded(p);
+    // return sd_plane(p);
+}
+
+fn trace_ray(
+    ray_origin: vec3f,
+    ray_direction: vec3f,
+    trace_iters: u32,
+    tmin: f32,
+    max_dist: f32,
+    eps: f32
+) -> RayTraceOutputs {
+    var t: f32 = tmin;
+    var h: f32 = 0.0;
+
+    var p = ray_origin;
+    for (var k: u32 = 0; k < trace_iters && t < max_dist; k++) {
+        p = ray_origin + ray_direction * t;
+        h = sdf(p);
+        t += h;
+    }
+
+    return RayTraceOutputs (p, t, h <= eps);
+}
+
+fn visibility(ro: vec3f, end_pt: vec3f, trace_iters: u32, eps: f32, w: f32) -> f32 {
+    let rd = normalize(end_pt - ro);
+    var res: f32 = 1.0;
+    var ph: f32 = 1e8;
+
+    let maxt = length(end_pt - ro);
+    var t: f32 = 0.1;
+    for (var i = 0u; i < trace_iters && t < maxt; i++) {
+        let p = ro + rd * t;
+        let h = sdf(p);
+        if (h < eps) {
+            return 0.0;
+        }
+        let y = h * h / (2.0 * ph);
+        let d = sqrt(h * h - y * y);
+        res = min(res, d / (w * max(0.0, t - y)));
+        ph = h;
+        t = t + h;
+    }
+    return clamp(res, 0.0, 1.0);
+}
+
+/*fn visibility(ro: vec3f, end_pt: vec3f, trace_iters: u32, eps: f32, k: f32) -> f32 {
+  let rd = normalize(end_pt - ro);
+  var res = 1.0;
+  var t = 0.0;
+  let maxt = length(end_pt - ro);
+  for (var i = 0u; i < trace_iters && t < maxt; i = i + 1u) {
+    let p = ro + rd * t;
+    let h = sdf(p);
+    if (h < eps) {
+      return 0.0;
+    }
+    res = min(res, k * h / t);
+    t = t + h;
+  }
+  return res;
+  }*/
+
+fn h(p: vec3f, index: i32) -> f32 {
+    var forward = p;
+    var backward = p;
+    forward[index] += 1e-4;
+    backward[index] -= 1e-4;
+    return dot(vec3f(sdf(backward), sdf(p), sdf(forward)),
+               vec3(1.0, 2.0, 1.0));
+}
+
+fn h_p(p: vec3f, index: i32) -> f32 {
+    var forward = p;
+    var backward = p;
+    forward[index] += 1e-4;
+    backward[index] -= 1e-4;
+    return dot(vec2f(sdf(backward), sdf(forward)), vec2f(1.0, -1.0));
+}
+
+fn sobel_gradient_estimate(p: vec3f) -> vec3f {
+    // float h_x = h_p(p, uint(0)) * h(p, uint(1)) * h(p, uint(2));
+    // float h_y = h_p(p, uint(1)) * h(p, uint(2)) * h(p, uint(0));
+    // float h_z = h_p(p, uint(2)) * h(p, uint(0)) * h(p, uint(1));
+    let h_x = h_p(p, 0) * h(p, 1) * h(p, 2);
+    let h_y = h_p(p, 1) * h(p, 2) * h(p, 0);
+    let h_z = h_p(p, 2) * h(p, 0) * h(p, 1);
+
+    return normalize(-vec3f(h_x, h_y, h_z));
+}
+
+fn lighting_simple(
+    pos: vec3f,
+    light: Light,
+    camera_origin: vec3f,
+    normal: vec3f
+) -> vec3<f32> {
+    let pi = radians(180.0);
+    let shadow = visibility(pos, camera_origin, u32(32), 1e-6, 0.001);
+    let l = normalize(light.center.xyz - pos);
+    return light.color.xyz * light.intensity / pi * max(dot(normal, l), 0.0) * shadow;
+}
+
+@fragment
+fn fragment(mesh: VertexOutput) -> @location(0) vec4<f32> {
+    let light = Light (
+        vec4(1.0, 1.0, 1.0, 1.0),
+        3.0,
+        vec4(0.0, 0.5, 0.6, 0.0),
+        normalize(vec4(1.0, 1.0, 1.0, 0.0)),
+        1.0
+    );
+    
+    let screen_size = vec2f(textureDimensions(seed_texture));
+    let uv = vec2f(mesh.uv.x, mesh.uv.y);
+
+    let inside_texture = textureSample(screen_texture, seed_sampler, uv.xy).a > 0.5;
+    let height = select(0.0, 0.5, inside_texture);
+    // let endpoints = vec3(uv, 0.0);
+
+    // let ro = vec3(screen_size / 2.0, 0.0);
+    let ro = vec3(0.5, 0.5, 1.0);
+
+    let rd = normalize(vec3(uv, 0.0) - ro);
+    let ray_outputs = trace_ray(ro, rd, u32(32), 0.01, 1000.0, 1e-4);
+    let endpoints = ray_outputs.intersection;
+    let normal_sample_pt = endpoints - rd * 1e-4;
+    let normal = sobel_gradient_estimate(normal_sample_pt);
+    // return vec4(normal, 1.0);
+    return vec4(lighting_simple(endpoints, light, ro, normal), 1.0);
+    // return vec4f(f32(ray_outputs.hit));
+
+    /*let seed = sample_2d_seed(uv);
+    let inside_texture = textureSample(screen_texture, seed_sampler, uv).a > 0.5;
+    let sdf = length(uv.xy - seed.xy); // * select(1., -1., inside_texture);
+    return vec4(sdf, 0.0, 0.0, 1.0);*/
+
+    // let sdf_val = sdf(vec3f(uv, 0.5));
+    //return vec4(vec3(sdf_val), 1.0);
+    // return vec4(textureSample(edge_texture, seed_sampler, uv / screen_size));
+
+    // let ray_outputs = trace_ray(ro, rd, u32(256), 0.01, 1000.0, 1e-4);
+    // return vec4f(vec3f(ray_outputs.intersection), 1.0);
+
+    // let lighting = visibility(endpoints, ro, u32(32), 1e-6, 0.05);
+    // let albedo = textureSample(screen_texture, seed_sampler, uv);
+    // return vec4f(lighting, lighting, lighting, 1.0);
+    
+    // return textureSample(seed_texture, seed_sampler, uv);
+}

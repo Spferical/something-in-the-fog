@@ -1,6 +1,7 @@
 use std::{f32::consts::PI, time::Duration};
 
 use assets::GameAssets;
+use bevy::core_pipeline::tonemapping::DebandDither;
 use bevy::diagnostic::LogDiagnosticsPlugin;
 use bevy::math::bounding::{Aabb2d, RayCast2d};
 use bevy::{
@@ -11,11 +12,12 @@ use bevy::{
         view::RenderLayers,
     },
 };
-use map::{Map, MapPos, Mob, TILE_SIZE, Tile};
+use map::{Map, MapPos, Mob, Tile, TILE_SIZE};
 use rand::Rng as _;
 
 mod assets;
 mod edge;
+mod lighting;
 mod map;
 mod mapgen;
 mod performance_ui;
@@ -118,7 +120,8 @@ fn setup(mut commands: Commands, mut window: Query<&mut Window>, assets: Res<Gam
         Mesh2d(assets.circle.clone()),
         MeshMaterial2d(assets.red.clone()),
         Transform::from_translation(player_start_translation),
-        RenderLayers::layer(1),
+        DebandDither::Disabled,
+        // RenderLayers::layer(1),
     ));
     commands.insert_resource(MoveTimer(Timer::new(PLAYER_MOVE_DELAY, TimerMode::Once)));
     commands.insert_resource(MouseWorldCoords(player_start_translation.truncate()));
@@ -183,7 +186,7 @@ fn make_sight_lines(mut commands: Commands, assets: Res<GameAssets>) {
     let bundle = (
         Mesh2d(assets.pixel.clone()),
         MeshMaterial2d(assets.sight_line.clone()),
-        RenderLayers::layer(1),
+        // RenderLayers::layer(1),
         Transform::IDENTITY,
     );
     commands.spawn(bundle.clone()).insert(LeftSightLine);
@@ -391,6 +394,7 @@ fn move_player(
 fn main() {
     App::new()
         .add_plugins(DefaultPlugins.set(ImagePlugin::default_nearest()))
+        // .add_plugins(DefaultPlugins.set(ImagePlugin::default_linear()))
         .add_plugins(performance_ui::PerformanceUiPlugin)
         .add_plugins(LogDiagnosticsPlugin::default())
         .add_plugins(assets::AssetsPlugin)

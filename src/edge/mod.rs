@@ -1,3 +1,4 @@
+use bevy::core_pipeline::tonemapping::{DebandDither, Tonemapping};
 use bevy::prelude::*;
 use bevy::render::view::RenderLayers;
 use bevy::{asset::Handle, ecs::component::Component, image::Image};
@@ -45,7 +46,10 @@ pub fn setup_edge_pass(
     };
     commands.spawn((
         Camera2d,
+        Msaa::Off,
         camera_postprocess,
+        Tonemapping::None,
+        DebandDither::Disabled,
         RenderLayers::layer(EDGE_LAYER),
         OrthographicProjection {
             scale: 1.0,
