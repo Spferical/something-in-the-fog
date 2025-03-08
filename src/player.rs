@@ -547,8 +547,7 @@ fn startup(mut commands: Commands, assets: Res<GameAssets>) {
     commands.spawn((
         Player { damage: 0 },
         MapPos(PLAYER_START),
-        Mesh2d(assets.circle.clone()),
-        MeshMaterial2d(assets.red.clone()),
+        assets.get_urizen_sprite(26),
         Transform::from_translation(player_start_translation),
         RenderLayers::layer(1),
     ));

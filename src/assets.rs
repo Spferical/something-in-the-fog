@@ -25,6 +25,20 @@ pub struct GameAssets {
     pub reload_indicator_material: Handle<ColorMaterial>,
     pub hurt_effect_material: Handle<ColorMaterial>,
     pub fade_out_material: Handle<ColorMaterial>,
+    pub urizen_texture: Handle<Image>,
+    pub urizen_layout: Handle<TextureAtlasLayout>,
+}
+
+impl GameAssets {
+    pub fn get_urizen_sprite(&self, index: usize) -> Sprite {
+        Sprite::from_atlas_image(
+            self.urizen_texture.clone(),
+            TextureAtlas {
+                layout: self.urizen_layout.clone(),
+                index,
+            },
+        )
+    }
 }
 
 fn init_assets(
@@ -32,9 +46,21 @@ fn init_assets(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ColorMaterial>>,
     mut fonts: ResMut<Assets<Font>>,
+    mut texture_atlas_layouts: ResMut<Assets<TextureAtlasLayout>>,
+    asset_server: Res<AssetServer>,
 ) {
+    let urizen_texture: Handle<Image> = asset_server.load("urizen_onebit_tileset__v1d1.png");
+    let urizen_layout = texture_atlas_layouts.add(TextureAtlasLayout::from_grid(
+        UVec2::splat(12),
+        103,
+        50,
+        Some(UVec2::splat(1)),
+        Some(UVec2::splat(1)),
+    ));
     commands.insert_resource(GameAssets {
         font: fonts.add(Font::try_from_bytes(PRESS_START_2P_BYTES.into()).unwrap()),
+        urizen_texture,
+        urizen_layout,
         square: meshes.add(Rectangle::new(TILE_SIZE, TILE_SIZE)),
         circle: meshes.add(Circle::new(TILE_SIZE / 2.0)),
         reload_indicator_mesh: meshes.add(CircularSector::from_degrees(TILE_SIZE, 360.0)),
