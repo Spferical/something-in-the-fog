@@ -13,7 +13,7 @@ use bevy::{
     },
 };
 use map::Zones;
-use player::Player;
+use player::{Player, PlayerDamageEvent};
 use ui::{UiEvent, UiSettings};
 
 mod animation;
@@ -134,8 +134,18 @@ struct GameState {
 #[derive(Component)]
 struct FadeOut;
 
-fn setup(mut window: Query<&mut Window>) {
+#[derive(Component)]
+struct HurtEffect;
+
+fn setup(mut commands: Commands, assets: Res<GameAssets>, mut window: Query<&mut Window>) {
     window.single_mut().resizable = true;
+    commands.spawn((
+        HurtEffect,
+        Mesh2d(assets.square.clone()),
+        MeshMaterial2d(assets.hurt_effect_material.clone()),
+        RenderLayers::layer(1),
+        Transform::from_translation(Vec3::ZERO.with_z(9.0)).with_scale(Vec3::splat(99999.0)),
+    ));
 }
 
 fn handle_game_over(
@@ -156,6 +166,19 @@ fn handle_game_over(
             },
             Transform::from_translation(Vec3::ZERO.with_z(10.0)).with_scale(Vec3::splat(99999.0)),
         ));
+    }
+}
+
+fn animate_player_damage(
+    mut commands: Commands,
+    query: Query<Entity, With<HurtEffect>>,
+    mut ev_player_damage: EventReader<PlayerDamageEvent>,
+) {
+    if ev_player_damage.read().count() > 0 {
+        commands.entity(query.single()).insert(FadeColorMaterial {
+            timer: Timer::new(Duration::from_millis(200), TimerMode::Once),
+            ease: EasingCurve::new(0.25, 0.0, EaseFunction::CubicIn),
+        });
     }
 }
 
@@ -197,7 +220,14 @@ fn main() {
         .add_systems(Startup, (create_camera, setup))
         .add_systems(
             Update,
-            (handle_ui_event, update_camera, on_resize, handle_game_over).chain(),
+            (
+                handle_ui_event,
+                update_camera,
+                on_resize,
+                animate_player_damage,
+                handle_game_over,
+            )
+                .chain(),
         )
         .insert_resource(GameState { game_over: false })
         .run();
