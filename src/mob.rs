@@ -349,6 +349,7 @@ fn spawn_kool_aid_man(
     mut ev_shoot: EventReader<ShootEvent>,
     mut ev_spawn: EventWriter<SpawnEvent>,
     mut spawned: Local<bool>,
+    player_visibility_map: Res<PlayerVisibilityMap>,
     zones: Res<Zones>,
 ) {
     for shoot_event in ev_shoot.read() {
@@ -357,10 +358,16 @@ fn spawn_kool_aid_man(
                 let map_pos = MapPos::from_vec2(shoot_event.start);
                 if rect.contains(map_pos.0) {
                     let mut rng = rand::thread_rng();
-                    let spawn_pos =
-                        map_pos.0 + 5 * IVec2::from(*CARDINALS.choose(&mut rng).unwrap());
-                    ev_spawn.send(SpawnEvent(spawn_pos, Spawn::Mob(MobKind::KoolAidMan)));
-                    *spawned = true;
+                    let spawn_rect = rogue_algebra::Rect::new_centered(map_pos.0.into(), 10, 10);
+                    let legal = spawn_rect
+                        .into_iter()
+                        .map(IVec2::from)
+                        .filter(|pos| !player_visibility_map.0.contains(pos))
+                        .collect::<Vec<_>>();
+                    if let Some(spawn_pos) = legal.choose(&mut rng) {
+                        ev_spawn.send(SpawnEvent(*spawn_pos, Spawn::Mob(MobKind::KoolAidMan)));
+                        *spawned = true;
+                    }
                 }
             }
         }
