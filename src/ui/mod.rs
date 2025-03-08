@@ -6,7 +6,7 @@ use bevy_egui::{
 
 use crate::{
     assets::PRESS_START_2P_BYTES,
-    player::{GunInfo, GunState, Inventory},
+    player::{GunInfo, GunState, Inventory, PLAYER_MAX_DAMAGE, Player},
 };
 
 pub mod performance;
@@ -71,6 +71,7 @@ fn update(
     mut settings: ResMut<UiSettings>,
     mut ev: EventWriter<UiEvent>,
     inventory: Res<Inventory>,
+    player: Query<&Player>,
 ) {
     settings.show_performance_overlay ^= keyboard_input.just_pressed(KeyCode::F3);
     settings.show_debug_settings ^= keyboard_input.just_pressed(KeyCode::F4);
@@ -79,6 +80,26 @@ fn update(
     };
     egui::SidePanel::left("side_panel").show(ctx, |ui| {
         ui.style_mut().wrap_mode = Some(egui::TextWrapMode::Extend);
+
+        ui.with_layout(egui::Layout::right_to_left(Align::Min), |ui| {
+            ui.label("Status");
+            ui.add(Separator::default().horizontal());
+        });
+        ui.horizontal(|ui| {
+            ui.label("Health: ");
+            ui.spacing_mut().item_spacing = egui::Vec2::ZERO;
+            let player = player.single();
+            ui.colored_label(
+                Color32::RED,
+                "x".repeat(0.max(PLAYER_MAX_DAMAGE - player.damage) as usize),
+            );
+            ui.colored_label(
+                Color32::GRAY,
+                "x".repeat(player.damage.min(PLAYER_MAX_DAMAGE) as usize),
+            );
+        });
+        ui.label("");
+
         ui.with_layout(egui::Layout::right_to_left(Align::Min), |ui| {
             ui.label("Equipped");
             ui.add(Separator::default().horizontal());

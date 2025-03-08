@@ -75,11 +75,32 @@ fn fade_text(mut query: Query<(&mut TextColor, &mut TextFade)>, time: Res<Time>)
     }
 }
 
+#[derive(Component)]
+pub struct FadeColorMaterial {
+    pub timer: Timer,
+    pub ease: EasingCurve<f32>,
+}
+
+fn fade_color_material(
+    mut query: Query<(&MeshMaterial2d<ColorMaterial>, &mut FadeColorMaterial)>,
+    time: Res<Time>,
+    mut materials: ResMut<Assets<ColorMaterial>>,
+) {
+    for (material, mut fade) in query.iter_mut() {
+        fade.timer.tick(time.delta());
+        let color = &mut materials.get_mut(material.0.id()).unwrap().color;
+        *color = color.with_alpha(fade.ease.sample_clamped(fade.timer.fraction()));
+    }
+}
+
 pub struct AnimatePlugin;
 
 impl Plugin for AnimatePlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Update, (animate, spawn_text, fade_text))
-            .add_event::<TextEvent>();
+        app.add_systems(
+            Update,
+            (animate, spawn_text, fade_text, fade_color_material),
+        )
+        .add_event::<TextEvent>();
     }
 }

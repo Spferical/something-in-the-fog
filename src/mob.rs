@@ -1,17 +1,16 @@
-use std::{ops::DerefMut, time::Duration};
+use std::time::Duration;
 
 use bevy::{prelude::*, time::Stopwatch};
 use rand::seq::SliceRandom;
-use rogue_algebra::CARDINALS;
 
 use crate::{
     Player,
     animation::MoveAnimation,
     map::{
-        self, Map, MapPos, PlayerVisibilityMap, SightBlockedMap, Tile, WalkBlockedMap, Zones, path,
+        Map, MapPos, PlayerVisibilityMap, SightBlockedMap, Tile, WalkBlockedMap, Zones, path,
         update_visibility, update_walkability,
     },
-    player::{PlayerMoveEvent, ShootEvent},
+    player::{PlayerDamageEvent, PlayerMoveEvent, ShootEvent},
     spawn::{Spawn, SpawnEvent},
 };
 
@@ -261,6 +260,7 @@ fn move_mobs(
     player_visibility_map: Res<PlayerVisibilityMap>,
     time: Res<Time>,
     mut ev_bust: EventWriter<BustThroughWallEvent>,
+    mut ev_player_damage: EventWriter<PlayerDamageEvent>,
 ) {
     let player_pos = player.single();
     for (entity, mut mob, mut mob_pos, transform, saw_player, heard_player, mut kool_aid) in
@@ -336,7 +336,8 @@ fn move_mobs(
                                 mob.move_timer.reset();
                             }
                         } else {
-                            // TODO: monster found the player by pathing through him
+                            ev_player_damage.send(PlayerDamageEvent { damage: 1 });
+                            mob.move_timer.reset();
                         }
                     }
                 }

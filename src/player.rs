@@ -9,7 +9,7 @@ use bevy::{
 use rand::Rng as _;
 
 use crate::{
-    PrimaryCamera, Z_PLAYER,
+    GameState, PrimaryCamera, Z_PLAYER,
     animation::{MoveAnimation, TextEvent},
     assets::GameAssets,
     despawn_after::DespawnAfter,
@@ -22,9 +22,37 @@ const PLAYER_START: IVec2 = IVec2::new(0, 0);
 const PLAYER_FOCUS_TIME_SECS: f32 = 2.5;
 const PLAYER_MOVE_FOCUS_PENALTY_SECS: f32 = 1.0;
 const PLAYER_SHOOT_FOCUS_PENALTY_SECS: f32 = 1.0;
+pub const PLAYER_MAX_DAMAGE: i32 = 8;
 
 #[derive(Component)]
-pub struct Player;
+pub struct Player {
+    pub damage: i32,
+}
+
+impl Player {
+    pub fn is_dead(&self) -> bool {
+        self.damage >= PLAYER_MAX_DAMAGE
+    }
+}
+
+#[derive(Event)]
+pub struct PlayerDamageEvent {
+    pub damage: i32,
+}
+
+fn damage_player(
+    mut player: Query<&mut Player>,
+    mut ev_player_damage: EventReader<PlayerDamageEvent>,
+    mut game_state: ResMut<GameState>,
+) {
+    let mut player = player.single_mut();
+    for PlayerDamageEvent { damage } in ev_player_damage.read() {
+        player.damage += damage;
+        if player.is_dead() {
+            game_state.game_over = true;
+        }
+    }
+}
 
 #[derive(Debug, Resource)]
 struct ShootState {
@@ -219,7 +247,7 @@ fn update_reload_indicator(
 
 #[allow(clippy::complexity)]
 fn update_shooting(
-    player_query: Query<&Transform, With<Player>>,
+    player_query: Query<(&Transform, &Player)>,
     mut shoot_state: ResMut<ShootState>,
     mouse_world_coords: Res<MouseWorldCoords>,
     time: Res<Time>,
@@ -233,7 +261,10 @@ fn update_shooting(
     mut ev_player_move: EventReader<PlayerMoveEvent>,
     mut inventory: ResMut<Inventory>,
 ) {
-    let player_pos = player_query.single();
+    let (player_pos, player) = player_query.single();
+    if player.is_dead() {
+        return;
+    }
 
     if ev_player_move.read().count() > 0 {
         shoot_state.focus -= PLAYER_MOVE_FOCUS_PENALTY_SECS / PLAYER_FOCUS_TIME_SECS;
@@ -397,7 +428,7 @@ pub struct PlayerMoveEvent {
 fn move_player(
     mut commands: Commands,
     keyboard_input: Res<ButtonInput<KeyCode>>,
-    mut player_query: Query<(Entity, &mut MapPos), With<Player>>,
+    mut player_query: Query<(Entity, &mut MapPos, &Player)>,
     blocked_query: Query<&mut MapPos, (With<BlocksMovement>, Without<Player>)>,
     mut timer: ResMut<MoveTimer>,
     mut local_state: Local<MovePlayerState>,
@@ -407,7 +438,10 @@ fn move_player(
 ) {
     timer.0.tick(time.delta());
     if timer.0.finished() {
-        if let Ok((entity, mut world_pos)) = player_query.get_single_mut() {
+        if let Ok((entity, mut world_pos, player)) = player_query.get_single_mut() {
+            if player.is_dead() {
+                return;
+            }
             let mut movement = IVec2::ZERO;
             for (key, dir) in [
                 (KeyCode::KeyW, IVec2::new(0, 1)),
@@ -503,7 +537,7 @@ fn startup(mut commands: Commands, assets: Res<GameAssets>) {
     let player_start_translation =
         Vec3::new(PLAYER_START.x as f32, PLAYER_START.y as f32, Z_PLAYER);
     commands.spawn((
-        Player,
+        Player { damage: 0 },
         MapPos(PLAYER_START),
         Mesh2d(assets.circle.clone()),
         MeshMaterial2d(assets.red.clone()),
@@ -552,10 +586,12 @@ impl Plugin for PlayerPlugin {
                 spawn_bullets,
                 update_reload_indicator,
                 bang,
+                damage_player,
             )
                 .chain(),
         )
         .add_event::<ShootEvent>()
-        .add_event::<PlayerMoveEvent>();
+        .add_event::<PlayerMoveEvent>()
+        .add_event::<PlayerDamageEvent>();
     }
 }

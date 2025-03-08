@@ -23,6 +23,7 @@ pub struct GameAssets {
     pub small_square: Handle<Mesh>,
     pub reload_indicator_mesh: Handle<Mesh>,
     pub reload_indicator_material: Handle<ColorMaterial>,
+    pub fade_out_material: Handle<ColorMaterial>,
 }
 
 fn init_assets(
@@ -52,6 +53,7 @@ fn init_assets(
         reload_indicator_material: materials.add(Color::Srgba(
             bevy::color::palettes::basic::YELLOW.with_alpha(0.25),
         )),
+        fade_out_material: materials.add(Color::Srgba(Srgba::BLACK.with_alpha(0.0))),
     });
 }
 

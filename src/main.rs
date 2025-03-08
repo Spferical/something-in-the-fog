@@ -1,3 +1,7 @@
+use std::time::Duration;
+
+use animation::FadeColorMaterial;
+use assets::GameAssets;
 use bevy::diagnostic::LogDiagnosticsPlugin;
 use bevy::input::mouse::{MouseScrollUnit, MouseWheel};
 use bevy::{
@@ -122,8 +126,37 @@ fn update_camera(
     }
 }
 
+#[derive(Resource)]
+struct GameState {
+    game_over: bool,
+}
+
+#[derive(Component)]
+struct FadeOut;
+
 fn setup(mut window: Query<&mut Window>) {
     window.single_mut().resizable = true;
+}
+
+fn handle_game_over(
+    mut commands: Commands,
+    game_state: Res<GameState>,
+    fade_out: Query<&FadeOut>,
+    assets: Res<GameAssets>,
+) {
+    if game_state.game_over && fade_out.is_empty() {
+        commands.spawn((
+            FadeOut,
+            Mesh2d(assets.square.clone()),
+            MeshMaterial2d(assets.fade_out_material.clone()),
+            RenderLayers::layer(1),
+            FadeColorMaterial {
+                timer: Timer::new(Duration::from_secs(5), TimerMode::Once),
+                ease: EasingCurve::new(0.0, 1.0, EaseFunction::CubicOut),
+            },
+            Transform::from_translation(Vec3::ZERO.with_z(10.0)).with_scale(Vec3::splat(99999.0)),
+        ));
+    }
 }
 
 fn handle_ui_event(
@@ -162,6 +195,10 @@ fn main() {
             despawn_after::DespawnAfterPlugin,
         ))
         .add_systems(Startup, (create_camera, setup))
-        .add_systems(Update, (handle_ui_event, update_camera, on_resize).chain())
+        .add_systems(
+            Update,
+            (handle_ui_event, update_camera, on_resize, handle_game_over).chain(),
+        )
+        .insert_resource(GameState { game_over: false })
         .run();
 }
