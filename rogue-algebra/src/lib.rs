@@ -66,22 +66,6 @@ impl Pos {
     }
 }
 
-#[cfg(feature = "bevy15")]
-impl From<Pos> for bevy15_math::IVec2 {
-    fn from(pos: Pos) -> Self {
-        let Pos { x, y } = pos;
-        Self { x, y }
-    }
-}
-
-#[cfg(feature = "bevy15")]
-impl From<bevy15_math::IVec2> for Pos {
-    fn from(ivec: bevy15_math::IVec2) -> Self {
-        let bevy15_math::IVec2 { x, y } = ivec;
-        Self { x, y }
-    }
-}
-
 #[derive(PartialEq, Eq, Hash, Debug, Clone, Copy)]
 /// An offset between two positions.
 pub struct Offset {
@@ -606,6 +590,16 @@ impl Rect {
     pub fn intersects(&self, other: &Rect) -> bool {
         self.x1 <= other.x2 && self.x2 >= other.x1 && self.y1 <= other.y2 && self.y2 >= other.y1
     }
+
+    #[must_use]
+    pub fn intersect(&self, other: &Rect) -> Option<Rect> {
+        self.intersects(other).then_some(Rect {
+            x1: self.x1.max(other.x1),
+            y1: self.y1.max(other.y1),
+            x2: self.x2.min(other.x2),
+            y2: self.y2.min(other.y2),
+        })
+    }
 }
 
 /// Iterator over the positions in a rectangle. Goes row-by-row from the
@@ -639,6 +633,35 @@ impl IntoIterator for Rect {
     }
 }
 
+#[cfg(feature = "bevy15")]
+mod bevy15 {
+    use super::*;
+    impl From<Pos> for bevy15_math::IVec2 {
+        fn from(pos: Pos) -> Self {
+            let Pos { x, y } = pos;
+            Self { x, y }
+        }
+    }
+    impl From<Offset> for bevy15_math::IVec2 {
+        fn from(offset: Offset) -> Self {
+            let Offset { x, y } = offset;
+            Self { x, y }
+        }
+    }
+
+    impl From<bevy15_math::IVec2> for Pos {
+        fn from(ivec: bevy15_math::IVec2) -> Self {
+            let bevy15_math::IVec2 { x, y } = ivec;
+            Self { x, y }
+        }
+    }
+    impl From<Rect> for bevy15_math::IRect {
+        fn from(value: Rect) -> Self {
+            let Rect { x1, y1, x2, y2 } = value;
+            Self::new(x1, y1, x2, y2)
+        }
+    }
+}
 #[cfg(test)]
 mod tests {
     use super::*;

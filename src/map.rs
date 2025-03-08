@@ -1,31 +1,32 @@
-use std::{
-    collections::{HashMap, HashSet},
-    time::Duration,
+use std::collections::{HashMap, HashSet};
+
+use bevy::prelude::*;
+
+use crate::{
+    player::{GunType, Player},
+    spawn::SpawnEvent,
+    ui::UiSettings,
 };
 
-use bevy::{prelude::*, render::view::RenderLayers};
-use line_drawing::Bresenham;
-
-use crate::{assets::GameAssets, Player};
-
 pub const TILE_SIZE: f32 = 48.0;
-pub const ZOMBIE_MOVE_DELAY: Duration = Duration::from_secs(1);
 
-#[derive(Component)]
+#[derive(Component, Debug, Clone)]
 pub struct MapPos(pub IVec2);
 
 impl MapPos {
-    pub fn to_vec3(&self, z: f32) -> Vec3 {
-        Vec3 {
+    pub fn to_vec2(&self) -> Vec2 {
+        Vec2 {
             x: TILE_SIZE * self.0.x as f32,
             y: TILE_SIZE * self.0.y as f32,
-            z,
         }
     }
     pub fn from_vec3(vec3: Vec3) -> Self {
+        Self::from_vec2(vec3.xy())
+    }
+    pub fn from_vec2(vec2: Vec2) -> Self {
         Self(IVec2 {
-            x: (vec3.x / TILE_SIZE) as i32,
-            y: (vec3.y / TILE_SIZE) as i32,
+            x: (vec2.x / TILE_SIZE) as i32,
+            y: (vec2.y / TILE_SIZE) as i32,
         })
     }
 }
@@ -39,10 +40,31 @@ pub struct BlocksSight;
 #[derive(Component)]
 pub struct Tile(pub TileKind);
 
+#[derive(Clone, Copy)]
+pub enum ItemKind {
+    Ammo(GunType, usize),
+    Gun(GunType, usize),
+}
+
+impl std::fmt::Display for ItemKind {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ItemKind::Ammo(gun_type, ammo) => write!(f, "{ammo} {gun_type} ammo"),
+            ItemKind::Gun(gun_type, _ammo) => write!(f, "{gun_type}"),
+        }
+    }
+}
+
+#[derive(Component)]
+pub struct Pickup(pub ItemKind);
+
 #[derive(Default, Resource)]
 pub struct Map(pub HashMap<IVec2, Vec<Entity>>);
 
 impl Map {
+    pub fn get(&self, pos: IVec2) -> impl Iterator<Item = &Entity> {
+        self.0.get(&pos).into_iter().flatten()
+    }
     pub fn get_nearby(&self, center: IVec2, radius: i32) -> impl Iterator<Item = &Entity> {
         (center.x - radius..center.x + radius)
             .flat_map(move |x| (center.y - radius..center.y + radius).map(move |y| (x, y)))
@@ -58,115 +80,49 @@ fn update_tilemap(mut tile_map: ResMut<Map>, query: Query<(Entity, &MapPos)>) {
     }
 }
 
+#[derive(Resource)]
+pub struct Zones(pub Vec<IRect>);
 
-fn startup(mut ev_spawn: EventWriter<SpawnEvent>) {
-    for (pos, spawn_list) in crate::mapgen::gen_map() {
+fn startup(mut commands: Commands, mut ev_spawn: EventWriter<SpawnEvent>) {
+    let crate::mapgen::MapgenResult { spawns, zones } = crate::mapgen::gen_map();
+    for (pos, spawn_list) in spawns {
         for spawn in spawn_list.into_iter() {
             ev_spawn.send(SpawnEvent(pos, spawn));
         }
     }
+    commands.insert_resource(Zones(zones));
 }
 
 #[derive(Debug, Clone, Copy)]
 pub enum TileKind {
     Wall,
+    Door,
     Bush,
     Tree,
+    Crate,
+    ShippingContainer,
 }
 
 impl TileKind {
     pub fn blocks_movement(&self) -> bool {
         use TileKind::*;
         match self {
-            Wall | Tree => true,
-            Bush => false,
+            Wall | Tree | ShippingContainer => true,
+            Bush | Crate | Door => false,
         }
     }
     pub fn blocks_sight(&self) -> bool {
         use TileKind::*;
         match self {
-            Wall | Tree | Bush => true,
-        }
-    }
-}
-
-pub enum MobKind {
-    Zombie,
-}
-
-pub enum Spawn {
-    Tile(TileKind),
-    Mob(MobKind),
-}
-
-impl Spawn {
-    fn blocks_movement(&self) -> bool {
-        match self {
-            Self::Tile(tk) => tk.blocks_movement(),
-            Self::Mob(_) => true,
-        }
-    }
-}
-
-#[derive(Component)]
-pub struct Mob {
-    saw_player_at: Option<IVec2>,
-    #[allow(unused)]
-    move_timer: Timer,
-}
-
-#[derive(Event)]
-struct SpawnEvent(IVec2, Spawn);
-
-fn spawn(
-    mut commands: Commands,
-    world_assets: Res<GameAssets>,
-    mut ev_new_tile: EventReader<SpawnEvent>,
-) {
-    for SpawnEvent(pos, spawn) in ev_new_tile.read() {
-        let color = match spawn {
-            Spawn::Tile(TileKind::Wall) => world_assets.white.clone(),
-            Spawn::Tile(TileKind::Bush) => world_assets.green.clone(),
-            Spawn::Tile(TileKind::Tree) => world_assets.dark_green.clone(),
-            Spawn::Mob(MobKind::Zombie) => world_assets.purple.clone(),
-        };
-        let mesh = match spawn {
-            Spawn::Tile(_) => world_assets.square.clone(),
-            Spawn::Mob(_) => world_assets.circle.clone(),
-        };
-        let mut entity_commands = commands.spawn((
-            Mesh2d(mesh),
-            MeshMaterial2d(color),
-            MapPos(*pos),
-            Transform::from_translation(Vec3::new(
-                TILE_SIZE * pos.x as f32,
-                TILE_SIZE * pos.y as f32,
-                0.0,
-            )),
-            RenderLayers::layer(1),
-        ));
-        if spawn.blocks_movement() {
-            entity_commands.insert(BlocksMovement);
-        }
-        if let Spawn::Tile(t) = spawn {
-            if t.blocks_sight() {
-                entity_commands.insert(BlocksSight);
-            }
-            entity_commands.insert(Tile(*t));
-        }
-        if let Spawn::Mob(_) = spawn {
-            entity_commands.insert(Mob {
-                saw_player_at: None,
-                move_timer: Timer::new(ZOMBIE_MOVE_DELAY, TimerMode::Once),
-            });
+            Wall | Tree | Bush | Crate | Door | ShippingContainer => true,
         }
     }
 }
 
 #[derive(Default, Resource)]
-struct SightBlockedMap(HashSet<IVec2>);
+pub struct SightBlockedMap(pub HashSet<IVec2>);
 
-fn update_visibility(
+pub fn update_visibility(
     query: Query<&MapPos, With<BlocksSight>>,
     mut vis_map: ResMut<SightBlockedMap>,
 ) {
@@ -179,7 +135,32 @@ fn update_visibility(
 #[derive(Default, Resource)]
 pub struct WalkBlockedMap(pub HashSet<IVec2>);
 
-fn update_walkability(
+pub fn path(
+    start: IVec2,
+    dest: IVec2,
+    max_distance: i32,
+    mut blocked: impl FnMut(IVec2) -> bool,
+    mut extra_heuristic: impl FnMut(IVec2) -> i32,
+) -> Option<Vec<IVec2>> {
+    pathfinding::directed::astar::astar(
+        &start,
+        move |&p| {
+            rogue_algebra::Pos::from(p)
+                .adjacent_cardinal()
+                .map(IVec2::from)
+                .into_iter()
+                .filter(|&p| p == dest || !blocked(p))
+                .filter(|p| p.distance_squared(dest) <= max_distance * max_distance)
+                .map(|p| (p, 1))
+                .collect::<Vec<_>>()
+        },
+        move |p| p.distance_squared(dest) + extra_heuristic(*p),
+        |p| *p == dest,
+    )
+    .map(|(path, _cost)| path)
+}
+
+pub fn update_walkability(
     query: Query<&MapPos, With<BlocksMovement>>,
     mut walk_map: ResMut<WalkBlockedMap>,
 ) {
@@ -189,52 +170,34 @@ fn update_walkability(
     }
 }
 
-fn move_mobs(
-    mut mobs: Query<(&mut Mob, &mut MapPos, &mut Transform)>,
-    player: Query<&MapPos, (With<Player>, Without<Mob>)>,
+#[derive(Default, Resource)]
+pub struct PlayerVisibilityMap(pub HashSet<IVec2>);
+
+pub fn update_player_visibility(
+    mut player_vis_map: ResMut<PlayerVisibilityMap>,
+    q_player: Query<&MapPos, With<Player>>,
     sight_blocked_map: Res<SightBlockedMap>,
-    mut walk_blocked_map: ResMut<WalkBlockedMap>,
-    time: Res<Time>,
 ) {
-    let player_pos = player.single();
-    for (mut mob, mut pos, mut transform) in mobs.iter_mut() {
-        let player_visible = Bresenham::new((pos.0.x, pos.0.y), (player_pos.0.x, player_pos.0.y))
-            .all(|(x, y)| !sight_blocked_map.0.contains(&IVec2::new(x, y)));
-        if player_visible {
-            mob.saw_player_at = Some(player_pos.0);
-        }
-        mob.move_timer.tick(time.delta());
-        if mob.move_timer.finished() {
-            if let Some(player_pos) = mob.saw_player_at {
-                let path = rogue_algebra::path::bfs_paths(
-                    &[rogue_algebra::Pos::new(pos.0.x, pos.0.y)],
-                    10,
-                    |pos| {
-                        rogue_algebra::CARDINALS
-                            .iter()
-                            .copied()
-                            .map(|c| pos + c)
-                            .filter(|&rogue_algebra::Pos { x, y }| {
-                                !walk_blocked_map.0.contains(&IVec2 { x, y })
-                            })
-                            .collect()
-                    },
-                )
-                .find(|path| {
-                    (*path.last().unwrap() - rogue_algebra::Pos::from(player_pos)).mhn_dist() == 1
-                });
-                if let Some(path) = path {
-                    if let Some(move_pos) = path.get(1) {
-                        let move_pos = IVec2::from(*move_pos);
-                        walk_blocked_map.0.insert(move_pos);
-                        pos.0 = move_pos;
-                        transform.translation.x = pos.0.x as f32 * TILE_SIZE;
-                        transform.translation.y = pos.0.y as f32 * TILE_SIZE;
-                        mob.move_timer.reset();
-                    }
-                }
-            }
-        }
+    player_vis_map.0.clear();
+    let player_pos = q_player.single();
+    for pos in rogue_algebra::fov::calculate_fov(player_pos.0.into(), 99, |pos| {
+        sight_blocked_map.0.contains(&pos.into())
+    }) {
+        player_vis_map.0.insert(pos.into());
+    }
+}
+
+pub fn apply_visibility(
+    player_vis_map: Res<PlayerVisibilityMap>,
+    mut query: Query<(&MapPos, &mut Visibility)>,
+    settings: Res<UiSettings>,
+) {
+    for (map_pos, mut visibility) in query.iter_mut() {
+        *visibility = if !settings.show_visibility || player_vis_map.0.contains(&map_pos.0) {
+            Visibility::Inherited
+        } else {
+            Visibility::Hidden
+        };
     }
 }
 
@@ -246,11 +209,19 @@ impl Plugin for WorldPlugin {
         app.init_resource::<Map>();
         app.init_resource::<SightBlockedMap>();
         app.init_resource::<WalkBlockedMap>();
+        app.init_resource::<PlayerVisibilityMap>();
         app.add_systems(Startup, startup);
-        app.add_systems(PreUpdate, update_tilemap);
         app.add_systems(
             Update,
-            (spawn, update_visibility, update_walkability, move_mobs).chain(),
+            (
+                update_tilemap,
+                update_visibility,
+                update_walkability,
+                update_player_visibility,
+                apply_visibility,
+            )
+                .chain()
+                .after(crate::spawn::spawn),
         );
         app.add_event::<SpawnEvent>();
     }

@@ -3,14 +3,14 @@ use std::collections::{HashMap, HashSet};
 
 use bevy::prelude::*;
 use rand::{Rng, seq::SliceRandom as _};
-use rogue_algebra::{Pos, Rect};
+use rogue_algebra::{Pos, Rect, TileMap};
 
-use crate::map::{MobKind, Spawn, TileKind};
-
-fn pos2ivec(pos: Pos) -> IVec2 {
-    let Pos { x, y } = pos;
-    IVec2 { x, y }
-}
+use crate::{
+    map::{ItemKind, TileKind},
+    mob::MobKind,
+    player::GunType,
+    spawn::Spawn,
+};
 
 fn get_connecting_wall(room1: Rect, room2: Rect) -> Option<Rect> {
     // one-tile-wall between them
@@ -187,7 +187,7 @@ pub fn gen_bsp_tree(rect: Rect, opts: BspSplitOpts, rng: &mut impl rand::Rng) ->
 }
 
 pub fn carve_line_drunk(
-    tile_map: &mut rogue_algebra::TileMap<Option<TileKind>>,
+    tile_map: &mut TileMap<Option<TileKind>>,
     start: Pos,
     end: Pos,
     rng: &mut impl Rng,
@@ -275,7 +275,7 @@ impl<R: FnMut(Pos) -> Vec<Pos>> Iterator for Dfs<R> {
 }
 
 pub fn gen_forest_room(
-    tile_map: &mut rogue_algebra::TileMap<Option<TileKind>>,
+    tile_map: &mut TileMap<Option<TileKind>>,
     rng: &mut impl Rng,
     entrances: &[Pos],
     rect: Rect,
@@ -296,11 +296,29 @@ pub fn gen_forest_room(
     }
 }
 
-pub fn gen_map() -> HashMap<IVec2, Vec<Spawn>> {
+pub struct MapgenResult {
+    pub spawns: HashMap<IVec2, Vec<Spawn>>,
+    pub zones: Vec<IRect>,
+}
+
+pub fn get_random_empty_tile(
+    tile_map: &TileMap<Option<TileKind>>,
+    rect: Rect,
+    rng: &mut impl Rng,
+) -> Option<Pos> {
+    rect.into_iter()
+        .filter(|p| tile_map[*p].filter(|t| t.blocks_movement()).is_none())
+        .collect::<Vec<_>>()
+        .choose(rng)
+        .cloned()
+}
+
+pub fn gen_map() -> MapgenResult {
     let mut rng = rand::thread_rng();
-    let mut tile_map = rogue_algebra::TileMap::<Option<TileKind>>::new(Some(TileKind::Wall));
+    let mut tile_map = TileMap::<Option<TileKind>>::new(Some(TileKind::Wall));
 
     let mut mob_spawns = HashMap::new();
+    let mut item_spawns = HashMap::new();
 
     // field
     let start = Pos::new(0, 0);
@@ -313,6 +331,12 @@ pub fn gen_map() -> HashMap<IVec2, Vec<Spawn>> {
             None
         }
     }
+    item_spawns.insert(
+        Pos::new(3, 3),
+        ItemKind::Gun(GunType::Shotgun, GunType::Shotgun.get_info().max_load),
+    );
+    item_spawns.insert(Pos::new(3, 4), ItemKind::Ammo(GunType::Shotgun, 4));
+
     tile_map.set_rect(field_rect.top_edge(), Some(TileKind::Tree));
     tile_map.set_rect(field_rect.left_edge(), Some(TileKind::Tree));
     tile_map.set_rect(field_rect.bottom_edge(), Some(TileKind::Tree));
@@ -342,22 +366,24 @@ pub fn gen_map() -> HashMap<IVec2, Vec<Spawn>> {
             break;
         }
     }
-    for _ in 0..30 {
-        loop {
-            let pos = forest_rect.choose(&mut rng);
-            if tile_map[pos].filter(TileKind::blocks_movement).is_none()
-                && !mob_spawns.contains_key(&pos)
-            {
-                mob_spawns.insert(pos, MobKind::Zombie);
-                break;
-            }
-        }
+    let free = forest_rect
+        .into_iter()
+        .filter(|p| tile_map[*p].filter(TileKind::blocks_movement).is_none())
+        .collect::<Vec<Pos>>();
+    let spawns = free.choose_multiple(&mut rng, 36).collect::<Vec<_>>();
+    for p in &spawns[0..30] {
+        mob_spawns.insert(**p, MobKind::Zombie);
+    }
+    for p in &spawns[30..] {
+        item_spawns.insert(**p, ItemKind::Ammo(GunType::Pistol, 15));
     }
 
     // warehouse
     let mut warehouse_zone_rect = forest_rect.right_edge();
     warehouse_zone_rect.x1 += 1;
     warehouse_zone_rect.x2 += 81;
+    warehouse_zone_rect.y1 -= 20;
+    warehouse_zone_rect.y2 += 20;
     tile_map.set_rect(warehouse_zone_rect, None);
     // clearing with one big building in it
     let warehouse_rect = Rect {
@@ -379,12 +405,18 @@ pub fn gen_map() -> HashMap<IVec2, Vec<Spawn>> {
     // Carve out rooms, including doors between each two adjacent rooms.
     for room1 in warehouse_room_graph.iter() {
         tile_map.set_rect(room1, None);
+        // throw some crates in here
+        for p in room1 {
+            if rng.gen_bool(0.02) {
+                tile_map[p] = Some(TileKind::Crate);
+            }
+        }
         for room2 in warehouse_room_graph.find_spatially_adjacent(room1) {
             // avoid double counting
             if room1.topleft() < room2.topleft() {
                 let adj_wall = get_connecting_wall(room1, room2).unwrap();
                 let door = adj_wall.choose(&mut rng);
-                tile_map[door] = None;
+                tile_map[door] = Some(TileKind::Door);
             }
         }
     }
@@ -402,7 +434,91 @@ pub fn gen_map() -> HashMap<IVec2, Vec<Spawn>> {
             None
         };
         if let Some(door) = exterior_door {
-            tile_map[door] = None;
+            tile_map[door] = Some(TileKind::Door);
+        }
+    }
+    let sculpture_room = warehouse_room_graph.choose(&mut rng).unwrap();
+    let sculpture_room_free_spots = sculpture_room
+        .into_iter()
+        .filter(|p| tile_map[*p].filter(|t| t.blocks_movement()).is_none())
+        .collect::<Vec<_>>();
+    let [sculpture_pos, shotgun_pos] = sculpture_room_free_spots
+        .choose_multiple(&mut rng, 2)
+        .collect::<Vec<_>>()
+        .try_into()
+        .unwrap();
+    mob_spawns.insert(*sculpture_pos, MobKind::Sculpture);
+    item_spawns.insert(
+        *shotgun_pos,
+        ItemKind::Gun(GunType::Shotgun, GunType::Shotgun.get_info().max_load),
+    );
+    let free = warehouse_rect
+        .into_iter()
+        .filter(|p| {
+            tile_map[*p]
+                .filter(|t| t.blocks_movement() || t.blocks_sight())
+                .is_none()
+                && !mob_spawns.contains_key(p)
+                && !item_spawns.contains_key(p)
+        })
+        .collect::<Vec<Pos>>();
+    let spawns = free.choose_multiple(&mut rng, 36).collect::<Vec<_>>();
+    for p in &spawns[0..30] {
+        mob_spawns.insert(**p, MobKind::Hider);
+    }
+    for p in &spawns[30..] {
+        let spawn = if rng.gen_bool(0.5) {
+            ItemKind::Ammo(GunType::Pistol, 15)
+        } else {
+            ItemKind::Ammo(GunType::Shotgun, 2)
+        };
+        item_spawns.insert(**p, spawn);
+    }
+
+    // Railyard. Wide open but with large shipping containers obscuring vision.
+    let mut railyard_rect = warehouse_zone_rect.right_edge();
+    railyard_rect.x1 += 1;
+    railyard_rect.x2 += 81;
+    let mut boxes_zone = railyard_rect;
+    boxes_zone.x1 += 1;
+    tile_map.set_rect(boxes_zone, Some(TileKind::ShippingContainer));
+    loop {
+        let mut walkable = railyard_rect.into_iter().collect::<HashSet<_>>();
+        for _ in 0..80 {
+            let center = boxes_zone.choose(&mut rng);
+            let width = rng.gen_range(1..=8);
+            let height = rng.gen_range(1..=8);
+            let box_rect = Rect::new_centered(center, width, height)
+                .intersect(&boxes_zone)
+                .unwrap();
+            for p in box_rect {
+                walkable.remove(&p);
+            }
+        }
+        let starts: Vec<Pos> = railyard_rect.left_edge().into_iter().collect();
+        let reachable = |p: Pos| {
+            p.adjacent_cardinal()
+                .iter()
+                .cloned()
+                .filter(|p| railyard_rect.contains(*p))
+                .filter(|p| walkable.contains(p))
+                .collect::<Vec<Pos>>()
+        };
+
+        // flood fill to verify connectivity
+        walkable = walkable
+            .union(&dfs(&starts, reachable).collect::<HashSet<_>>())
+            .cloned()
+            .collect();
+        if boxes_zone
+            .right_edge()
+            .into_iter()
+            .any(|p| walkable.contains(&p))
+        {
+            for p in walkable {
+                tile_map[p] = None;
+            }
+            break;
         }
     }
 
@@ -410,16 +526,30 @@ pub fn gen_map() -> HashMap<IVec2, Vec<Spawn>> {
     for (pos, tile) in tile_map.iter() {
         if let Some(tile) = tile {
             spawns
-                .entry(pos2ivec(pos))
+                .entry(pos.into())
                 .or_default()
                 .push(Spawn::Tile(tile));
         }
     }
     for (pos, mob_kind) in mob_spawns.into_iter() {
         spawns
-            .entry(pos2ivec(pos))
+            .entry(pos.into())
             .or_default()
             .push(Spawn::Mob(mob_kind));
     }
-    spawns
+    for (pos, item_kind) in item_spawns.into_iter() {
+        spawns
+            .entry(pos.into())
+            .or_default()
+            .push(Spawn::Item(item_kind));
+    }
+    MapgenResult {
+        spawns,
+        zones: vec![
+            field_rect.into(),
+            forest_rect.into(),
+            warehouse_zone_rect.into(),
+            railyard_rect.into(),
+        ],
+    }
 }

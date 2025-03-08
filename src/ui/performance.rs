@@ -3,37 +3,25 @@ use bevy::{
     prelude::*,
 };
 use bevy_egui::{
-    EguiContexts, EguiPlugin,
+    EguiContexts,
     egui::{self, Color32},
 };
 
-#[derive(Default, Resource)]
-struct PerformanceUiState {
-    show_performance_overlay: bool,
-}
+use super::UiSettings;
 
-fn toggle_performance_display(
-    keyboard_input: Res<ButtonInput<KeyCode>>,
-    mut settings: ResMut<PerformanceUiState>,
-) {
-    if keyboard_input.just_pressed(KeyCode::F3) {
-        settings.show_performance_overlay = !settings.show_performance_overlay;
-    }
-}
-
-fn draw_performance_overlay(
-    mut contexts: EguiContexts,
-    settings: Res<PerformanceUiState>,
-    diagnostics: Res<DiagnosticsStore>,
-) {
+fn draw(mut contexts: EguiContexts, settings: Res<UiSettings>, diagnostics: Res<DiagnosticsStore>) {
+    let Some(ctx) = contexts.try_ctx_mut() else {
+        return;
+    };
     if settings.show_performance_overlay {
         egui::SidePanel::right("performance_ui_panel")
             .frame(
                 egui::Frame::new()
-                    .fill(Color32::from_black_alpha(200))
+                    .fill(Color32::from_black_alpha(240))
                     .inner_margin(12.0),
             )
-            .show(contexts.ctx_mut(), |ui| {
+            .show(ctx, |ui| {
+                ui.style_mut().wrap_mode = Some(egui::TextWrapMode::Extend);
                 if let Some(value) = diagnostics
                     .get(&FrameTimeDiagnosticsPlugin::FPS)
                     .and_then(|fps| fps.smoothed())
@@ -44,7 +32,13 @@ fn draw_performance_overlay(
                     .get(&FrameTimeDiagnosticsPlugin::FRAME_TIME)
                     .and_then(|time| time.smoothed())
                 {
-                    ui.label(format!("Frame Time: {value:.3}ms"));
+                    ui.label(format!("Frame Time: {value:>7.3}ms"));
+                }
+                if let Some(value) = diagnostics
+                    .get(&FrameTimeDiagnosticsPlugin::FRAME_TIME)
+                    .map(|time| time.values().fold(f64::NEG_INFINITY, |a, &b| a.max(b)))
+                {
+                    ui.label(format!("Worst Frame: {value:>7.3}ms"));
                 }
                 if let Some(value) = diagnostics
                     .get(&EntityCountDiagnosticsPlugin::ENTITY_COUNT)
@@ -63,12 +57,6 @@ impl Plugin for PerformanceUiPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins(bevy::diagnostic::FrameTimeDiagnosticsPlugin)
             .add_plugins(bevy::diagnostic::EntityCountDiagnosticsPlugin)
-            .add_plugins(bevy::diagnostic::SystemInformationDiagnosticsPlugin)
-            .add_plugins(EguiPlugin)
-            .init_resource::<PerformanceUiState>()
-            .add_systems(
-                Update,
-                (toggle_performance_display, draw_performance_overlay),
-            );
+            .add_systems(Update, draw);
     }
 }

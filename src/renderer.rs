@@ -57,7 +57,7 @@ impl Plugin for Renderer {
                 PostStartup,
                 (setup_sdf_pass, setup_edge_pass, setup_lighting_pass),
             );
-            // .add_systems(Update, alter_fov);
+        // .add_systems(Update, alter_fov);
         // .add_systems(Update, (on_resize_edge_texture, on_resize_sdf_texture))
         // .add_systems(Update, on_resize_occluder_texture);
         // .add_systems(Update, debug_render_targets);
