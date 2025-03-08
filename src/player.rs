@@ -15,6 +15,7 @@ use crate::{
     despawn_after::DespawnAfter,
     map::{BlocksMovement, Map, MapPos, Pickup, TILE_SIZE, Tile},
     mob::{Mob, MobDamageEvent},
+    ui::UiSettings,
 };
 
 const PLAYER_MOVE_DELAY: Duration = Duration::from_millis(200);
@@ -44,12 +45,15 @@ fn damage_player(
     mut player: Query<&mut Player>,
     mut ev_player_damage: EventReader<PlayerDamageEvent>,
     mut game_state: ResMut<GameState>,
+    settings: Res<UiSettings>,
 ) {
     let mut player = player.single_mut();
     for PlayerDamageEvent { damage } in ev_player_damage.read() {
-        player.damage += damage;
-        if player.is_dead() {
-            game_state.game_over = true;
+        if !settings.nohurt {
+            player.damage += damage;
+            if player.is_dead() {
+                game_state.game_over = true;
+            }
         }
     }
 }

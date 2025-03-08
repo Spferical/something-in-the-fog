@@ -20,6 +20,7 @@ pub struct UiSettings {
     pub show_debug_settings: bool,
     pub debug_scroll: bool,
     pub show_visibility: bool,
+    pub nohurt: bool,
 }
 
 impl Default for UiSettings {
@@ -29,6 +30,7 @@ impl Default for UiSettings {
             show_debug_settings: true,
             debug_scroll: false,
             show_visibility: false,
+            nohurt: true,
         }
     }
 }
@@ -150,6 +152,8 @@ fn update(
                 ui.checkbox(&mut settings.debug_scroll, "scroll zoom");
                 ui.separator();
                 ui.checkbox(&mut settings.show_visibility, "viz");
+                ui.separator();
+                ui.checkbox(&mut settings.nohurt, "nohurt");
                 ui.separator();
                 ui.label("Teleport to... ");
                 for i in 0..=5 {
