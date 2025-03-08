@@ -38,6 +38,7 @@ pub fn spawn(
             Spawn::Tile(TileKind::Crate) => world_assets.gray.clone(),
             Spawn::Tile(TileKind::Bush) => world_assets.green.clone(),
             Spawn::Tile(TileKind::Tree) => world_assets.dark_green.clone(),
+            Spawn::Tile(TileKind::Door) => world_assets.brown.clone(),
             Spawn::Mob(MobKind::Zombie) => world_assets.purple.clone(),
             Spawn::Mob(MobKind::Sculpture) => world_assets.brown.clone(),
             Spawn::Mob(MobKind::Hider) => world_assets.aqua.clone(),

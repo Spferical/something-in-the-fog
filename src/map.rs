@@ -96,6 +96,7 @@ fn startup(mut commands: Commands, mut ev_spawn: EventWriter<SpawnEvent>) {
 #[derive(Debug, Clone, Copy)]
 pub enum TileKind {
     Wall,
+    Door,
     Bush,
     Tree,
     Crate,
@@ -107,13 +108,13 @@ impl TileKind {
         use TileKind::*;
         match self {
             Wall | Tree | ShippingContainer => true,
-            Bush | Crate => false,
+            Bush | Crate | Door => false,
         }
     }
     pub fn blocks_sight(&self) -> bool {
         use TileKind::*;
         match self {
-            Wall | Tree | Bush | Crate | ShippingContainer => true,
+            Wall | Tree | Bush | Crate | Door | ShippingContainer => true,
         }
     }
 }

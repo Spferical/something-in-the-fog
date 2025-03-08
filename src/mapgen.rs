@@ -416,7 +416,7 @@ pub fn gen_map() -> MapgenResult {
             if room1.topleft() < room2.topleft() {
                 let adj_wall = get_connecting_wall(room1, room2).unwrap();
                 let door = adj_wall.choose(&mut rng);
-                tile_map[door] = None;
+                tile_map[door] = Some(TileKind::Door);
             }
         }
     }
@@ -434,7 +434,7 @@ pub fn gen_map() -> MapgenResult {
             None
         };
         if let Some(door) = exterior_door {
-            tile_map[door] = None;
+            tile_map[door] = Some(TileKind::Door);
         }
     }
     let sculpture_room = warehouse_room_graph.choose(&mut rng).unwrap();
