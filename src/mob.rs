@@ -1,6 +1,7 @@
 use std::time::Duration;
 
 use bevy::{prelude::*, time::Stopwatch};
+use line_drawing::WalkGrid;
 use rand::seq::SliceRandom;
 
 use crate::{
@@ -16,8 +17,9 @@ use crate::{
 
 const MAX_PATH: i32 = 100;
 const HIDER_CHASE_DISTANCE: i32 = 5;
+const KOOL_AID_OVERSHOOT: usize = 4;
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub enum MobKind {
     Zombie,
     Sculpture,
@@ -41,7 +43,7 @@ impl MobKind {
         match self {
             Zombie => 3,
             Sculpture => 99,
-            Hider => 3,
+            Hider => 2,
             KoolAidMan => 5,
         }
     }
@@ -232,7 +234,7 @@ fn forget_player(
 
 #[derive(Component, Debug)]
 pub enum KoolAidMovement {
-    Moving(IVec2),
+    Moving(Vec<IVec2>),
     Resting(Timer),
 }
 
@@ -281,24 +283,34 @@ fn move_mobs(
             };
             if let Some(kool_aid) = kool_aid.as_deref_mut() {
                 match kool_aid {
-                    KoolAidMovement::Moving(dest) => {
-                        if *dest == mob_pos.0 {
+                    KoolAidMovement::Moving(path) => {
+                        if path.is_empty() {
                             *kool_aid = KoolAidMovement::Resting(Timer::new(
                                 Duration::from_secs(1),
                                 TimerMode::Once,
                             ));
                         } else {
-                            target_pos = Some(*dest);
+                            target_pos = path.first().copied();
                         }
                     }
                     KoolAidMovement::Resting(timer) => {
                         timer.tick(time.delta());
                         if let Some(pos) = target_pos {
                             if timer.finished() {
-                                *kool_aid = KoolAidMovement::Moving(pos + (pos - mob_pos.0));
-                            } else {
-                                target_pos = None;
+                                let mut path: Vec<IVec2> =
+                                    WalkGrid::new(mob_pos.0.into(), pos.into())
+                                        .map(From::from)
+                                        .collect();
+                                // overshoot a bit
+                                let overshot = pos + (pos - mob_pos.0);
+                                path.extend(
+                                    WalkGrid::new(pos.into(), overshot.into())
+                                        .map(IVec2::from)
+                                        .take(KOOL_AID_OVERSHOOT),
+                                );
+                                *kool_aid = KoolAidMovement::Moving(path);
                             }
+                            target_pos = None;
                         }
                     }
                 }
@@ -306,39 +318,46 @@ fn move_mobs(
             if let Some(target_pos) = target_pos {
                 let avoid_player_sight = matches!(mob.kind, MobKind::Sculpture);
                 let bust_through_walls = kool_aid.is_some();
-                if let Some(path) = path_to(
-                    mob_pos.0,
-                    target_pos,
-                    &walk_blocked_map,
-                    &player_visibility_map,
-                    avoid_player_sight,
-                    bust_through_walls,
-                ) {
-                    if let Some(move_pos) = path.get(1) {
-                        if *move_pos != player_pos.0 {
-                            if !(matches!(mob.kind, MobKind::Sculpture)
-                                && player_visibility_map.0.contains(move_pos))
-                            {
-                                walk_blocked_map.0.insert(*move_pos);
-                                mob_pos.0 = *move_pos;
-                                commands.entity(entity).insert(MoveAnimation {
-                                    from: transform.translation.truncate(),
-                                    to: mob_pos.to_vec2(),
-                                    timer: Timer::new(
-                                        mob.kind.get_move_delay() / 2,
-                                        TimerMode::Once,
-                                    ),
-                                    ease: mob.kind.get_ease_function_for_movement(),
-                                });
-                                if bust_through_walls {
-                                    ev_bust.send(BustThroughWallEvent(mob_pos.0));
-                                }
-                                mob.move_timer.reset();
+                let move_pos = if bust_through_walls {
+                    Some(target_pos)
+                } else {
+                    path_to(
+                        mob_pos.0,
+                        target_pos,
+                        &walk_blocked_map,
+                        &player_visibility_map,
+                        avoid_player_sight,
+                        false,
+                    )
+                    .and_then(|path| path.get(1).copied())
+                };
+                if let Some(move_pos) = move_pos {
+                    if move_pos != player_pos.0 {
+                        if !(matches!(mob.kind, MobKind::Sculpture)
+                            && player_visibility_map.0.contains(&move_pos))
+                        {
+                            walk_blocked_map.0.insert(move_pos);
+                            mob_pos.0 = move_pos;
+                            commands.entity(entity).insert(MoveAnimation {
+                                from: transform.translation.truncate(),
+                                to: mob_pos.to_vec2(),
+                                timer: Timer::new(mob.kind.get_move_delay() / 2, TimerMode::Once),
+                                ease: mob.kind.get_ease_function_for_movement(),
+                            });
+                            if bust_through_walls {
+                                ev_bust.send(BustThroughWallEvent(mob_pos.0));
                             }
-                        } else {
-                            ev_player_damage.send(PlayerDamageEvent { damage: 1 });
+                            if let Some(KoolAidMovement::Moving(path)) = kool_aid.as_deref_mut() {
+                                if !path.is_empty() {
+                                    path.remove(0);
+                                }
+                            }
                             mob.move_timer.reset();
                         }
+                    } else {
+                        info!("{:?} damaging player", mob.kind);
+                        ev_player_damage.send(PlayerDamageEvent { damage: 1 });
+                        mob.move_timer.reset();
                     }
                 }
             }
