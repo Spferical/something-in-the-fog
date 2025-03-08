@@ -266,7 +266,11 @@ fn update_shooting(
         return;
     }
 
-    if ev_player_move.read().count() > 0 {
+    let player_moved = ev_player_move.read().count() > 0;
+
+    if shoot_state.reloading.is_some() {
+        shoot_state.focus = 0.0;
+    } else if player_moved {
         shoot_state.focus -= PLAYER_MOVE_FOCUS_PENALTY_SECS / PLAYER_FOCUS_TIME_SECS;
     } else {
         shoot_state.focus += time.delta().as_secs_f32() / PLAYER_FOCUS_TIME_SECS;
