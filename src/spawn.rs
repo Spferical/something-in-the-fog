@@ -4,7 +4,7 @@ use crate::{
     Z_ITEMS, Z_MOBS, Z_TILES,
     assets::GameAssets,
     map::{BlocksMovement, BlocksSight, ItemKind, MapPos, Pickup, TILE_SIZE, Tile, TileKind},
-    mob::{Mob, MobKind},
+    mob::{Mob, MobKind, SeesPlayer},
 };
 
 pub enum Spawn {
@@ -77,12 +77,14 @@ pub fn spawn(
                 entity_commands.insert(Tile(*t));
             }
             Spawn::Mob(kind) => {
-                entity_commands.insert(Mob {
-                    saw_player_at: None,
-                    move_timer: Timer::new(kind.get_move_delay(), TimerMode::Once),
-                    damage: 0,
-                    kind: *kind,
-                });
+                entity_commands.insert((
+                    SeesPlayer,
+                    Mob {
+                        move_timer: Timer::new(kind.get_move_delay(), TimerMode::Once),
+                        damage: 0,
+                        kind: *kind,
+                    },
+                ));
             }
             Spawn::Item(kind) => {
                 entity_commands.insert(Pickup(*kind));

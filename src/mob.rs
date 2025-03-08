@@ -54,7 +54,6 @@ impl MobKind {
 pub struct Mob {
     pub kind: MobKind,
     pub move_timer: Timer,
-    pub saw_player_at: Option<IVec2>,
     pub damage: i32,
 }
 
@@ -116,9 +115,38 @@ fn find_hiding_spot(
     .find(|&p| sight_blocked_map.0.contains(&p))
 }
 
+#[derive(Component)]
+pub struct SeesPlayer;
+
+#[derive(Component)]
+pub struct SawPlayer(pub IVec2);
+
+fn update_mobs_seeing_player(
+    mut commands: Commands,
+    mobs: Query<(Entity, &MapPos, Option<&SawPlayer>), With<SeesPlayer>>,
+    player_visibility_map: Res<PlayerVisibilityMap>,
+    player: Query<&MapPos, (With<Player>, Without<Mob>)>,
+) {
+    let player_pos = player.single();
+    for (entity, pos, saw_player) in mobs.iter() {
+        if player_visibility_map.0.contains(&pos.0) {
+            commands.entity(entity).insert(SawPlayer(player_pos.0));
+        } else if saw_player.is_some_and(|p| p.0 == player_pos.0) {
+            // Mob is standing on last seen player position.
+            commands.entity(entity).remove::<SawPlayer>();
+        }
+    }
+}
+
 fn move_mobs(
     mut commands: Commands,
-    mut mobs: Query<(Entity, &mut Mob, &mut MapPos, &mut Transform)>,
+    mut mobs: Query<(
+        Entity,
+        &mut Mob,
+        &mut MapPos,
+        &mut Transform,
+        Option<&SawPlayer>,
+    )>,
     player: Query<&MapPos, (With<Player>, Without<Mob>)>,
     mut walk_blocked_map: ResMut<WalkBlockedMap>,
     sight_blocked_map: Res<SightBlockedMap>,
@@ -126,23 +154,17 @@ fn move_mobs(
     time: Res<Time>,
 ) {
     let player_pos = player.single();
-    for (entity, mut mob, mut pos, transform) in mobs.iter_mut() {
-        if player_visibility_map.0.contains(&pos.0) {
-            mob.saw_player_at = Some(player_pos.0);
-        } else if mob.saw_player_at.is_some_and(|p| p == pos.0) {
-            // Mob is standing on last seen player position.
-            mob.saw_player_at = None;
-        }
+    for (entity, mut mob, mut pos, transform, saw_player) in mobs.iter_mut() {
         mob.move_timer.tick(time.delta());
         if mob.move_timer.finished() {
+            let last_seen_player_pos = saw_player.map(|saw| saw.0);
             let target_pos = match mob.kind {
-                MobKind::Hider => mob
-                    .saw_player_at
+                MobKind::Hider => last_seen_player_pos
                     .filter(|p| {
                         p.distance_squared(pos.0) <= HIDER_CHASE_DISTANCE * HIDER_CHASE_DISTANCE
                     })
                     .or_else(|| find_hiding_spot(pos.0, &walk_blocked_map, &sight_blocked_map)),
-                _ => mob.saw_player_at,
+                _ => last_seen_player_pos,
             };
             if let Some(target_pos) = target_pos {
                 let avoid_player_sight = matches!(mob.kind, MobKind::Sculpture);
@@ -187,7 +209,7 @@ impl Plugin for MobPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(
             Update,
-            (damage_mobs, move_mobs)
+            (update_mobs_seeing_player, damage_mobs, move_mobs)
                 .chain()
                 .after(update_visibility)
                 .after(update_walkability),
