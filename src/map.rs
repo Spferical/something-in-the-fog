@@ -138,10 +138,10 @@ pub fn path(
     pathfinding::directed::astar::astar(
         &start,
         move |&p| {
-            rogue_algebra::CARDINALS
-                .iter()
-                .copied()
-                .map(move |c| p + IVec2::from(c))
+            rogue_algebra::Pos::from(p)
+                .adjacent_cardinal()
+                .map(IVec2::from)
+                .into_iter()
                 .filter(|&p| p == dest || !blocked(p))
                 .filter(|p| p.distance_squared(dest) <= max_distance * max_distance)
                 .map(|p| (p, 1))

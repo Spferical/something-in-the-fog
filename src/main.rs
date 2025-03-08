@@ -29,9 +29,9 @@ const CAMERA_DECAY_RATE: f32 = 2.;
 
 // Z-coordinates for everything in the game world.
 const Z_PLAYER: f32 = 1.0;
-const Z_TILES: f32 = 2.0;
-const Z_ITEMS: f32 = 3.0;
-const Z_MOBS: f32 = 4.0;
+const Z_TILES: f32 = 3.0;
+const Z_ITEMS: f32 = 4.0;
+const Z_MOBS: f32 = 2.0;
 
 fn on_resize(mut resize_reader: EventReader<bevy::window::WindowResized>) {
     for _e in resize_reader.read() {}

@@ -12,6 +12,7 @@ use crate::{
 };
 
 const MAX_PATH: i32 = 100;
+const HIDER_CHASE_DISTANCE: i32 = 5;
 
 #[derive(Clone, Copy)]
 pub enum MobKind {
@@ -52,8 +53,8 @@ impl MobKind {
 #[derive(Component)]
 pub struct Mob {
     pub kind: MobKind,
-    pub saw_player_at: Option<IVec2>,
     pub move_timer: Timer,
+    pub saw_player_at: Option<IVec2>,
     pub damage: i32,
 }
 
@@ -78,11 +79,49 @@ fn damage_mobs(
     }
 }
 
+fn path_to(
+    source: IVec2,
+    target: IVec2,
+    walk_blocked_map: &WalkBlockedMap,
+    player_visibility_map: &PlayerVisibilityMap,
+    avoid_player_sight: bool,
+) -> Option<Vec<IVec2>> {
+    path(
+        source,
+        target,
+        MAX_PATH,
+        |p| walk_blocked_map.0.contains(&p),
+        |p| {
+            if avoid_player_sight && player_visibility_map.0.contains(&p) {
+                99
+            } else {
+                0
+            }
+        },
+    )
+}
+
+fn find_hiding_spot(
+    source: IVec2,
+    walk_blocked_map: &WalkBlockedMap,
+    sight_blocked_map: &SightBlockedMap,
+) -> Option<IVec2> {
+    pathfinding::directed::bfs::bfs_reach(source, |&p| {
+        rogue_algebra::Pos::from(p)
+            .adjacent_cardinal()
+            .map(IVec2::from)
+            .into_iter()
+            .filter(|p| !walk_blocked_map.0.contains(p))
+    })
+    .find(|&p| sight_blocked_map.0.contains(&p))
+}
+
 fn move_mobs(
     mut commands: Commands,
     mut mobs: Query<(Entity, &mut Mob, &mut MapPos, &mut Transform)>,
     player: Query<&MapPos, (With<Player>, Without<Mob>)>,
     mut walk_blocked_map: ResMut<WalkBlockedMap>,
+    sight_blocked_map: Res<SightBlockedMap>,
     player_visibility_map: Res<PlayerVisibilityMap>,
     time: Res<Time>,
 ) {
@@ -90,33 +129,30 @@ fn move_mobs(
     for (entity, mut mob, mut pos, transform) in mobs.iter_mut() {
         if player_visibility_map.0.contains(&pos.0) {
             mob.saw_player_at = Some(player_pos.0);
+        } else if mob.saw_player_at.is_some_and(|p| p == pos.0) {
+            // Mob is standing on last seen player position.
+            mob.saw_player_at = None;
         }
         mob.move_timer.tick(time.delta());
         if mob.move_timer.finished() {
-            if let Some(target_pos) = mob.saw_player_at {
-                let path = match mob.kind {
-                    MobKind::Sculpture => path(
-                        pos.0,
-                        target_pos,
-                        MAX_PATH,
-                        |p| walk_blocked_map.0.contains(&p),
-                        |p| {
-                            if player_visibility_map.0.contains(&p) {
-                                99
-                            } else {
-                                0
-                            }
-                        },
-                    ),
-                    _ => path(
-                        pos.0,
-                        target_pos,
-                        MAX_PATH,
-                        |p| walk_blocked_map.0.contains(&p),
-                        |_| 0,
-                    ),
-                };
-                if let Some(path) = path {
+            let target_pos = match mob.kind {
+                MobKind::Hider => mob
+                    .saw_player_at
+                    .filter(|p| {
+                        p.distance_squared(pos.0) <= HIDER_CHASE_DISTANCE * HIDER_CHASE_DISTANCE
+                    })
+                    .or_else(|| find_hiding_spot(pos.0, &walk_blocked_map, &sight_blocked_map)),
+                _ => mob.saw_player_at,
+            };
+            if let Some(target_pos) = target_pos {
+                let avoid_player_sight = matches!(mob.kind, MobKind::Sculpture);
+                if let Some(path) = path_to(
+                    pos.0,
+                    target_pos,
+                    &walk_blocked_map,
+                    &player_visibility_map,
+                    avoid_player_sight,
+                ) {
                     if let Some(move_pos) = path.get(1) {
                         if *move_pos != player_pos.0 {
                             if !(matches!(mob.kind, MobKind::Sculpture)

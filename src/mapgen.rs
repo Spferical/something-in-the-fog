@@ -452,6 +452,26 @@ pub fn gen_map() -> MapgenResult {
         *shotgun_pos,
         ItemKind::Gun(GunType::Shotgun, GunType::Shotgun.get_info().max_load),
     );
+    let free = warehouse_rect
+        .into_iter()
+        .filter(|p| {
+            tile_map[*p].filter(TileKind::blocks_movement).is_none()
+                && !mob_spawns.contains_key(p)
+                && !item_spawns.contains_key(p)
+        })
+        .collect::<Vec<Pos>>();
+    let spawns = free.choose_multiple(&mut rng, 36).collect::<Vec<_>>();
+    for p in &spawns[0..30] {
+        mob_spawns.insert(**p, MobKind::Hider);
+    }
+    for p in &spawns[30..] {
+        let spawn = if rng.gen_bool(0.5) {
+            ItemKind::Ammo(GunType::Pistol, 15)
+        } else {
+            ItemKind::Ammo(GunType::Shotgun, 2)
+        };
+        item_spawns.insert(**p, spawn);
+    }
 
     // Railyard. Wide open but with large shipping containers obscuring vision.
     let mut railyard_rect = warehouse_zone_rect.right_edge();
