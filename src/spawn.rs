@@ -1,10 +1,12 @@
+use std::time::Duration;
+
 use bevy::{prelude::*, render::view::RenderLayers};
 
 use crate::{
     Z_ITEMS, Z_MOBS, Z_TILES,
     assets::GameAssets,
     map::{BlocksMovement, BlocksSight, ItemKind, MapPos, Pickup, TILE_SIZE, Tile, TileKind},
-    mob::{HearsPlayer, Mob, MobKind, SeesPlayer},
+    mob::{HearsPlayer, KoolAidMovement, Mob, MobKind, SeesPlayer},
 };
 
 pub enum Spawn {
@@ -87,6 +89,9 @@ pub fn spawn(
                         kind: *kind,
                     },
                 ));
+                if let MobKind::KoolAidMan = kind {
+                    entity_commands.insert(KoolAidMovement::default());
+                }
             }
             Spawn::Item(kind) => {
                 entity_commands.insert(Pickup(*kind));

@@ -62,6 +62,9 @@ pub struct Pickup(pub ItemKind);
 pub struct Map(pub HashMap<IVec2, Vec<Entity>>);
 
 impl Map {
+    pub fn get(&self, pos: IVec2) -> impl Iterator<Item = &Entity> {
+        self.0.get(&pos).into_iter().flatten()
+    }
     pub fn get_nearby(&self, center: IVec2, radius: i32) -> impl Iterator<Item = &Entity> {
         (center.x - radius..center.x + radius)
             .flat_map(move |x| (center.y - radius..center.y + radius).map(move |y| (x, y)))

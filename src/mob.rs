@@ -1,15 +1,18 @@
-use std::time::Duration;
+use std::{ops::DerefMut, time::Duration};
 
 use bevy::{prelude::*, time::Stopwatch};
+use rand::seq::SliceRandom;
+use rogue_algebra::CARDINALS;
 
 use crate::{
     Player,
     animation::MoveAnimation,
     map::{
-        Map, MapPos, PlayerVisibilityMap, SightBlockedMap, WalkBlockedMap, path, update_visibility,
-        update_walkability,
+        self, Map, MapPos, PlayerVisibilityMap, SightBlockedMap, Tile, WalkBlockedMap, Zones, path,
+        update_visibility, update_walkability,
     },
     player::{PlayerMoveEvent, ShootEvent},
+    spawn::{Spawn, SpawnEvent},
 };
 
 const MAX_PATH: i32 = 100;
@@ -89,12 +92,13 @@ fn path_to(
     walk_blocked_map: &WalkBlockedMap,
     player_visibility_map: &PlayerVisibilityMap,
     avoid_player_sight: bool,
+    path_through_walls: bool,
 ) -> Option<Vec<IVec2>> {
     path(
         source,
         target,
         MAX_PATH,
-        |p| walk_blocked_map.0.contains(&p),
+        |p| !path_through_walls && walk_blocked_map.0.contains(&p),
         |p| {
             if avoid_player_sight && player_visibility_map.0.contains(&p) {
                 99
@@ -227,7 +231,19 @@ fn forget_player(
     }
 }
 
-#[allow(clippy::type_complexity)]
+#[derive(Component, Debug)]
+pub enum KoolAidMovement {
+    Moving(IVec2),
+    Resting(Timer),
+}
+
+impl Default for KoolAidMovement {
+    fn default() -> Self {
+        Self::Resting(Timer::new(Duration::from_secs(0), TimerMode::Once))
+    }
+}
+
+#[allow(clippy::complexity)]
 fn move_mobs(
     mut commands: Commands,
     mut mobs: Query<(
@@ -237,36 +253,66 @@ fn move_mobs(
         &mut Transform,
         Option<&SawPlayer>,
         Option<&HeardPlayer>,
+        Option<&mut KoolAidMovement>,
     )>,
     player: Query<&MapPos, (With<Player>, Without<Mob>)>,
     mut walk_blocked_map: ResMut<WalkBlockedMap>,
     sight_blocked_map: Res<SightBlockedMap>,
     player_visibility_map: Res<PlayerVisibilityMap>,
     time: Res<Time>,
+    mut ev_bust: EventWriter<BustThroughWallEvent>,
 ) {
     let player_pos = player.single();
-    for (entity, mut mob, mut pos, transform, saw_player, heard_player) in mobs.iter_mut() {
+    for (entity, mut mob, mut mob_pos, transform, saw_player, heard_player, mut kool_aid) in
+        mobs.iter_mut()
+    {
         mob.move_timer.tick(time.delta());
         if mob.move_timer.finished() {
             let last_known_player_pos = saw_player
                 .map(|saw| saw.pos)
                 .or(heard_player.map(|heard| heard.pos));
-            let target_pos = match mob.kind {
+            let mut target_pos = match mob.kind {
                 MobKind::Hider => last_known_player_pos
                     .filter(|p| {
-                        p.distance_squared(pos.0) <= HIDER_CHASE_DISTANCE * HIDER_CHASE_DISTANCE
+                        p.distance_squared(mob_pos.0) <= HIDER_CHASE_DISTANCE * HIDER_CHASE_DISTANCE
                     })
-                    .or_else(|| find_hiding_spot(pos.0, &walk_blocked_map, &sight_blocked_map)),
+                    .or_else(|| find_hiding_spot(mob_pos.0, &walk_blocked_map, &sight_blocked_map)),
                 _ => last_known_player_pos,
             };
+            if let Some(kool_aid) = kool_aid.as_deref_mut() {
+                match kool_aid {
+                    KoolAidMovement::Moving(dest) => {
+                        if *dest == mob_pos.0 {
+                            *kool_aid = KoolAidMovement::Resting(Timer::new(
+                                Duration::from_secs(1),
+                                TimerMode::Once,
+                            ));
+                        } else {
+                            target_pos = Some(*dest);
+                        }
+                    }
+                    KoolAidMovement::Resting(timer) => {
+                        timer.tick(time.delta());
+                        if let Some(pos) = target_pos {
+                            if timer.finished() {
+                                *kool_aid = KoolAidMovement::Moving(pos);
+                            } else {
+                                target_pos = None;
+                            }
+                        }
+                    }
+                }
+            }
             if let Some(target_pos) = target_pos {
                 let avoid_player_sight = matches!(mob.kind, MobKind::Sculpture);
+                let bust_through_walls = kool_aid.is_some();
                 if let Some(path) = path_to(
-                    pos.0,
+                    mob_pos.0,
                     target_pos,
                     &walk_blocked_map,
                     &player_visibility_map,
                     avoid_player_sight,
+                    bust_through_walls,
                 ) {
                     if let Some(move_pos) = path.get(1) {
                         if *move_pos != player_pos.0 {
@@ -274,16 +320,19 @@ fn move_mobs(
                                 && player_visibility_map.0.contains(move_pos))
                             {
                                 walk_blocked_map.0.insert(*move_pos);
-                                pos.0 = *move_pos;
+                                mob_pos.0 = *move_pos;
                                 commands.entity(entity).insert(MoveAnimation {
                                     from: transform.translation.truncate(),
-                                    to: pos.to_vec2(),
+                                    to: mob_pos.to_vec2(),
                                     timer: Timer::new(
                                         mob.kind.get_move_delay() / 2,
                                         TimerMode::Once,
                                     ),
                                     ease: mob.kind.get_ease_function_for_movement(),
                                 });
+                                if bust_through_walls {
+                                    ev_bust.send(BustThroughWallEvent(mob_pos.0));
+                                }
                                 mob.move_timer.reset();
                             }
                         } else {
@@ -296,6 +345,44 @@ fn move_mobs(
     }
 }
 
+fn spawn_kool_aid_man(
+    mut ev_shoot: EventReader<ShootEvent>,
+    mut ev_spawn: EventWriter<SpawnEvent>,
+    mut spawned: Local<bool>,
+    zones: Res<Zones>,
+) {
+    for shoot_event in ev_shoot.read() {
+        if !*spawned {
+            if let Some(rect) = zones.0.get(2) {
+                let map_pos = MapPos::from_vec2(shoot_event.start);
+                if rect.contains(map_pos.0) {
+                    let mut rng = rand::thread_rng();
+                    let spawn_pos =
+                        map_pos.0 + 5 * IVec2::from(*CARDINALS.choose(&mut rng).unwrap());
+                    ev_spawn.send(SpawnEvent(spawn_pos, Spawn::Mob(MobKind::KoolAidMan)));
+                    *spawned = true;
+                }
+            }
+        }
+    }
+}
+
+#[derive(Event)]
+struct BustThroughWallEvent(IVec2);
+
+fn bust_through_walls(
+    mut commands: Commands,
+    mut ev_bust: EventReader<BustThroughWallEvent>,
+    map: Res<Map>,
+    query: Query<Entity, With<Tile>>,
+) {
+    for BustThroughWallEvent(pos) in ev_bust.read() {
+        for entity in query.iter_many(map.get(*pos)) {
+            commands.entity(entity).despawn();
+        }
+    }
+}
+
 pub struct MobPlugin;
 
 impl Plugin for MobPlugin {
@@ -303,16 +390,19 @@ impl Plugin for MobPlugin {
         app.add_systems(
             Update,
             (
+                spawn_kool_aid_man,
                 update_mobs_seeing_player,
                 update_hearing_player,
                 forget_player,
                 damage_mobs,
                 move_mobs,
+                bust_through_walls,
             )
                 .chain()
                 .after(update_visibility)
                 .after(update_walkability),
-        );
-        app.add_event::<MobDamageEvent>();
+        )
+        .add_event::<MobDamageEvent>()
+        .add_event::<BustThroughWallEvent>();
     }
 }
