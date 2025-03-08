@@ -4,27 +4,11 @@
     view_transformations,
 }
 #import bevy_pbr::utils::coords_to_viewport_uv
-
-struct RayTraceOutputs {
-    intersection: vec3f,
-    dist: f32,
-    hit: bool
+#import "shaders/types.wgsl"::{
+    RayTraceOutputs, Light, LightBundle, LightingSettings
 }
-
-struct Light {
-    color: vec4f,
-    intensity: f32,
-    center: vec4f,
-    direction: vec4f,
-    focus: f32
-}
-
-struct LightBundle {
-    lights: array<Light, 8>
-}
-
-struct LightingSettings {
-    tile_size: i32
+#import "shaders/fog.wgsl"::{
+    get_fog_density
 }
 
 @group(2) @binding(0) var screen_texture: texture_2d<f32>;
@@ -42,7 +26,7 @@ fn sample_2d_seed(uv: vec2f) -> vec2f {
         seed_texture,
         seed_sampler,
         uv
-    ).xy;
+    ).xy / screen_size;
 }
 
 fn sdf_2d(uv: vec3f) -> f32 {
@@ -54,7 +38,7 @@ fn sdf_2d(uv: vec3f) -> f32 {
 
 fn sdf_extruded(p: vec3<f32>) -> f32 {
     let d = sdf_2d(p);
-    let h = 0.5;
+    let h = 0.1;
     let w = vec2f(d, abs(p.z) - h);
     return min(max(w.x, w.y), 0.0) + length(max(w, vec2f(0.0, 0.0)));
 }
@@ -157,6 +141,49 @@ fn sobel_gradient_estimate(p: vec3f) -> vec3f {
     return normalize(-vec3f(h_x, h_y, h_z));
 }
 
+fn apply_fog(col: vec3f,  // color of pixel
+             t: f32,    // distnace to point
+             ro: vec3f,   // camera position
+             rd: vec3f)  // camera to point vector
+-> vec3f {
+    let a: f32 = 0.5;
+    let b: f32 = 0.05;
+    
+    var fogAmount = (a/b) * exp(-ro.y*b) * (1.0-exp(-t*rd.y*b))/rd.y;
+    var fogColor = vec3f(0.5, 0.6, 0.7);
+    return mix(col, fogColor, fogAmount);
+}
+
+fn fog_trace(
+    color: vec3f,
+    ro: vec3f,
+    light: Light,
+    endpoint: vec3f,
+    trace_iters: u32,
+) -> vec3f {
+    let tmax = length(ro - endpoint);
+    let rd = normalize(ro - endpoint);
+
+    var accum = color;
+
+    var fog_color = vec3f(0.5, 0.6, 0.7) * 1e-2;
+
+    var t = 0.0;
+    let step_size = tmax / f32(trace_iters);
+    for (var i: u32 = 0; i < trace_iters; i++) {
+        let p = t * rd + ro;
+
+        let f = get_fog_density(p.xy);
+        let T = exp(-f * step_size);
+        accum = accum * T;
+        accum += fog_color * f;
+        
+        t += step_size;
+    }
+
+    return accum;
+}
+
 fn lighting_simple(
     pos: vec3f,
     light: Light,
@@ -164,17 +191,21 @@ fn lighting_simple(
     normal: vec3f
 ) -> vec3<f32> {
     let pi = radians(180.0);
-    let shadow = visibility(pos, camera_origin, u32(32), 1e-6, 0.001);
+    let shadow = visibility(pos, camera_origin, u32(8), 1e-6, 0.001);
     let l = normalize(light.center.xyz - pos);
-    return light.color.xyz * light.intensity / pi * max(dot(normal, l), 0.0) * shadow;
+    let color = light.color.xyz * light.intensity / pi * max(dot(normal, l), 0.0) * shadow;
+
+    let t = length(pos - camera_origin);
+    let rd = normalize(pos - camera_origin);
+    return fog_trace(color, pos, light, camera_origin, u32(8));
+    // return apply_fog(color, t, camera_origin, rd);
 }
 
-@fragment
-fn fragment(mesh: VertexOutput) -> @location(0) vec4<f32> {
+@fragment fn fragment(mesh: VertexOutput) -> @location(0) vec4<f32> {
     let light = Light (
         vec4(1.0, 1.0, 1.0, 1.0),
-        3.0,
-        vec4(0.0, 0.5, 0.6, 0.0),
+        30.0,
+        vec4(0.5, 0.5, 0.6, 0.0),
         normalize(vec4(1.0, 1.0, 1.0, 0.0)),
         1.0
     );
@@ -194,8 +225,9 @@ fn fragment(mesh: VertexOutput) -> @location(0) vec4<f32> {
     let endpoints = ray_outputs.intersection;
     let normal_sample_pt = endpoints - rd * 1e-4;
     let normal = sobel_gradient_estimate(normal_sample_pt);
-    // return vec4(normal, 1.0);
+    // return vec4(get_fog_density(uv * 3.0)) * 2;
     return vec4(lighting_simple(endpoints, light, ro, normal), 1.0);
+    // return vec4(normal, 1.0);
     // return vec4f(f32(ray_outputs.hit));
 
     /*let seed = sample_2d_seed(uv);
@@ -203,8 +235,8 @@ fn fragment(mesh: VertexOutput) -> @location(0) vec4<f32> {
     let sdf = length(uv.xy - seed.xy); // * select(1., -1., inside_texture);
     return vec4(sdf, 0.0, 0.0, 1.0);*/
 
-    // let sdf_val = sdf(vec3f(uv, 0.5));
-    //return vec4(vec3(sdf_val), 1.0);
+    // let sdf_val = sdf_2d(vec3f(uv, 0.5));
+    // return vec4(sdf_val);
     // return vec4(textureSample(edge_texture, seed_sampler, uv / screen_size));
 
     // let ray_outputs = trace_ray(ro, rd, u32(256), 0.01, 1000.0, 1e-4);
@@ -214,5 +246,5 @@ fn fragment(mesh: VertexOutput) -> @location(0) vec4<f32> {
     // let albedo = textureSample(screen_texture, seed_sampler, uv);
     // return vec4f(lighting, lighting, lighting, 1.0);
     
-    // return textureSample(seed_texture, seed_sampler, uv);
+    // return vec4f(textureSample(seed_texture, seed_sampler, uv).xy / screen_size, 0.0, 1.0);
 }

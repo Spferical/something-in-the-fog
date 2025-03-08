@@ -87,8 +87,8 @@ pub fn setup_sdf_pass(
             Camera2d,
             proj.clone(),
             Tonemapping::None,
-            // Msaa::Off,
-            // DebandDither::Disabled,
+            Msaa::Off,
+            DebandDither::Disabled,
             camera_postprocess,
             RenderLayers::layer(ping_it),
         ));

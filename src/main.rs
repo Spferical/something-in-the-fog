@@ -121,7 +121,7 @@ fn setup(mut commands: Commands, mut window: Query<&mut Window>, assets: Res<Gam
         MeshMaterial2d(assets.red.clone()),
         Transform::from_translation(player_start_translation),
         DebandDither::Disabled,
-        // RenderLayers::layer(1),
+        RenderLayers::layer(1),
     ));
     commands.insert_resource(MoveTimer(Timer::new(PLAYER_MOVE_DELAY, TimerMode::Once)));
     commands.insert_resource(MouseWorldCoords(player_start_translation.truncate()));
@@ -186,7 +186,7 @@ fn make_sight_lines(mut commands: Commands, assets: Res<GameAssets>) {
     let bundle = (
         Mesh2d(assets.pixel.clone()),
         MeshMaterial2d(assets.sight_line.clone()),
-        // RenderLayers::layer(1),
+        RenderLayers::layer(1),
         Transform::IDENTITY,
     );
     commands.spawn(bundle.clone()).insert(LeftSightLine);

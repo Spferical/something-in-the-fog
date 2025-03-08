@@ -9,6 +9,7 @@ use crate::edge::EdgeTexture;
 use crate::map::TILE_SIZE;
 use crate::renderer::OccluderTextureCpu;
 use crate::sdf::SdfTexture;
+use crate::PrimaryCamera;
 use bevy::render::view::RenderLayers;
 pub use mat::LightingMaterial;
 
@@ -44,6 +45,7 @@ pub fn setup_lighting_pass(
     sdf_texture_query: Query<&SdfTexture>,
     occluder_texture_query: Query<&OccluderTextureCpu>,
     edge_texture_query: Query<&EdgeTexture>,
+    primary_camera_query: Query<&Transform, With<PrimaryCamera>>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<LightingMaterial>>,
     // mut standard_materials: ResMut<Assets<StandardMaterial>>,
@@ -60,6 +62,9 @@ pub fn setup_lighting_pass(
         return;
     };
     let Ok(edge_texture) = edge_texture_query.get_single() else {
+        return;
+    };
+    let Ok(primary_camera) = primary_camera_query.get_single() else {
         return;
     };
 
