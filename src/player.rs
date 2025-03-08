@@ -75,7 +75,7 @@ impl GunType {
                 num_projectiles: 10,
                 max_load: 2,
                 loads_one_at_a_time: true,
-                reload_time: Duration::from_secs(2),
+                reload_time: Duration::from_millis(500),
             },
         }
     }
