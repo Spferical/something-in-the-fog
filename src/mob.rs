@@ -282,15 +282,16 @@ fn move_mobs(
                 _ => last_known_player_pos,
             };
             if let Some(kool_aid) = kool_aid.as_deref_mut() {
-                match kool_aid {
+                target_pos = match kool_aid {
                     KoolAidMovement::Moving(path) => {
                         if path.is_empty() {
                             *kool_aid = KoolAidMovement::Resting(Timer::new(
                                 Duration::from_secs(1),
                                 TimerMode::Once,
                             ));
+                            None
                         } else {
-                            target_pos = path.first().copied();
+                            path.first().copied()
                         }
                     }
                     KoolAidMovement::Resting(timer) => {
@@ -310,7 +311,9 @@ fn move_mobs(
                                 );
                                 *kool_aid = KoolAidMovement::Moving(path);
                             }
-                            target_pos = None;
+                            None
+                        } else {
+                            None
                         }
                     }
                 }
