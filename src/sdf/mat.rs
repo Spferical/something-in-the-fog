@@ -1,8 +1,15 @@
 use bevy::{
     prelude::*,
-    render::render_resource::{AsBindGroup, ShaderRef},
+    render::render_resource::{AsBindGroup, ShaderRef, ShaderType},
     sprite::Material2d,
 };
+
+#[derive(Clone, Default, ShaderType)]
+pub struct SdfSettings {
+    pub iteration: i32,
+    pub probe_size: i32,
+    pub _padding: Vec2,
+}
 
 #[derive(AsBindGroup, Clone, Default, Asset, TypePath)]
 pub struct SdfMaterial {
@@ -13,11 +20,7 @@ pub struct SdfMaterial {
     #[texture(2)]
     pub seed_texture: Option<Handle<Image>>,
     #[uniform(3)]
-    pub iteration: i32,
-    #[uniform(4)]
-    pub probe_size: i32,
-    // #[uniform(5)]
-    // pub tile_size: i32,
+    pub settings: SdfSettings,
 }
 
 impl Material2d for SdfMaterial {

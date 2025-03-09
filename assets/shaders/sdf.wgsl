@@ -2,13 +2,14 @@
 #import bevy_pbr::{
     view_transformations
 }
+#import "shaders/types.wgsl"::{
+    SdfSettings
+}
 
 @group(2) @binding(0) var screen_texture: texture_2d<f32>;
 @group(2) @binding(1) var edge_texture: texture_2d<f32>;
 @group(2) @binding(2) var seed_texture: texture_2d<f32>;
-@group(2) @binding(3) var<uniform> iteration: i32;
-@group(2) @binding(4) var<uniform> probe_size: i32;
-// @group(2) @binding(5) var<uniform> tile_size: i32;
+@group(2) @binding(3) var<uniform> settings: SdfSettings;
 
 // fn get_tile_coord_from_screen_coord(position: vec2i) -> vec2i {
 //     var ndc = view_transformations::frag_coord_to_ndc(
@@ -34,7 +35,7 @@
 
 fn query_seeds(position: vec2i) -> vec2f {
     let screen_size_sdf = textureDimensions(seed_texture);
-    if (iteration == 0) {
+    if (settings.iteration == 0) {
         var is_filled = textureLoad(edge_texture, vec2i(position.xy), 0).r > 0.5;
         if (is_filled) {
             return vec2f(position);
@@ -59,6 +60,8 @@ fn fragment(@builtin(position) position: vec4f) -> @location(0) vec4<f32> {
 
     var nearest_seed = vec2f(-screen_size_sdf);
     var nearest_dist: f32 = 999999.9;
+
+    let probe_size = settings.probe_size;
 
     for (var i_r: i32 = -1; i_r < 2; i_r++) {
         for (var j_r: i32 = -1; j_r < 2; j_r++) {

@@ -1,13 +1,14 @@
 use bevy::core_pipeline::tonemapping::DebandDither;
 use bevy::render::render_graph::RenderLabel;
 use bevy::{core_pipeline::tonemapping::Tonemapping, prelude::*};
+use mat::SdfSettings;
 
 mod mat;
 mod prepare;
 
-use crate::SDF_RES;
 use crate::edge::EdgeTexture;
 use crate::renderer::OccluderTextureCpu;
+use crate::SDF_RES;
 use bevy::render::view::RenderLayers;
 pub use mat::SdfMaterial;
 pub use prepare::{on_resize_sdf_texture, prepare_sdf_texture};
@@ -87,8 +88,11 @@ pub fn setup_sdf_pass(
                 screen_texture: Some(occluder_texture.0.clone()),
                 edge_texture: Some(edge_texture.0.clone()),
                 seed_texture: Some(ping_image.clone()),
-                iteration: i as i32,
-                probe_size: 1 << (num_passes - i - 1),
+                settings: SdfSettings {
+                    iteration: i as i32,
+                    probe_size: 1 << (num_passes - i - 1),
+                    ..default()
+                },
             })),
             RenderLayers::layer(ping_it),
         ));

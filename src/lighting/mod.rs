@@ -5,11 +5,11 @@ use mat::{Light, LightBundle, LightingSettings};
 
 mod mat;
 
-use crate::PrimaryCamera;
 use crate::edge::EdgeTexture;
 use crate::renderer::{OccluderTextureCpu, PlaneMouseMovedEvent};
 use crate::sdf::SdfTexture;
 use crate::ui::UiSettings;
+use crate::PrimaryCamera;
 use bevy::render::view::RenderLayers;
 pub use mat::LightingMaterial;
 
@@ -79,6 +79,7 @@ pub fn update_lighting_pass(
         direction: Vec4::new(delta.x, delta.y, 0.0, 0.0),
         focus: 10.0,
         attenuation: 10.0,
+        ..default()
     };
     let player_light_center = Vec4::new(0.5, 0.5, 0.2, 0.0);
     let player_light = Light {
@@ -88,12 +89,13 @@ pub fn update_lighting_pass(
         direction: Vec4::new(0.0, 0.0, 0.0, 0.0),
         focus: 1.0,
         attenuation: 5.0,
+        ..default()
     };
 
     if let Some(mat) = materials.get_mut(mat) {
         mat.lights.lights[0] = flashlight;
         mat.lights.lights[1] = player_light;
-        mat.num_lights = 2;
+        mat.lighting_settings.num_lights = 2;
         mat.lighting_settings.toggle_2d = settings.toggle_2d as i32;
     }
 }
@@ -133,12 +135,17 @@ pub fn setup_lighting_pass(
         direction: Vec4::new(1.0, 0.0, 0.0, 0.0),
         focus: 1.0,
         attenuation: 1.0,
+        ..default()
     };
 
     let mut lights = [Light::default(); 8];
     lights[0] = flashlight;
 
-    let settings = LightingSettings { toggle_2d: 0 };
+    let settings = LightingSettings {
+        toggle_2d: 0,
+        num_lights: 1,
+        ..default()
+    };
 
     let plane = meshes.add(Plane3d::default().mesh().size(1.0, aspect_ratio));
     commands.spawn((
@@ -150,7 +157,6 @@ pub fn setup_lighting_pass(
             seed_texture: Some(sdf_texture.iters[0].clone()),
             lighting_settings: settings,
             lights: LightBundle { lights },
-            num_lights: 1,
         })),
         RenderLayers::layer(LIGHTING_LAYER),
         RenderPlane,

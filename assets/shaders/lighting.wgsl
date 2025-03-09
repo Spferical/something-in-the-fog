@@ -17,7 +17,6 @@
 @group(2) @binding(3) var seed_sampler: sampler;
 @group(2) @binding(4) var<uniform> settings: LightingSettings;
 @group(2) @binding(5) var<uniform> lights: LightBundle;
-@group(2) @binding(6) var<uniform> num_lights: i32;
 
 fn sample_2d_seed(uv: vec2f) -> vec2f {
     let screen_size = vec2f(textureDimensions(seed_texture));
@@ -241,7 +240,7 @@ fn lighting_simple(
     let normal = sobel_gradient_estimate(normal_sample_pt);
 
     var total_light = vec3(0.0);
-    for (var light_i = 0; light_i < num_lights; light_i++) {
+    for (var light_i = 0; light_i < settings.num_lights; light_i++) {
         let light = lights.lights[light_i];
         total_light += lighting_simple(endpoints, light, ro_lighting, normal);
     }
