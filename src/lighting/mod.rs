@@ -108,11 +108,11 @@ pub fn update_lighting_pass(
 
             let muzzle_flash_light = Light {
                 color: Vec4::new(1.0, 1.0, 0.7, 1.0),
-                intensity: 10000.0 * intensity_scalar,
+                intensity: flash.info.muzzle_flash_max_intensity * intensity_scalar,
                 center: player_light_center,
                 direction: Vec4::new(delta.x, delta.y, 0.0, 0.0),
-                focus: 4.0,
-                attenuation: 3.0,
+                focus: flash.info.muzzle_flash_focus,
+                attenuation: flash.info.muzzle_flash_attenuation,
                 ..default()
             };
             mat.lights.lights[2] = muzzle_flash_light;

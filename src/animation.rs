@@ -3,7 +3,11 @@ use std::time::Duration;
 use bevy::{prelude::*, render::view::RenderLayers};
 
 use crate::{
-    assets::GameAssets, despawn_after::DespawnAfter, map::TILE_HEIGHT, player::GunInfo, Z_TEXT,
+    assets::GameAssets,
+    despawn_after::DespawnAfter,
+    map::TILE_HEIGHT,
+    player::{GunInfo, Player},
+    Z_TEXT,
 };
 
 #[derive(Component)]
@@ -78,20 +82,22 @@ fn fade_text(mut query: Query<(&mut TextColor, &mut TextFade)>, time: Res<Time>)
 }
 
 #[derive(Component)]
-pub struct FadeColorMaterial {
+pub struct InjuryEffect {
     pub timer: Timer,
     pub ease: EasingCurve<f32>,
 }
 
-fn fade_color_material(
-    mut query: Query<(&MeshMaterial2d<ColorMaterial>, &mut FadeColorMaterial)>,
-    time: Res<Time>,
-    mut materials: ResMut<Assets<ColorMaterial>>,
-) {
-    for (material, mut fade) in query.iter_mut() {
-        fade.timer.tick(time.delta());
-        let color = &mut materials.get_mut(material.0.id()).unwrap().color;
-        *color = color.with_alpha(fade.ease.sample_clamped(fade.timer.fraction()));
+fn injury_effect(mut mobs: Query<(&mut Transform, &mut InjuryEffect)>, time: Res<Time>) {
+    /*let Ok((mut transform, mut injury)) = player.get_single_mut() else {
+            return;
+    };*/
+
+    for (mut transform, mut injury) in mobs.iter_mut() {
+        injury.timer.tick(time.delta());
+        let t = injury
+            .ease
+            .sample_clamped((injury.timer.fraction() * 2.0 - 1.0).abs());
+        transform.rotation = Quat::from_rotation_z(t);
     }
 }
 
@@ -106,10 +112,7 @@ pub struct AnimatePlugin;
 
 impl Plugin for AnimatePlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(
-            Update,
-            (animate, spawn_text, fade_text, fade_color_material),
-        )
-        .add_event::<TextEvent>();
+        app.add_systems(Update, (animate, spawn_text, fade_text, injury_effect))
+            .add_event::<TextEvent>();
     }
 }

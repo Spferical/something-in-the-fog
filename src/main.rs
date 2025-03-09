@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use animation::{FadeColorMaterial, MuzzleFlash};
+use animation::{InjuryEffect, MuzzleFlash};
 use assets::GameAssets;
 use bevy::diagnostic::LogDiagnosticsPlugin;
 use bevy::input::mouse::{MouseScrollUnit, MouseWheel};
@@ -13,6 +13,7 @@ use bevy::{
     },
 };
 use map::Zones;
+use mob::{Mob, MobDamageEvent};
 use player::{Inventory, Player, PlayerDamageEvent, ShootEvent};
 use ui::{UiEvent, UiSettings};
 
@@ -146,16 +147,16 @@ struct HurtEffect;
 
 fn setup(mut commands: Commands, assets: Res<GameAssets>, mut window: Query<&mut Window>) {
     window.single_mut().resizable = true;
-    commands.spawn((
+    /*commands.spawn((
         HurtEffect,
         Mesh2d(assets.square.clone()),
         MeshMaterial2d(assets.hurt_effect_material.clone()),
         RenderLayers::layer(1),
         Transform::from_translation(Vec3::ZERO.with_z(9.0)).with_scale(Vec3::splat(99999.0)),
-    ));
+    ));*/
 }
 
-fn handle_game_over(
+/*fn handle_game_over(
     mut commands: Commands,
     game_state: Res<GameState>,
     fade_out: Query<&FadeOut>,
@@ -167,32 +168,47 @@ fn handle_game_over(
             Mesh2d(assets.square.clone()),
             MeshMaterial2d(assets.fade_out_material.clone()),
             RenderLayers::layer(1),
-            FadeColorMaterial {
+            PlayerInjuryEffect {
                 timer: Timer::new(Duration::from_secs(5), TimerMode::Once),
                 ease: EasingCurve::new(0.0, 1.0, EaseFunction::CubicOut),
             },
             Transform::from_translation(Vec3::ZERO.with_z(10.0)).with_scale(Vec3::splat(99999.0)),
         ));
     }
-}
+}*/
 
 fn animate_player_damage(
     mut commands: Commands,
-    query: Query<Entity, With<HurtEffect>>,
+    query: Query<Entity, With<Player>>,
     mut ev_player_damage: EventReader<PlayerDamageEvent>,
 ) {
     if ev_player_damage.read().count() > 0 {
-        commands.entity(query.single()).insert(FadeColorMaterial {
+        commands.entity(query.single()).insert(InjuryEffect {
             timer: Timer::new(Duration::from_millis(200), TimerMode::Once),
-            ease: EasingCurve::new(0.25, 0.0, EaseFunction::CubicIn),
+            ease: EasingCurve::new(1.0, 0.0, EaseFunction::ElasticInOut),
         });
+    }
+}
+
+fn animate_mob_damage(
+    mut commands: Commands,
+    query: Query<Entity, With<Mob>>,
+    mut ev_mob_damage: EventReader<MobDamageEvent>,
+) {
+    for ev in ev_mob_damage.read() {
+        if let Ok(entity) = query.get(ev.entity) {
+            commands.entity(entity).insert(InjuryEffect {
+                timer: Timer::new(Duration::from_millis(200), TimerMode::Once),
+                ease: EasingCurve::new(1.0, 0.0, EaseFunction::ElasticInOut),
+            });
+        }
     }
 }
 
 fn animate_muzzle_flash(
     mut commands: Commands,
     mut query: Query<&mut MuzzleFlash>,
-    mut gun: Res<Inventory>,
+    gun: Res<Inventory>,
     mut ev_shoot_event: EventReader<ShootEvent>,
 ) {
     if ev_shoot_event.read().count() > 0 {
@@ -254,8 +270,9 @@ fn main() {
                 update_camera,
                 on_resize,
                 animate_player_damage,
+                animate_mob_damage,
                 animate_muzzle_flash,
-                handle_game_over,
+                //handle_game_over,
             )
                 .chain(),
         )
