@@ -439,7 +439,7 @@ fn update_shooting(
             ));
         }
         // shoot
-        if gun_state.ammo_loaded <= 0 && !settings.inf_ammo {
+        if gun_state.ammo_loaded == 0 && !settings.inf_ammo {
             return;
         }
         gun_state.ammo_loaded -= 1;
