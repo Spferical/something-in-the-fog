@@ -1,6 +1,9 @@
 use bevy::prelude::*;
 
-use crate::assets::GameAssets;
+use crate::{
+    assets::GameAssets,
+    mob::{HeardPlayer, Mob, MobKind, NoticedEvent},
+};
 
 #[derive(Component)]
 struct BaseTrack;
@@ -52,6 +55,57 @@ pub fn setup_background_music(mut commands: Commands, game_assets: Res<GameAsset
     ));
 }
 
+pub fn update_mob_audio(
+    mut commands: Commands,
+    mut ev_noticed: EventReader<NoticedEvent>,
+    query_active_track: Query<(Entity, Option<&FadeIn>, Option<&FadeOut>), With<ActiveTrack>>,
+    query_monk_track: Query<(Entity, Option<&FadeIn>, Option<&FadeOut>), With<MonkTrack>>,
+) {
+    let Ok((active_track, active_fading_in, active_fading_out)) = query_active_track.get_single()
+    else {
+        return;
+    };
+    let Ok((monk_track, monk_fading_in, monk_fading_out)) = query_monk_track.get_single() else {
+        return;
+    };
+
+    for ev in ev_noticed.read() {
+        match ev.kind {
+            MobKind::KoolAidMan => {
+                if ev.noticed && active_fading_in.is_none() {
+                    commands
+                        .entity(active_track)
+                        .insert(FadeIn)
+                        .remove::<FadeOut>();
+                }
+                if !ev.noticed && active_fading_out.is_none() {
+                    commands
+                        .entity(active_track)
+                        .insert(FadeOut)
+                        .remove::<FadeIn>();
+                }
+            }
+            MobKind::Sculpture => {
+                if ev.noticed && monk_fading_in.is_none() {
+                    commands
+                        .entity(monk_track)
+                        .insert(FadeIn)
+                        .remove::<FadeOut>();
+                    println!("Fading monk track in!");
+                }
+                if !ev.noticed && monk_fading_out.is_none() {
+                    commands
+                        .entity(monk_track)
+                        .insert(FadeOut)
+                        .remove::<FadeIn>();
+                    println!("Fading monk track out!");
+                }
+            }
+            _ => {}
+        };
+    }
+}
+
 fn fade_in(
     mut commands: Commands,
     mut audio_sink: Query<(&mut AudioSink, Entity), With<FadeIn>>,
@@ -84,6 +138,6 @@ pub struct SoundPlugin;
 impl Plugin for SoundPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(Startup, setup_background_music)
-            .add_systems(Update, (fade_in, fade_out));
+            .add_systems(Update, (fade_in, fade_out, update_mob_audio));
     }
 }

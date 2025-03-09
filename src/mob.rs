@@ -2,18 +2,18 @@ use std::time::Duration;
 
 use bevy::{prelude::*, time::Stopwatch};
 use line_drawing::WalkGrid;
-use rand::{Rng, seq::SliceRandom};
+use rand::{seq::SliceRandom, Rng};
 
 use crate::{
-    Player,
     animation::MoveAnimation,
     map::{
-        FlashlightMap, FovMap, LightsUp, Map, MapPos, PlayerVisibilityMap, SightBlockedMap, Tile,
-        WalkBlockedMap, Zones, path, update_flashlight_map, update_fov_map, update_lit,
-        update_visibility, update_walkability,
+        path, update_flashlight_map, update_fov_map, update_lit, update_visibility,
+        update_walkability, FlashlightMap, FovMap, LightsUp, Map, MapPos, PlayerVisibilityMap,
+        SightBlockedMap, Tile, WalkBlockedMap, Zones,
     },
     player::{PlayerDamageEvent, PlayerMoveEvent, ShootEvent},
     spawn::{Spawn, SpawnEvent},
+    Player,
 };
 
 const MAX_PATH: i32 = 100;
@@ -26,6 +26,12 @@ pub enum MobKind {
     Sculpture,
     Hider,
     KoolAidMan,
+}
+
+#[derive(Event)]
+pub struct NoticedEvent {
+    pub kind: MobKind,
+    pub noticed: bool,
 }
 
 impl MobKind {
@@ -151,15 +157,16 @@ impl SawPlayer {
 
 fn update_mobs_seeing_player(
     mut commands: Commands,
-    mobs: Query<(Entity, &MapPos, Option<&SawPlayer>), With<SeesPlayer>>,
+    mobs: Query<(Entity, &Mob, &MapPos, Option<&SawPlayer>), With<SeesPlayer>>,
     player_visibility_map: Res<PlayerVisibilityMap>,
     sight_blocked_map: Res<SightBlockedMap>,
     mut ev_player_move: EventReader<PlayerMoveEvent>,
+    mut ev_noticed: EventWriter<NoticedEvent>,
     player: Query<&MapPos, (With<Player>, Without<Mob>)>,
 ) {
     let player_pos = player.single();
     let last_player_move = ev_player_move.read().last();
-    for (entity, mob_pos, saw_player) in mobs.iter() {
+    for (entity, mob, mob_pos, saw_player) in mobs.iter() {
         let player_sees_mob = player_visibility_map.0.contains(&mob_pos.0);
         let player_is_hidden = sight_blocked_map.0.contains(&player_pos.0);
         if player_sees_mob && !player_is_hidden {
@@ -173,6 +180,11 @@ fn update_mobs_seeing_player(
                 if *last_seen_player_pos == source.0 && player_sees_mob {
                     // Mob saw player move into a hiding spot.
                     commands.entity(entity).insert(SawPlayer::new(dest.0));
+
+                    ev_noticed.send(NoticedEvent {
+                        kind: mob.kind,
+                        noticed: true,
+                    });
                 }
             }
         }
@@ -199,15 +211,20 @@ impl HeardPlayer {
 
 fn update_hearing_player(
     mut commands: Commands,
-    mobs: Query<Entity, With<HearsPlayer>>,
+    mobs: Query<(Entity, &Mob), With<HearsPlayer>>,
     mut ev_shoot: EventReader<ShootEvent>,
+    mut ev_noticed: EventWriter<NoticedEvent>,
     map: Res<Map>,
 ) {
     const HEARING_RADIUS: i32 = 20;
     for ShootEvent { start, .. } in ev_shoot.read() {
         let map_pos = MapPos::from_vec2(*start);
-        for entity in mobs.iter_many(map.get_nearby(map_pos.0, HEARING_RADIUS)) {
+        for (entity, mob) in mobs.iter_many(map.get_nearby(map_pos.0, HEARING_RADIUS)) {
             commands.entity(entity).insert(HeardPlayer::new(map_pos.0));
+            ev_noticed.send(NoticedEvent {
+                kind: mob.kind,
+                noticed: true,
+            });
         }
     }
 }
@@ -216,24 +233,39 @@ fn update_hearing_player(
 fn forget_player(
     mut commands: Commands,
     mut set: ParamSet<(
-        Query<(Entity, &MapPos, &mut HeardPlayer)>,
-        Query<(Entity, &MapPos, &mut SawPlayer)>,
+        Query<(Entity, &Mob, &MapPos, &mut HeardPlayer)>,
+        Query<(Entity, &Mob, &MapPos, &mut SawPlayer)>,
     )>,
+    mut ev_noticed: EventWriter<NoticedEvent>,
     time: Res<Time>,
 ) {
     const FORGET_DURATION: Duration = Duration::from_secs(30);
-    for (entity, pos, mut heard_player) in set.p0().iter_mut() {
+    for (entity, mob, pos, mut heard_player) in set.p0().iter_mut() {
         heard_player.time_since.tick(time.delta());
         if pos.0 == heard_player.pos || heard_player.time_since.elapsed() > FORGET_DURATION {
             // Mob is standing on last seen player position.
             commands.entity(entity).remove::<HeardPlayer>();
+            if matches!(mob.kind, MobKind::Sculpture) {
+                println!("forgot about player (hearing)!");
+            }
+            ev_noticed.send(NoticedEvent {
+                kind: mob.kind,
+                noticed: false,
+            });
         }
     }
-    for (entity, pos, mut saw_player) in set.p1().iter_mut() {
+    for (entity, mob, pos, mut saw_player) in set.p1().iter_mut() {
         saw_player.time_since.tick(time.delta());
         if pos.0 == saw_player.pos || saw_player.time_since.elapsed() > FORGET_DURATION {
             // Mob is standing on last seen player position.
             commands.entity(entity).remove::<SawPlayer>();
+            ev_noticed.send(NoticedEvent {
+                kind: mob.kind,
+                noticed: false,
+            });
+            if matches!(mob.kind, MobKind::Sculpture) {
+                println!("forgot about player (seeing)!");
+            }
         }
     }
 }
@@ -380,7 +412,7 @@ fn move_mobs(
                     } else if !(matches!(mob.kind, MobKind::Sculpture)
                         && fov_map.0.contains(&mob_pos.0))
                     {
-                        info!("{:?} damaging player", mob.kind);
+                        // info!("{:?} damaging player", mob.kind);
                         ev_player_damage.send(PlayerDamageEvent { damage: 1 });
                         mob.move_timer.reset();
                     }
@@ -459,6 +491,7 @@ impl Plugin for MobPlugin {
                 .after(update_lit),
         )
         .add_event::<MobDamageEvent>()
+        .add_event::<NoticedEvent>()
         .add_event::<BustThroughWallEvent>();
     }
 }
