@@ -9,14 +9,14 @@ use bevy::{
 use rand::Rng as _;
 
 use crate::{
+    GameState, PrimaryCamera, SDF_RES, Z_PLAYER,
     animation::{MoveAnimation, TextEvent},
     assets::{GameAssets, SpriteKind},
     despawn_after::DespawnAfter,
-    map::{BlocksMovement, Map, MapPos, Pickup, Tile, TILE_SIZE},
+    map::{BlocksMovement, Map, MapPos, Pickup, TILE_SIZE, Tile},
     mob::{Mob, MobDamageEvent},
     renderer::PlaneMouseMovedEvent,
     ui::UiSettings,
-    GameState, PrimaryCamera, SDF_RES, Z_PLAYER,
 };
 
 const PLAYER_MOVE_DELAY: Duration = Duration::from_millis(200);

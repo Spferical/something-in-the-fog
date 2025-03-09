@@ -81,7 +81,7 @@ impl GameAssets {
                 self.get_sprite_by_index(SpriteSheet::OryxAvatar, 1)
             }
             SpriteKind::Spawn(Spawn::Mob(MobKind::Sculpture)) => {
-                self.get_sprite_by_index(SpriteSheet::OryxMonsters, 20 * 3 * 10)
+                self.get_sprite_by_index(SpriteSheet::OryxTerrainObjects, 20 * 3)
             }
             SpriteKind::Spawn(Spawn::Mob(MobKind::Hider)) => {
                 self.get_sprite_by_index(SpriteSheet::OryxMonsters, 4 * 19 + 2)
