@@ -305,6 +305,7 @@ fn move_mobs(
                 MobKind::Hider => last_known_player_pos
                     .filter(|p| {
                         p.distance_squared(mob_pos.0) <= HIDER_CHASE_DISTANCE * HIDER_CHASE_DISTANCE
+                            || saw_player.is_some() && mob.damage > 0
                     })
                     .or_else(|| find_hiding_spot(mob_pos.0, &walk_blocked_map, &sight_blocked_map)),
                 _ => last_known_player_pos,
