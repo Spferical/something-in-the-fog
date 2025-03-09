@@ -178,22 +178,22 @@ fn update_mouse_coords(
 #[derive(Resource)]
 pub struct FlashlightInfo {
     pub cone_width_degrees: f32,
+    // 0 to 1
     pub ease: EasingCurve<f32>,
     pub ease_timer: Timer,
     pub focused: bool,
+    // 0 to 1
+    pub focus_factor: f32,
 }
 
 impl Default for FlashlightInfo {
     fn default() -> Self {
         Self {
             cone_width_degrees: 0.0,
-            ease: EasingCurve::new(
-                0.0,
-                FLASHLIGHT_CONE_WIDTH_UNFOCUSED_DEGREES,
-                EaseFunction::Linear,
-            ),
+            ease: EasingCurve::new(0.0, 0.0, EaseFunction::Linear),
             ease_timer: Timer::new(Duration::from_secs(1), TimerMode::Once),
             focused: false,
+            focus_factor: 0.0,
         }
     }
 }
@@ -208,21 +208,18 @@ fn update_flashlight(
     let mouse_pressed = mouse_button.pressed(MouseButton::Right);
     if flashlight_info.focused != mouse_pressed {
         flashlight_info.focused = mouse_pressed;
-        let target: f32 = if flashlight_info.focused {
-            FLASHLIGHT_CONE_WIDTH_FOCUSED_DEGREES
-        } else {
-            FLASHLIGHT_CONE_WIDTH_UNFOCUSED_DEGREES
-        };
-        flashlight_info.ease = EasingCurve::new(
-            flashlight_info.cone_width_degrees,
-            target,
-            EaseFunction::Linear,
-        );
+        let target: f32 = if flashlight_info.focused { 1.0 } else { 0.0 };
+        flashlight_info.ease =
+            EasingCurve::new(flashlight_info.focus_factor, target, EaseFunction::Linear);
         flashlight_info.ease_timer = Timer::new(FLASHLIGHT_EASE_DURATION, TimerMode::Once);
     }
-    flashlight_info.cone_width_degrees = flashlight_info
+    flashlight_info.focus_factor = flashlight_info
         .ease
         .sample_clamped(flashlight_info.ease_timer.fraction());
+    flashlight_info.cone_width_degrees = FLASHLIGHT_CONE_WIDTH_UNFOCUSED_DEGREES.lerp(
+        FLASHLIGHT_CONE_WIDTH_FOCUSED_DEGREES,
+        flashlight_info.focus_factor,
+    );
 }
 
 #[derive(Component)]
