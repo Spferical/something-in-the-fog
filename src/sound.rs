@@ -96,7 +96,7 @@ fn adjust_radio_static(
     };
 
     const HEARING_RADIUS: i32 = 10;
-    let mut closest_enemy_dist: f32 = 100.0;
+    let mut closest_enemy_dist: f32 = 150.0;
     for (_, pos, _) in heard_mobs
         .iter_many(map.get_nearby(player_pos.0, HEARING_RADIUS))
         .filter(|(_, _, mob)| matches!(mob.kind, MobKind::Zombie))
@@ -113,7 +113,7 @@ fn adjust_radio_static(
             closest_enemy_dist.min((player_pos.to_vec2() - pos.to_vec2()).length());
     }
 
-    let volume = (100.0 - closest_enemy_dist) / 100.0;
+    let volume = (150.0 - closest_enemy_dist) / 150.0;
     if volume <= 0.0 {
         commands
             .entity(radio_track)
@@ -122,7 +122,7 @@ fn adjust_radio_static(
     } else {
         commands
             .entity(radio_track)
-            .insert(FadeIn { max_volume: volume })
+            .insert(FadeIn { max_volume: 0.6 })
             .remove::<FadeOut>();
     }
 }
@@ -175,10 +175,10 @@ fn update_mob_audio(
     }
 }
 
-fn fade_in(mut audio_sink: Query<&mut AudioSink, With<FadeIn>>, time: Res<Time>) {
-    for audio in audio_sink.iter_mut() {
+fn fade_in(mut audio_sink: Query<(&mut AudioSink, &FadeIn)>, time: Res<Time>) {
+    for (audio, fade_in) in audio_sink.iter_mut() {
         audio.set_volume(audio.volume() + time.delta_secs() / FADE_IN_TIME);
-        if audio.volume() >= 1.0 {
+        if audio.volume() >= fade_in.max_volume {
             audio.set_volume(1.0);
         }
     }
