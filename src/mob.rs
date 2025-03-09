@@ -20,7 +20,7 @@ const MAX_PATH: i32 = 100;
 const HIDER_CHASE_DISTANCE: i32 = 5;
 const KOOL_AID_OVERSHOOT: usize = 4;
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum MobKind {
     Zombie,
     Sculpture,
@@ -246,7 +246,7 @@ fn forget_player(
             // Mob is standing on last seen player position.
             commands.entity(entity).remove::<HeardPlayer>();
             if matches!(mob.kind, MobKind::Sculpture) {
-                println!("forgot about player (hearing)!");
+                info!("forgot about player (hearing)!");
             }
             ev_noticed.send(NoticedEvent {
                 kind: mob.kind,
@@ -264,7 +264,7 @@ fn forget_player(
                 noticed: false,
             });
             if matches!(mob.kind, MobKind::Sculpture) {
-                println!("forgot about player (seeing)!");
+                info!("forgot about player (seeing)!");
             }
         }
     }

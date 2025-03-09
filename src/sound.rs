@@ -2,7 +2,7 @@ use bevy::prelude::*;
 
 use crate::{
     assets::GameAssets,
-    mob::{HeardPlayer, Mob, MobKind, NoticedEvent},
+    mob::{HeardPlayer, Mob, MobKind, NoticedEvent, SawPlayer},
 };
 
 #[derive(Component)]
@@ -57,7 +57,7 @@ pub fn setup_background_music(mut commands: Commands, game_assets: Res<GameAsset
 
 pub fn update_mob_audio(
     mut commands: Commands,
-    mut ev_noticed: EventReader<NoticedEvent>,
+    mut q_saw_player: Query<&Mob, Or<(With<SawPlayer>, With<HeardPlayer>)>>,
     query_active_track: Query<(Entity, Option<&FadeIn>, Option<&FadeOut>), With<ActiveTrack>>,
     query_monk_track: Query<(Entity, Option<&FadeIn>, Option<&FadeOut>), With<MonkTrack>>,
 ) {
@@ -69,40 +69,38 @@ pub fn update_mob_audio(
         return;
     };
 
-    for ev in ev_noticed.read() {
-        match ev.kind {
-            MobKind::KoolAidMan => {
-                if ev.noticed && active_fading_in.is_none() {
-                    commands
-                        .entity(active_track)
-                        .insert(FadeIn)
-                        .remove::<FadeOut>();
-                }
-                if !ev.noticed && active_fading_out.is_none() {
-                    commands
-                        .entity(active_track)
-                        .insert(FadeOut)
-                        .remove::<FadeIn>();
-                }
-            }
-            MobKind::Sculpture => {
-                if ev.noticed && monk_fading_in.is_none() {
-                    commands
-                        .entity(monk_track)
-                        .insert(FadeIn)
-                        .remove::<FadeOut>();
-                    println!("Fading monk track in!");
-                }
-                if !ev.noticed && monk_fading_out.is_none() {
-                    commands
-                        .entity(monk_track)
-                        .insert(FadeOut)
-                        .remove::<FadeIn>();
-                    println!("Fading monk track out!");
-                }
-            }
-            _ => {}
-        };
+    let should_play_active = q_saw_player
+        .iter()
+        .any(|mob| mob.kind == MobKind::KoolAidMan);
+    let should_play_monk = q_saw_player
+        .iter()
+        .any(|mob| mob.kind == MobKind::Sculpture);
+
+    if should_play_active && active_fading_in.is_none() {
+        commands
+            .entity(active_track)
+            .insert(FadeIn)
+            .remove::<FadeOut>();
+    }
+    if !should_play_active && active_fading_out.is_none() {
+        commands
+            .entity(active_track)
+            .insert(FadeOut)
+            .remove::<FadeIn>();
+    }
+    if should_play_monk && monk_fading_in.is_none() {
+        commands
+            .entity(monk_track)
+            .insert(FadeIn)
+            .remove::<FadeOut>();
+        println!("Fading monk track in!");
+    }
+    if !should_play_monk && monk_fading_out.is_none() {
+        commands
+            .entity(monk_track)
+            .insert(FadeOut)
+            .remove::<FadeIn>();
+        println!("Fading monk track out!");
     }
 }
 
