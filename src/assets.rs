@@ -17,6 +17,7 @@ pub struct Sfx {
     pub base_track: Handle<AudioSource>,
     pub active_track: Handle<AudioSource>,
     pub monk_track: Handle<AudioSource>,
+    pub radio_static_track: Handle<AudioSource>,
 
     pub reload_pistol: Vec<Handle<AudioSource>>,
     pub reload_shotgun: Vec<Handle<AudioSource>>,
@@ -180,6 +181,7 @@ fn init_assets(
     let base_track = asset_server.load::<AudioSource>("sfx/music/base_layer.ogg");
     let active_track = asset_server.load::<AudioSource>("sfx/music/active_layer.ogg");
     let monk_track = asset_server.load::<AudioSource>("sfx/music/scp_layer.ogg");
+    let radio_static_track = asset_server.load::<AudioSource>("sfx/music/radio_static.ogg");
 
     let empty_pistol = add_audio_sources(
         Path::new("sfx/gun_sounds/dry/pistol"),
@@ -319,6 +321,7 @@ fn init_assets(
             base_track,
             active_track,
             monk_track,
+            radio_static_track,
 
             reload_pistol,
             reload_shotgun,

@@ -2,7 +2,9 @@ use bevy::prelude::*;
 
 use crate::{
     assets::GameAssets,
+    map::{Map, MapPos},
     mob::{HeardPlayer, Mob, MobKind, SawPlayer},
+    player::Player,
 };
 
 #[derive(Component)]
@@ -15,13 +17,24 @@ struct ActiveTrack;
 struct MonkTrack;
 
 #[derive(Component)]
-struct FadeIn;
+struct RadioStaticTrack;
+
+#[derive(Component)]
+struct FadeIn {
+    max_volume: f32,
+}
 
 #[derive(Component)]
 struct FadeOut;
 
 const FADE_IN_TIME: f32 = 2.0;
 const FADE_OUT_TIME: f32 = 10.0;
+
+impl Default for FadeIn {
+    fn default() -> FadeIn {
+        FadeIn { max_volume: 1.0 }
+    }
+}
 
 pub fn setup_background_music(mut commands: Commands, game_assets: Res<GameAssets>) {
     commands.spawn((
@@ -32,7 +45,7 @@ pub fn setup_background_music(mut commands: Commands, game_assets: Res<GameAsset
             ..default()
         },
         BaseTrack,
-        FadeIn,
+        FadeIn::default(),
     ));
 
     commands.spawn((
@@ -54,6 +67,64 @@ pub fn setup_background_music(mut commands: Commands, game_assets: Res<GameAsset
         },
         MonkTrack,
     ));
+
+    commands.spawn((
+        AudioPlayer(game_assets.sfx.radio_static_track.clone()),
+        PlaybackSettings {
+            mode: bevy::audio::PlaybackMode::Loop,
+            volume: bevy::audio::Volume::new(0.0),
+            ..default()
+        },
+        RadioStaticTrack,
+    ));
+}
+
+fn adjust_radio_static(
+    mut commands: Commands,
+    player: Query<&MapPos, (With<Player>, Without<Mob>)>,
+    heard_mobs: Query<(Entity, &MapPos, &Mob), With<crate::mob::HearsPlayer>>,
+    seen_mobs: Query<(Entity, &MapPos, &Mob), With<crate::mob::SeesPlayer>>,
+    query_radio_track: Query<Entity, With<RadioStaticTrack>>,
+    map: Res<Map>,
+) {
+    let Ok(player_pos) = player.get_single() else {
+        return;
+    };
+
+    let Ok(radio_track) = query_radio_track.get_single() else {
+        return;
+    };
+
+    const HEARING_RADIUS: i32 = 10;
+    let mut closest_enemy_dist: f32 = 100.0;
+    for (_, pos, _) in heard_mobs
+        .iter_many(map.get_nearby(player_pos.0, HEARING_RADIUS))
+        .filter(|(_, _, mob)| matches!(mob.kind, MobKind::Zombie))
+    {
+        closest_enemy_dist =
+            closest_enemy_dist.min((player_pos.to_vec2() - pos.to_vec2()).length());
+    }
+
+    for (_, pos, _) in seen_mobs
+        .iter_many(map.get_nearby(player_pos.0, HEARING_RADIUS))
+        .filter(|(_, _, mob)| matches!(mob.kind, MobKind::Zombie))
+    {
+        closest_enemy_dist =
+            closest_enemy_dist.min((player_pos.to_vec2() - pos.to_vec2()).length());
+    }
+
+    let volume = (100.0 - closest_enemy_dist) / 100.0;
+    if volume <= 0.0 {
+        commands
+            .entity(radio_track)
+            .insert(FadeOut)
+            .remove::<FadeIn>();
+    } else {
+        commands
+            .entity(radio_track)
+            .insert(FadeIn { max_volume: volume })
+            .remove::<FadeOut>();
+    }
 }
 
 #[allow(clippy::type_complexity)]
@@ -81,7 +152,7 @@ fn update_mob_audio(
     if should_play_active && active_fading_in.is_none() {
         commands
             .entity(active_track)
-            .insert(FadeIn)
+            .insert(FadeIn::default())
             .remove::<FadeOut>();
     }
     if !should_play_active && active_fading_out.is_none() {
@@ -93,7 +164,7 @@ fn update_mob_audio(
     if should_play_monk && monk_fading_in.is_none() {
         commands
             .entity(monk_track)
-            .insert(FadeIn)
+            .insert(FadeIn::default())
             .remove::<FadeOut>();
     }
     if !should_play_monk && monk_fading_out.is_none() {
@@ -127,6 +198,9 @@ pub struct SoundPlugin;
 impl Plugin for SoundPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(Startup, setup_background_music)
-            .add_systems(Update, (fade_in, fade_out, update_mob_audio));
+            .add_systems(
+                Update,
+                (fade_in, fade_out, update_mob_audio, adjust_radio_static),
+            );
     }
 }
