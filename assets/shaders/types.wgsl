@@ -9,7 +9,8 @@ struct Light {
     intensity: f32,
     center: vec4f,
     direction: vec4f,
-    focus: f32
+    focus: f32,
+    attenuation: f32
 }
 
 struct LightBundle {

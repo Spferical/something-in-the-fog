@@ -16,7 +16,7 @@ use crate::{
     mob::{Mob, MobDamageEvent},
     renderer::PlaneMouseMovedEvent,
     ui::UiSettings,
-    GameState, PrimaryCamera, Z_PLAYER,
+    GameState, PrimaryCamera, SDF_RES, Z_PLAYER,
 };
 
 const PLAYER_MOVE_DELAY: Duration = Duration::from_millis(200);
@@ -148,22 +148,6 @@ fn swap_gun(mut inventory: ResMut<Inventory>, mut ev_scroll: EventReader<MouseWh
 #[derive(Resource)]
 pub struct MouseWorldCoords(pub Vec2);
 
-/*fn update_mouse_coords(
-    mut mouse_world_coords: ResMut<MouseWorldCoords>,
-    query_window: Query<&Window, With<bevy::window::PrimaryWindow>>,
-    query_camera: Query<(&Camera, &GlobalTransform), With<PrimaryCamera>>,
-) {
-    let (camera, camera_transform) = query_camera.single();
-    if let Ok(window) = query_window.get_single() {
-        if let Some(world_position) = window
-            .cursor_position()
-            .and_then(|cursor| camera.viewport_to_world_2d(camera_transform, cursor).ok())
-        {
-            mouse_world_coords.0 = world_position;
-        }
-    }
-}*/
-
 fn update_mouse_coords(
     mut mouse_world_coords: ResMut<MouseWorldCoords>,
     query_camera: Query<(&Camera, &GlobalTransform), With<PrimaryCamera>>,
@@ -171,7 +155,9 @@ fn update_mouse_coords(
 ) {
     for ev in mouse_reader.read() {
         let (camera, camera_transform) = query_camera.single();
-        if let Ok(world_pos) = camera.viewport_to_world_2d(camera_transform, ev.0) {
+        if let Ok(world_pos) =
+            camera.viewport_to_world_2d(camera_transform, (ev.0 + 0.5) * SDF_RES as f32)
+        {
             mouse_world_coords.0 = world_pos;
         }
     }

@@ -10,6 +10,7 @@ pub struct Light {
     pub center: Vec4,
     pub direction: Vec4,
     pub focus: f32,
+    pub attenuation: f32,
 }
 
 #[derive(Clone, Default, ShaderType)]

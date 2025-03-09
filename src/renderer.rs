@@ -4,7 +4,9 @@ use bevy::render::render_resource::Extent3d;
 use bevy::sprite::Material2dPlugin;
 
 use crate::edge::{on_resize_edge_texture, prepare_edge_texture, setup_edge_pass, EdgeMaterial};
-use crate::lighting::{get_mouse_location, setup_lighting_pass, LightingMaterial};
+use crate::lighting::{
+    get_mouse_location, setup_lighting_pass, update_lighting_pass, LightingMaterial,
+};
 use crate::sdf::{on_resize_sdf_texture, prepare_sdf_texture, setup_sdf_pass, SdfMaterial};
 
 #[derive(Component, Clone)]
@@ -62,7 +64,7 @@ impl Plugin for Renderer {
                 PostStartup,
                 (setup_sdf_pass, setup_edge_pass, setup_lighting_pass),
             )
-            .add_systems(Update, get_mouse_location);
+            .add_systems(Update, (get_mouse_location, update_lighting_pass));
         // .add_systems(Update, alter_fov);
         // .add_systems(Update, (on_resize_edge_texture, on_resize_sdf_texture))
         // .add_systems(Update, on_resize_occluder_texture);

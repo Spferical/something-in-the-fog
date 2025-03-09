@@ -1,5 +1,6 @@
 use bevy::color::palettes::tailwind::RED_500;
 use bevy::core_pipeline::tonemapping::{DebandDither, Tonemapping};
+use bevy::math::VectorSpace;
 use bevy::picking::pointer::PointerInteraction;
 use bevy::prelude::*;
 use bevy::render::render_graph::RenderLabel;
@@ -54,8 +55,48 @@ pub fn get_mouse_location(
         .filter_map(|interaction| interaction.get_nearest_hit())
         .filter_map(|(_entity, hit)| hit.position)
     {
-        let pt = (Vec2::new(point.x, point.z) + 0.5) * SDF_RES as f32;
+        let pt = Vec2::new(point.x, point.z);
         mouse_writer.send(PlaneMouseMovedEvent(pt));
+    }
+}
+
+pub fn update_lighting_pass(
+    query: Query<&MeshMaterial3d<LightingMaterial>, With<RenderPlane>>,
+    mut materials: ResMut<Assets<LightingMaterial>>,
+    mut mouse_reader: EventReader<PlaneMouseMovedEvent>,
+) {
+    let Ok(mat) = query.get_single() else {
+        return;
+    };
+
+    let mut mouse_position: Vec2 = Vec2::ZERO;
+    for ev in mouse_reader.read() {
+        mouse_position = ev.0 + 0.5;
+    }
+    let flashlight_center = Vec4::new(0.5, 0.5, 0.2, 0.0);
+    let delta = (Vec2::new(0.5, 0.5) - mouse_position).normalize();
+    let flashlight = Light {
+        color: Vec4::new(1.0, 1.0, 1.0, 1.0),
+        intensity: 1000.0,
+        center: flashlight_center,
+        direction: Vec4::new(delta.x, delta.y, 0.0, 0.0),
+        focus: 10.0,
+        attenuation: 1.0
+    };
+    let player_light_center = Vec4::new(0.5, 0.5, 0.15, 0.0);
+    let player_light = Light {
+        color: Vec4::new(1.0, 1.0, 1.0, 1.0),
+        intensity: 0.5,
+        center: player_light_center,
+        direction: Vec4::new(0.0, 0.0, 0.0, 0.0),
+        focus: 1.0,
+        attenuation: 5.0
+    };
+
+    if let Some(mat) = materials.get_mut(mat) {
+        mat.lights.lights[0] = flashlight;
+        mat.lights.lights[1] = player_light;
+        mat.num_lights = 2;
     }
 }
 
@@ -65,10 +106,10 @@ pub fn setup_lighting_pass(
     sdf_texture_query: Query<&SdfTexture>,
     occluder_texture_query: Query<&OccluderTextureCpu>,
     edge_texture_query: Query<&EdgeTexture>,
-    primary_camera_query: Query<&Transform, With<PrimaryCamera>>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<LightingMaterial>>,
     mut settings: ResMut<UiSettings>,
+    query_camera: Query<(&Camera, &GlobalTransform), With<PrimaryCamera>>,
     // mut standard_materials: ResMut<Assets<StandardMaterial>>,
 ) {
     let (width, height) = (
@@ -86,15 +127,24 @@ pub fn setup_lighting_pass(
     let Ok(edge_texture) = edge_texture_query.get_single() else {
         return;
     };
-    let Ok(primary_camera) = primary_camera_query.get_single() else {
-        return;
+
+    let flashlight_center = Vec4::new(0.5, 0.5, 0.2, 0.0);
+    let flashlight = Light {
+        color: Vec4::new(1.0, 1.0, 1.0, 1.0),
+        intensity: 10.0,
+        center: flashlight_center,
+        direction: Vec4::new(1.0, 0.0, 0.0, 0.0),
+        focus: 1.0,
+        attenuation: 1.0,
     };
+
+    let mut lights = [Light::default(); 8];
+    lights[0] = flashlight;
 
     let settings = LightingSettings {
         tile_size: TILE_SIZE as i32,
         toggle_2d: settings.toggle_2d as i32
     };
-    let lights = [Light::default(); 8];
 
     let plane = meshes.add(Plane3d::default().mesh().size(1.0, aspect_ratio));
     commands.spawn((
@@ -106,7 +156,7 @@ pub fn setup_lighting_pass(
             seed_texture: Some(sdf_texture.iters[0].clone()),
             lighting_settings: settings,
             lights: LightBundle { lights },
-            num_lights: 0,
+            num_lights: 1,
         })),
         RenderLayers::layer(LIGHTING_LAYER),
         RenderPlane,
@@ -119,6 +169,7 @@ pub fn setup_lighting_pass(
             ..default()
         },
         // Tonemapping::None,
+        Tonemapping::TonyMcMapface,
         DebandDither::Disabled,
         Msaa::Off,
         Camera {

@@ -142,18 +142,17 @@ fn sobel_gradient_estimate(p: vec3f) -> vec3f {
     return normalize(-vec3f(h_x, h_y, h_z));
 }
 
-fn apply_fog(col: vec3f,  // color of pixel
-             t: f32,    // distnace to point
-             ro: vec3f,   // camera position
-             rd: vec3f)  // camera to point vector
-    -> vec3f {
-        let a: f32 = 0.5;
-        let b: f32 = 0.05;
-        
-        var fogAmount = (a/b) * exp(-ro.y*b) * (1.0-exp(-t*rd.y*b))/rd.y;
-        var fogColor = vec3f(0.5, 0.6, 0.7);
-        return mix(col, fogColor, fogAmount);
-    }
+fn apply_fog(col: vec3f,
+             t: f32,
+             ro: vec3f,
+             rd: vec3f) -> vec3f {
+                 let a: f32 = 0.5;
+                 let b: f32 = 0.05;
+
+                 var fogAmount = (a/b) * exp(-ro.y*b) * (1.0-exp(-t*rd.y*b))/rd.y;
+                 var fogColor = vec3f(0.5, 0.6, 0.7);
+                 return mix(col, fogColor, fogAmount);
+             }
 
 fn fog_trace(
     color: vec3f,
@@ -167,7 +166,7 @@ fn fog_trace(
 
     var accum = color;
 
-    var fog_color = vec3f(0.5, 0.6, 0.7) * 1e-3;
+    var fog_color = vec3f(0.5, 0.6, 0.7) * 1e-4;
 
     var t = 0.0;
     let step_size = tmax / f32(trace_iters);
@@ -194,28 +193,34 @@ fn lighting_simple(
     let pi = radians(180.0);
     let shadow = visibility(pos, camera_origin, u32(8), 1e-6, 0.001);
     let l = normalize(light.center.xyz - pos);
-    let color = light.color.xyz * light.intensity / pi * max(dot(normal, l), 0.0) * shadow;
-
+    
     let t = length(pos - camera_origin);
     let rd = normalize(pos - camera_origin);
+
+    var intensity = light.intensity;
+    if (light.focus > 1.0) {
+        intensity = intensity * pow(
+            clamp(dot(l.xy, light.direction.xy), 0.0, 1.0),
+            light.focus
+        );
+    }
+    if (light.attenuation > 0.0) {
+        intensity = intensity * (
+            1 / pow(length(pos - light.center.xyz) * light.attenuation, 2.0)
+        );
+    }
+
+    let color = light.color.xyz * intensity / pi * max(dot(normal, l), 0.0) * shadow;
     return fog_trace(color, pos, light, camera_origin, u32(8));
     // return apply_fog(color, t, camera_origin, rd);
 }
 
 @fragment fn fragment(mesh: VertexOutput) -> @location(0) vec4<f32> {
-    let light = Light (
-        vec4(1.0, 1.0, 1.0, 1.0),
-        10.0,
-        vec4(0.5, 0.5, 0.2, 0.0),
-        normalize(vec4(1.0, 1.0, 1.0, 0.0)),
-        1.0
-    );
-    
     let screen_size = vec2f(textureDimensions(seed_texture));
     let uv = vec2f(mesh.uv.x, mesh.uv.y);
 
     if (settings.toggle_2d > 0) {
-        return vec4f(textureSample(screen_texture, seed_sampler, uv).xy / screen_size,
+        return vec4f(textureSample(screen_texture, seed_sampler, uv).xy,
                      0.0,
                      1.0);
     }
@@ -234,7 +239,13 @@ fn lighting_simple(
     let endpoints = ray_outputs.intersection;
     let normal_sample_pt = endpoints - rd * 1e-4;
     let normal = sobel_gradient_estimate(normal_sample_pt);
-    return vec4(lighting_simple(endpoints, light, ro_lighting, normal), 1.0);
+
+    var total_light = vec3(0.0);
+    for (var light_i = 0; light_i < num_lights; light_i++) {
+        let light = lights.lights[light_i];
+        total_light += lighting_simple(endpoints, light, ro_lighting, normal);
+    }
+    return vec4(total_light, 1.0);
 
     /*let seed = sample_2d_seed(uv);
       let inside_texture = textureSample(screen_texture, seed_sampler, uv).a > 0.5;
