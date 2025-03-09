@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use bevy::{prelude::*, sprite::AlphaMode2d};
+use bevy::prelude::*;
 
 use crate::{
     map::{ItemKind, TILE_HEIGHT, TILE_WIDTH, TileKind},
@@ -14,14 +14,11 @@ pub static PRESS_START_2P_BYTES: &[u8] =
 #[derive(Resource)]
 pub struct GameAssets {
     pub font: Handle<Font>,
-    pub square: Handle<Mesh>,
     pub pixel: Handle<Mesh>,
     pub white: Handle<ColorMaterial>,
     pub sight_line: Handle<ColorMaterial>,
     pub reload_indicator_mesh: Handle<Mesh>,
     pub reload_indicator_material: Handle<ColorMaterial>,
-    pub hurt_effect_material: Handle<ColorMaterial>,
-    pub fade_out_material: Handle<ColorMaterial>,
     pub sheets: HashMap<SpriteSheet, (Handle<Image>, Handle<TextureAtlasLayout>)>,
 }
 
@@ -212,10 +209,6 @@ fn init_assets(
     commands.insert_resource(GameAssets {
         font: fonts.add(Font::try_from_bytes(PRESS_START_2P_BYTES.into()).unwrap()),
         sheets,
-        square: meshes.add(Rectangle::new(
-            TILE_WIDTH.min(TILE_HEIGHT),
-            TILE_WIDTH.min(TILE_HEIGHT),
-        )),
         reload_indicator_mesh: meshes.add(CircularSector::from_degrees(
             TILE_WIDTH.min(TILE_HEIGHT),
             360.0,
@@ -228,8 +221,6 @@ fn init_assets(
         reload_indicator_material: materials.add(Color::Srgba(
             bevy::color::palettes::basic::WHITE.with_alpha(0.25),
         )),
-        hurt_effect_material: materials.add(Color::Srgba(Srgba::RED.with_alpha(0.0))),
-        fade_out_material: materials.add(Color::Srgba(Srgba::BLACK.with_alpha(0.0))),
     });
 }
 

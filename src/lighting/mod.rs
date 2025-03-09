@@ -5,7 +5,6 @@ use mat::{Light, LightBundle, LightingSettings};
 
 mod mat;
 
-use crate::PrimaryCamera;
 use crate::animation::{InjuryEffect, MuzzleFlash};
 use crate::edge::EdgeTexture;
 use crate::player::Player;
@@ -36,6 +35,7 @@ pub fn get_mouse_location(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn update_lighting_pass(
     mut commands: Commands,
     query: Query<&MeshMaterial3d<LightingMaterial>, With<RenderPlane>>,
@@ -113,8 +113,8 @@ pub fn update_lighting_pass(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn setup_lighting_pass(
-    window: Single<&Window>,
     mut commands: Commands,
     sdf_texture_query: Query<&SdfTexture>,
     occluder_texture_query: Query<&OccluderTexture>,
@@ -124,10 +124,6 @@ pub fn setup_lighting_pass(
     mut materials: ResMut<Assets<LightingMaterial>>,
     // mut standard_materials: ResMut<Assets<StandardMaterial>>,
 ) {
-    let (width, height) = (
-        (window.resolution.physical_width()) as f32,
-        (window.resolution.physical_height()) as f32,
-    );
     let aspect_ratio = 1.0;
 
     let Ok(sdf_texture) = sdf_texture_query.get_single() else {

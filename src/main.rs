@@ -1,7 +1,6 @@
 use std::time::Duration;
 
 use animation::{InjuryEffect, MuzzleFlash};
-use assets::GameAssets;
 use bevy::diagnostic::LogDiagnosticsPlugin;
 use bevy::input::mouse::{MouseScrollUnit, MouseWheel};
 use bevy::{
@@ -172,13 +171,7 @@ struct GameState {
     game_over: bool,
 }
 
-#[derive(Component)]
-struct FadeOut;
-
-#[derive(Component)]
-struct HurtEffect;
-
-fn setup(commands: Commands, assets: Res<GameAssets>, mut window: Query<&mut Window>) {
+fn setup(mut window: Query<&mut Window>) {
     window.single_mut().resizable = true;
 }
 

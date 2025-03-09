@@ -274,11 +274,10 @@ pub fn apply_visibility(
     settings: Res<UiSettings>,
 ) {
     for (map_pos, mut visibility) in query.iter_mut() {
-        *visibility = if settings.show_visibility && !player_vis_map.0.contains(&map_pos.0) {
-            Visibility::Hidden
-        } else if settings.show_flashlight && !flashlight_map.0.contains(&map_pos.0) {
-            Visibility::Hidden
-        } else if settings.show_fov && !fov_map.0.contains(&map_pos.0) {
+        *visibility = if settings.show_visibility && !player_vis_map.0.contains(&map_pos.0)
+            || settings.show_flashlight && !flashlight_map.0.contains(&map_pos.0)
+            || settings.show_fov && !fov_map.0.contains(&map_pos.0)
+        {
             Visibility::Hidden
         } else {
             Visibility::Inherited

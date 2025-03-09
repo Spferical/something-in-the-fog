@@ -18,7 +18,6 @@ const EDGE_ORDER_OFFSET: isize = 1;
 const EDGE_LAYER: usize = 2;
 
 pub fn setup_edge_pass(
-    window: Single<&Window>,
     mut commands: Commands,
     edge_texture_query: Query<&EdgeTexture>,
     occluder_texture_query: Query<&OccluderTexture>,

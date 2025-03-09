@@ -25,7 +25,6 @@ const SDF_ORDER_OFFSET: usize = 2;
 const SDF_START_LAYER: usize = 31;
 
 pub fn setup_sdf_pass(
-    window: Single<&Window>,
     mut commands: Commands,
     sdf_texture_query: Query<&SdfTexture>,
     occluder_texture_query: Query<&OccluderTexture>,
