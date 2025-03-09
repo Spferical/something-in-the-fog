@@ -8,7 +8,7 @@
     RayTraceOutputs, Light, LightBundle, LightingSettings
 }
 #import "shaders/fog.wgsl"::{
-    get_fog_density
+    get_fog_density, fbm
 }
 
 @group(2) @binding(0) var screen_texture: texture_2d<f32>;
@@ -191,6 +191,19 @@ fn narrow_beam(a: vec3f, b: vec3f, limit: f32) -> f32 {
     return max(-angle + limit, 0.0);
 }
 
+fn filtered_squares(p: vec2<f32>, dpdx_p: vec2<f32>, dpdy_p: vec2<f32>) -> f32 {
+    const N: f32 = 3.0;
+    let w = max(abs(dpdx_p), abs(dpdy_p));
+    let a = p + 0.5 * w;
+    let b = p - 0.5 * w;
+    let fract_a = fract(a) * N;
+    let fract_b = fract(b) * N;
+    let min_fract_a = min(fract_a, vec2<f32>(1.0, 1.0));
+    let min_fract_b = min(fract_b, vec2<f32>(1.0, 1.0));
+    let i = (floor(a) + min_fract_a - floor(b) - min_fract_b) / (N * w);
+    return 1.0 - i.x * i.y;
+}
+
 fn lighting_simple(
     pos: vec3f,
     light: Light,
@@ -216,7 +229,18 @@ fn lighting_simple(
     }
 
     let color = light.color.xyz * intensity / pi * max(dot(normal, l), 0.0) * shadow;
-    return fog_trace(color, pos, light, camera_origin, u32(8));
+    var ground_p = (pos.xy + settings.world_origin.xy);
+    ground_p *= 200.0;
+    let ground_color = color * select(
+        1.0,
+        filtered_squares(
+            ground_p.xy,
+            dpdx(ground_p.xy),
+            dpdy(ground_p.xy)
+        ),
+        pos.z < 0.05
+    );
+    return fog_trace(ground_color, pos, light, camera_origin, u32(8));
     // return apply_fog(color, t, camera_origin, rd);
 }
 

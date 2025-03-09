@@ -22,8 +22,9 @@ struct LightBundle {
 struct LightingSettings {
     toggle_2d: i32,
     num_lights: i32,
+    world_origin: vec3f,
     
-    _padding: vec2f
+    _padding: vec3f
 }
 
 struct SdfSettings {

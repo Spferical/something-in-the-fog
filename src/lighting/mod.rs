@@ -11,6 +11,7 @@ use crate::player::{FlashlightInfo, Player};
 use crate::renderer::{NonOccluderTexture, OccluderTexture, PlaneMouseMovedEvent};
 use crate::sdf::SdfTexture;
 use crate::ui::UiSettings;
+use crate::PrimaryCamera;
 use bevy::render::view::RenderLayers;
 pub use mat::LightingMaterial;
 
@@ -43,6 +44,7 @@ pub fn update_lighting_pass(
     mut mouse_reader: EventReader<PlaneMouseMovedEvent>,
     mut muzzle_flash: Query<(Entity, &mut MuzzleFlash)>,
     mut player_injury: Query<&mut WobbleEffects, With<Player>>,
+    primary_camera_query: Query<&Transform, With<PrimaryCamera>>,
     settings: ResMut<UiSettings>,
     flashlight_info: Res<FlashlightInfo>,
     time: Res<Time>,
@@ -50,6 +52,11 @@ pub fn update_lighting_pass(
     let Ok(mat) = query.get_single() else {
         return;
     };
+
+    let Ok(camera_2d_transform) = primary_camera_query.get_single() else {
+        return;
+    };
+    let world_origin = (camera_2d_transform.translation) / crate::SDF_RES as f32;
 
     let mut mouse_position: Vec2 = Vec2::ZERO;
     for ev in mouse_reader.read() {
@@ -99,8 +106,10 @@ pub fn update_lighting_pass(
     if let Some(mat) = materials.get_mut(mat) {
         mat.lights.lights[0] = flashlight;
         mat.lights.lights[1] = player_light;
+
         mat.lighting_settings.num_lights = 2;
         mat.lighting_settings.toggle_2d = settings.toggle_2d as i32;
+        mat.lighting_settings.world_origin = world_origin;
 
         if let Ok((entity, mut flash)) = muzzle_flash.get_single_mut() {
             flash.timer.tick(time.delta());

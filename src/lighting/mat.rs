@@ -23,7 +23,8 @@ pub struct LightBundle {
 pub struct LightingSettings {
     pub toggle_2d: i32,
     pub num_lights: i32,
-    pub _padding: Vec2,
+    pub world_origin: Vec3,
+    pub _padding: Vec3,
 }
 
 #[derive(AsBindGroup, Clone, Default, Asset, TypePath)]
