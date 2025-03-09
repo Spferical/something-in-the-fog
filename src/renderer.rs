@@ -10,7 +10,10 @@ use crate::lighting::{
 use crate::sdf::{SdfMaterial, on_resize_sdf_texture, prepare_sdf_texture, setup_sdf_pass};
 
 #[derive(Component, Clone)]
-pub struct OccluderTextureCpu(pub Handle<Image>);
+pub struct OccluderTexture(pub Handle<Image>);
+
+#[derive(Component, Clone)]
+pub struct NonOccluderTexture(pub Handle<Image>);
 
 pub struct Renderer;
 
@@ -32,7 +35,7 @@ pub struct Renderer;
 
 fn on_resize_occluder_texture(
     mut resize_reader: EventReader<bevy::window::WindowResized>,
-    mut occluder_texture_query: Query<&mut OccluderTextureCpu>,
+    mut occluder_texture_query: Query<&mut OccluderTexture>,
     mut images: ResMut<Assets<Image>>,
 ) {
     let Ok(mut occluder_texture) = occluder_texture_query.get_single_mut() else {

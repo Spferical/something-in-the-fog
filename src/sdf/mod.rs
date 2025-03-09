@@ -6,9 +6,9 @@ use mat::SdfSettings;
 mod mat;
 mod prepare;
 
-use crate::SDF_RES;
 use crate::edge::EdgeTexture;
-use crate::renderer::OccluderTextureCpu;
+use crate::renderer::OccluderTexture;
+use crate::SDF_RES;
 use bevy::render::view::RenderLayers;
 pub use mat::SdfMaterial;
 pub use prepare::{on_resize_sdf_texture, prepare_sdf_texture};
@@ -28,7 +28,7 @@ pub fn setup_sdf_pass(
     window: Single<&Window>,
     mut commands: Commands,
     sdf_texture_query: Query<&SdfTexture>,
-    occluder_texture_query: Query<&OccluderTextureCpu>,
+    occluder_texture_query: Query<&OccluderTexture>,
     edge_texture_query: Query<&EdgeTexture>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<SdfMaterial>>,

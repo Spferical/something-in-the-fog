@@ -7,7 +7,7 @@ mod mat;
 mod prepare;
 
 use crate::SDF_RES;
-use crate::renderer::OccluderTextureCpu;
+use crate::renderer::OccluderTexture;
 pub use mat::EdgeMaterial;
 pub use prepare::{on_resize_edge_texture, prepare_edge_texture};
 
@@ -21,7 +21,7 @@ pub fn setup_edge_pass(
     window: Single<&Window>,
     mut commands: Commands,
     edge_texture_query: Query<&EdgeTexture>,
-    occluder_texture_query: Query<&OccluderTextureCpu>,
+    occluder_texture_query: Query<&OccluderTexture>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<EdgeMaterial>>,
 ) {

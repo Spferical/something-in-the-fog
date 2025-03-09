@@ -9,14 +9,15 @@ use bevy::{
 use rand::Rng as _;
 
 use crate::{
-    GameState, PrimaryCamera, SDF_RES, Z_PLAYER,
     animation::{MoveAnimation, TextEvent},
     assets::{GameAssets, SpriteKind},
     despawn_after::DespawnAfter,
-    map::{BlocksMovement, Map, MapPos, Pickup, TILE_HEIGHT, TILE_WIDTH, Tile},
+    lighting::UI_LAYER,
+    map::{BlocksMovement, Map, MapPos, Pickup, Tile, TILE_HEIGHT, TILE_WIDTH},
     mob::{Mob, MobDamageEvent},
     renderer::PlaneMouseMovedEvent,
     ui::UiSettings,
+    GameState, PrimaryCamera, SDF_RES, Z_PLAYER,
 };
 
 const PLAYER_MOVE_DELAY: Duration = Duration::from_millis(200);
@@ -105,9 +106,9 @@ impl GunType {
                 num_projectiles: 1,
                 max_load: 15,
                 loads_one_at_a_time: false,
-                muzzle_flash_max_intensity: 10000.0,
+                muzzle_flash_max_intensity: 20000.0,
                 muzzle_flash_attenuation: 3.0,
-                muzzle_flash_focus: 4.0,
+                muzzle_flash_focus: 5.0,
                 reload_time: Duration::from_secs(2),
             },
             GunType::Shotgun => GunInfo {
@@ -116,9 +117,9 @@ impl GunType {
                 num_projectiles: 10,
                 max_load: 2,
                 loads_one_at_a_time: true,
-                muzzle_flash_max_intensity: 10000.0,
+                muzzle_flash_max_intensity: 20000.0,
                 muzzle_flash_attenuation: 2.0,
-                muzzle_flash_focus: 2.0,
+                muzzle_flash_focus: 3.0,
                 reload_time: Duration::from_millis(500),
             },
         }
@@ -234,7 +235,7 @@ fn make_sight_lines(mut commands: Commands, assets: Res<GameAssets>) {
     let bundle = (
         Mesh2d(assets.pixel.clone()),
         MeshMaterial2d(assets.sight_line.clone()),
-        RenderLayers::layer(1),
+        RenderLayers::layer(UI_LAYER),
         Transform::IDENTITY,
     );
     commands.spawn(bundle.clone()).insert(LeftSightLine);
@@ -269,7 +270,7 @@ fn update_sight_lines(
     };
     let alpha = ((shoot_state.focus - 0.2) / 2.0).clamp(0.0, 0.4);
     materials.get_mut(assets.sight_line.id()).unwrap().color =
-        Color::Srgba(bevy::color::palettes::basic::YELLOW.with_alpha(alpha));
+        Color::Srgba(bevy::color::palettes::basic::WHITE.with_alpha(alpha));
     set_sight_line_transform(&mut set.p0().single_mut(), left_dir);
     set_sight_line_transform(&mut set.p1().single_mut(), right_dir);
 }
@@ -287,7 +288,7 @@ fn make_reload_indicator(
             ReloadIndicator,
             Mesh2d(assets.reload_indicator_mesh.clone()),
             MeshMaterial2d(assets.reload_indicator_material.clone()),
-            RenderLayers::layer(1),
+            RenderLayers::layer(UI_LAYER),
             Transform::IDENTITY.with_translation(Vec3::ZERO.with_z(3.0)),
         ))
         .set_parent(player.single());

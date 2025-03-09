@@ -9,7 +9,7 @@ use crate::PrimaryCamera;
 use crate::animation::{InjuryEffect, MuzzleFlash};
 use crate::edge::EdgeTexture;
 use crate::player::Player;
-use crate::renderer::{OccluderTextureCpu, PlaneMouseMovedEvent};
+use crate::renderer::{NonOccluderTexture, OccluderTexture, PlaneMouseMovedEvent};
 use crate::sdf::SdfTexture;
 use crate::ui::UiSettings;
 use bevy::render::view::RenderLayers;
@@ -17,6 +17,7 @@ pub use mat::LightingMaterial;
 
 const LIGHTING_ORDER_OFFSET: isize = 20;
 const LIGHTING_LAYER: usize = 4;
+pub const UI_LAYER: usize = 4;
 
 #[derive(Component)]
 pub struct RenderPlane;
@@ -116,11 +117,11 @@ pub fn setup_lighting_pass(
     window: Single<&Window>,
     mut commands: Commands,
     sdf_texture_query: Query<&SdfTexture>,
-    occluder_texture_query: Query<&OccluderTextureCpu>,
+    occluder_texture_query: Query<&OccluderTexture>,
     edge_texture_query: Query<&EdgeTexture>,
+    ui_texture_query: Query<&NonOccluderTexture>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<LightingMaterial>>,
-    query_camera: Query<(&Camera, &GlobalTransform), With<PrimaryCamera>>,
     // mut standard_materials: ResMut<Assets<StandardMaterial>>,
 ) {
     let (width, height) = (
@@ -136,6 +137,9 @@ pub fn setup_lighting_pass(
         return;
     };
     let Ok(edge_texture) = edge_texture_query.get_single() else {
+        return;
+    };
+    let Ok(ui_texture) = ui_texture_query.get_single() else {
         return;
     };
 
@@ -167,6 +171,7 @@ pub fn setup_lighting_pass(
             screen_texture: Some(occluder_texture.0.clone()),
             edge_texture: Some(edge_texture.0.clone()),
             seed_texture: Some(sdf_texture.iters[0].clone()),
+            ui_texture: Some(ui_texture.0.clone()),
             lighting_settings: settings,
             lights: LightBundle { lights },
         })),

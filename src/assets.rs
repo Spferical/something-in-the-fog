@@ -223,12 +223,12 @@ fn init_assets(
         pixel: meshes.add(Rectangle::new(1.0, 1.0)),
         white: materials.add(Color::LinearRgba(LinearRgba::WHITE)),
         sight_line: materials.add(ColorMaterial {
-            color: Color::Srgba(bevy::color::palettes::basic::YELLOW.with_alpha(0.5)),
+            color: Color::Srgba(bevy::color::palettes::basic::WHITE.with_alpha(0.5)),
             alpha_mode: AlphaMode2d::Opaque,
             ..default()
         }),
         reload_indicator_material: materials.add(Color::Srgba(
-            bevy::color::palettes::basic::YELLOW.with_alpha(0.25),
+            bevy::color::palettes::basic::WHITE.with_alpha(0.25),
         )),
         hurt_effect_material: materials.add(Color::Srgba(Srgba::RED.with_alpha(0.0))),
         fade_out_material: materials.add(Color::Srgba(Srgba::BLACK.with_alpha(0.0))),

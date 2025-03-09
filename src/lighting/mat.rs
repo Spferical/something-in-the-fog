@@ -31,13 +31,15 @@ pub struct LightingMaterial {
     #[texture(0)]
     pub screen_texture: Option<Handle<Image>>,
     #[texture(1)]
-    pub edge_texture: Option<Handle<Image>>,
+    pub ui_texture: Option<Handle<Image>>,
     #[texture(2)]
-    #[sampler(3)]
+    pub edge_texture: Option<Handle<Image>>,
+    #[texture(3)]
+    #[sampler(4)]
     pub seed_texture: Option<Handle<Image>>,
-    #[uniform(4)]
-    pub lighting_settings: LightingSettings,
     #[uniform(5)]
+    pub lighting_settings: LightingSettings,
+    #[uniform(6)]
     pub lights: LightBundle,
 }
 

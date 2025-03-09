@@ -12,11 +12,12 @@
 }
 
 @group(2) @binding(0) var screen_texture: texture_2d<f32>;
-@group(2) @binding(1) var edge_texture: texture_2d<f32>;
-@group(2) @binding(2) var seed_texture: texture_2d<f32>;
-@group(2) @binding(3) var seed_sampler: sampler;
-@group(2) @binding(4) var<uniform> settings: LightingSettings;
-@group(2) @binding(5) var<uniform> lights: LightBundle;
+@group(2) @binding(1) var ui_texture: texture_2d<f32>;
+@group(2) @binding(2) var edge_texture: texture_2d<f32>;
+@group(2) @binding(3) var seed_texture: texture_2d<f32>;
+@group(2) @binding(4) var seed_sampler: sampler;
+@group(2) @binding(5) var<uniform> settings: LightingSettings;
+@group(2) @binding(6) var<uniform> lights: LightBundle;
 
 fn sample_2d_seed(uv: vec2f) -> vec2f {
     let screen_size = vec2f(textureDimensions(seed_texture));
@@ -221,9 +222,7 @@ fn lighting_simple(
     let uv = vec2f(mesh.uv.x, mesh.uv.y);
 
     if (settings.toggle_2d > 0) {
-        return vec4f(textureSample(screen_texture, seed_sampler, uv).xy,
-                     0.0,
-                     1.0);
+        return textureSample(screen_texture, seed_sampler, uv.xy);
     }
 
     let inside_texture = textureSample(screen_texture, seed_sampler, uv.xy).a > 0.5;
@@ -249,23 +248,11 @@ fn lighting_simple(
         }
         total_light += lighting_simple(endpoints, light, ro_lighting, normal);
     }
-    return vec4(total_light, 1.0);
-
-    /*let seed = sample_2d_seed(uv);
-      let inside_texture = textureSample(screen_texture, seed_sampler, uv).a > 0.5;
-      let sdf = length(uv.xy - seed.xy); // * select(1., -1., inside_texture);
-      return vec4(sdf, 0.0, 0.0, 1.0);*/
-
-    // let sdf_val = sdf_2d(vec3f(uv, 0.5));
-    // return vec4(sdf_val);
-    // return vec4(textureSample(edge_texture, seed_sampler, uv / screen_size));
-
-    // let ray_outputs = trace_ray(ro, rd, u32(256), 0.01, 1000.0, 1e-4);
-    // return vec4f(vec3f(ray_outputs.intersection), 1.0);
-
-    // let lighting = visibility(endpoints, ro, u32(32), 1e-6, 0.05);
-    // let albedo = textureSample(screen_texture, seed_sampler, uv);
-    //return vec4f(lighting, lighting, lighting, 1.0);
-    
-    // return vec4f(textureSample(seed_texture, seed_sampler, uv).xy / screen_size, 0.0, 1.0);
+    let ui_elem = textureSample(
+        ui_texture,
+        seed_sampler,
+        endpoints.xy
+    );
+    let color = mix(ui_elem.xyz, total_light, 1 - ui_elem.a);
+    return vec4(color, 1.0);
 }

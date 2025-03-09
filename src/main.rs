@@ -49,14 +49,10 @@ fn on_resize(mut resize_reader: EventReader<bevy::window::WindowResized>) {
 #[derive(Component)]
 struct PrimaryCamera;
 
-fn create_camera(
-    mut window: Single<&mut Window>,
-    mut commands: Commands,
-    // camera_query: Query<(Entity, &Camera), With<PrimaryCamera>>,
-    mut resize_reader: EventReader<bevy::window::WindowResized>,
-    mut images: ResMut<Assets<Image>>,
-) {
-    window.resizable = true;
+#[derive(Component)]
+struct CameraFollow;
+
+fn create_texture() -> Image {
     let mut image = Image::new_fill(
         Extent3d {
             // width: window.resolution.physical_width(), // does this work?
@@ -72,8 +68,20 @@ fn create_camera(
     );
     image.texture_descriptor.usage =
         TextureUsages::TEXTURE_BINDING | TextureUsages::COPY_DST | TextureUsages::RENDER_ATTACHMENT;
+    image
+}
 
-    let image_handle = images.add(image);
+fn create_camera(
+    mut window: Single<&mut Window>,
+    mut commands: Commands,
+    // camera_query: Query<(Entity, &Camera), With<PrimaryCamera>>,
+    mut resize_reader: EventReader<bevy::window::WindowResized>,
+    mut images: ResMut<Assets<Image>>,
+) {
+    window.resizable = true;
+
+    let image_handle = images.add(create_texture());
+    let image_handle_ui = images.add(create_texture());
 
     let camera = Camera {
         target: image_handle.clone().into(),
@@ -82,15 +90,38 @@ fn create_camera(
         order: 0,
         ..default()
     };
+    let camera_ui = Camera {
+        target: image_handle_ui.clone().into(),
+        clear_color: ClearColorConfig::Custom(Color::linear_rgba(0.0, 0.0, 0.0, 0.0)),
+        hdr: true,
+        order: 0,
+        ..default()
+    };
 
-    let texture_cpu = renderer::OccluderTextureCpu(image_handle);
-    commands.spawn(texture_cpu.clone());
+    let texture_cpu_occluder = renderer::OccluderTexture(image_handle);
+    commands.spawn(texture_cpu_occluder.clone());
+
+    let texture_cpu_nonoccluder = renderer::NonOccluderTexture(image_handle_ui);
+    commands.spawn(texture_cpu_nonoccluder.clone());
 
     commands.spawn((
         Camera2d,
         camera,
         RenderLayers::layer(1),
         PrimaryCamera,
+        CameraFollow,
+        Transform::from_translation(Vec3::new(0.0, 0.0, 3.0)),
+        OrthographicProjection {
+            scale: 1.0,
+            ..OrthographicProjection::default_2d()
+        },
+    ));
+
+    commands.spawn((
+        Camera2d,
+        CameraFollow,
+        camera_ui,
+        RenderLayers::layer(crate::lighting::UI_LAYER),
         Transform::from_translation(Vec3::new(0.0, 0.0, 3.0)),
         OrthographicProjection {
             scale: 1.0,
@@ -104,8 +135,8 @@ fn create_camera(
 }
 
 fn update_camera(
-    mut camera: Query<&mut Transform, (With<PrimaryCamera>, Without<Player>)>,
-    player: Query<&Transform, (With<Player>, Without<PrimaryCamera>)>,
+    mut camera: Query<&mut Transform, (With<CameraFollow>, Without<Player>)>,
+    player: Query<&Transform, (With<Player>, Without<CameraFollow>)>,
     time: Res<Time>,
     mut ev_scroll: EventReader<MouseWheel>,
     ui_settings: Res<UiSettings>,
@@ -113,23 +144,25 @@ fn update_camera(
     let Ok(player) = player.get_single() else {
         return;
     };
-    let Ok(mut camera) = camera.get_single_mut() else {
-        return;
-    };
-    let Vec3 { x, y, .. } = player.translation;
-    let direction = Vec3::new(x, y, camera.translation.z);
+    // let Ok(mut camera) = camera.get_single_mut() else {
+    //    return;
+    //};
+    for mut camera in camera.iter_mut() {
+        let Vec3 { x, y, .. } = player.translation;
+        let direction = Vec3::new(x, y, camera.translation.z);
 
-    camera
-        .translation
-        .smooth_nudge(&direction, CAMERA_DECAY_RATE, time.delta_secs());
+        camera
+            .translation
+            .smooth_nudge(&direction, CAMERA_DECAY_RATE, time.delta_secs());
 
-    for event in ev_scroll.read() {
-        if ui_settings.debug_scroll {
-            let factor = match event.unit {
-                MouseScrollUnit::Line => 0.2,
-                MouseScrollUnit::Pixel => 0.01,
-            };
-            camera.scale -= event.y * factor;
+        for event in ev_scroll.read() {
+            if ui_settings.debug_scroll {
+                let factor = match event.unit {
+                    MouseScrollUnit::Line => 0.2,
+                    MouseScrollUnit::Pixel => 0.01,
+                };
+                camera.scale -= event.y * factor;
+            }
         }
     }
 }

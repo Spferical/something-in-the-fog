@@ -3,11 +3,8 @@ use std::time::Duration;
 use bevy::{prelude::*, render::view::RenderLayers};
 
 use crate::{
-    Z_TEXT,
-    assets::GameAssets,
-    despawn_after::DespawnAfter,
-    map::TILE_HEIGHT,
-    player::GunInfo,
+    assets::GameAssets, despawn_after::DespawnAfter, lighting::UI_LAYER, map::TILE_HEIGHT,
+    player::GunInfo, Z_TEXT,
 };
 
 #[derive(Component)]
@@ -60,7 +57,7 @@ fn spawn_text(
             TextFont::from_font(assets.font.clone()),
             TextFade(timer.clone()),
             DespawnAfter(timer.clone()),
-            RenderLayers::layer(1),
+            RenderLayers::layer(UI_LAYER),
             MoveAnimation {
                 from: *position,
                 to: position + Vec2::new(0.0, TILE_HEIGHT),
