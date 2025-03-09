@@ -420,7 +420,7 @@ pub fn gen_map() -> MapgenResult {
         forest_rect,
         vec![
             (20, Spawn::Mob(MobKind::Zombie)),
-            (6, Spawn::Item(ItemKind::Ammo(GunType::Pistol, 15))),
+            (20, Spawn::Item(ItemKind::Ammo(GunType::Pistol, 15))),
         ],
     );
 

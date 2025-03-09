@@ -5,6 +5,7 @@ use bevy::prelude::*;
 use crate::{
     map::{ItemKind, TILE_HEIGHT, TILE_WIDTH, TileKind},
     mob::MobKind,
+    player::GunType,
     spawn::Spawn,
 };
 
@@ -104,11 +105,17 @@ impl GameAssets {
             SpriteKind::Spawn(Spawn::Mob(MobKind::KoolAidMan)) => {
                 self.get_sprite_by_index(SpriteSheet::OryxMonsters, 14 * 19 + 15)
             }
-            SpriteKind::Spawn(Spawn::Item(ItemKind::Ammo(..))) => {
+            SpriteKind::Spawn(Spawn::Item(ItemKind::Ammo(GunType::Pistol, ..))) => {
+                self.get_sprite_by_index(SpriteSheet::Urizen, 103 * 22 + 68)
+            }
+            SpriteKind::Spawn(Spawn::Item(ItemKind::Ammo(GunType::Shotgun, ..))) => {
+                self.get_sprite_by_index(SpriteSheet::Urizen, 103 * 22 + 71)
+            }
+            SpriteKind::Spawn(Spawn::Item(ItemKind::Gun(GunType::Pistol, ..))) => {
                 self.get_sprite_by_index(SpriteSheet::Urizen, 103 * 22 + 52)
             }
-            SpriteKind::Spawn(Spawn::Item(ItemKind::Gun(..))) => {
-                self.get_sprite_by_index(SpriteSheet::Urizen, 103 * 22 + 52)
+            SpriteKind::Spawn(Spawn::Item(ItemKind::Gun(GunType::Shotgun, ..))) => {
+                self.get_sprite_by_index(SpriteSheet::Urizen, 103 * 22 + 57)
             }
         };
         sprite.color = match kind {
