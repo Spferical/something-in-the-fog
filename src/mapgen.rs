@@ -531,6 +531,7 @@ pub fn gen_map() -> MapgenResult {
             (100, Spawn::Tile(TileKind::Bush)),
             (20, Spawn::Mob(MobKind::Hider)),
             (20, Spawn::Mob(MobKind::Ghost)),
+            (1, Spawn::Mob(MobKind::Sculpture)),
             (6, Spawn::Item(ItemKind::Ammo(GunType::Pistol, 15))),
             (6, Spawn::Item(ItemKind::Ammo(GunType::Shotgun, 15))),
         ],

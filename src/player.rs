@@ -10,15 +10,15 @@ use bevy::{
 use rand::Rng as _;
 
 use crate::{
+    GameState, PrimaryCamera, SDF_RES, Z_PLAYER,
     animation::{MoveAnimation, TextEvent, WobbleEffects},
     assets::{GameAssets, SpriteKind},
     despawn_after::DespawnAfter,
     lighting::UI_LAYER,
-    map::{BlocksMovement, Map, MapPos, Pickup, Tile, TILE_HEIGHT, TILE_WIDTH},
+    map::{BlocksMovement, Map, MapPos, Pickup, TILE_HEIGHT, TILE_WIDTH, Tile},
     mob::{Mob, MobDamageEvent},
     renderer::PlaneMouseMovedEvent,
     ui::UiSettings,
-    GameState, PrimaryCamera, SDF_RES, Z_PLAYER,
 };
 
 const PLAYER_MOVE_DELAY: Duration = Duration::from_millis(200);
@@ -47,15 +47,24 @@ pub struct PlayerDamageEvent {
     pub damage: i32,
 }
 
+#[derive(Resource)]
+pub struct PlayerDamageState {
+    timer: Timer,
+}
+
 fn damage_player(
     mut player: Query<&mut Player>,
     mut ev_player_damage: EventReader<PlayerDamageEvent>,
     mut game_state: ResMut<GameState>,
+    mut state: ResMut<PlayerDamageState>,
     settings: Res<UiSettings>,
+    time: Res<Time>,
 ) {
     let mut player = player.single_mut();
+    state.timer.tick(time.delta());
     for PlayerDamageEvent { damage } in ev_player_damage.read() {
-        if !settings.nohurt {
+        if !settings.nohurt && state.timer.finished() {
+            state.timer.reset();
             player.damage += damage;
             if player.is_dead() {
                 game_state.game_over = true;
@@ -407,9 +416,7 @@ fn update_shooting(
         }
     }
 
-    if shoot_state.reloading.is_none()
-        && mouse_button.just_pressed(MouseButton::Left)
-    {
+    if shoot_state.reloading.is_none() && mouse_button.just_pressed(MouseButton::Left) {
         let sound = if gun_state.ammo_loaded > 0 {
             match equipped {
                 GunType::Pistol => &assets.sfx.fire_pistol,
@@ -706,6 +713,9 @@ fn startup(mut commands: Commands, assets: Res<GameAssets>) {
     commands.insert_resource(Inventory {
         equipped: GunType::Pistol,
         guns,
+    });
+    commands.insert_resource(PlayerDamageState {
+        timer: Timer::new(Duration::from_secs(1), TimerMode::Once),
     });
 }
 
