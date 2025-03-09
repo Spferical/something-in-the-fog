@@ -1,3 +1,4 @@
+use rand::seq::SliceRandom;
 use std::{collections::HashMap, f32::consts::PI, time::Duration};
 
 use bevy::{
@@ -9,15 +10,15 @@ use bevy::{
 use rand::Rng as _;
 
 use crate::{
-    GameState, PrimaryCamera, SDF_RES, Z_PLAYER,
     animation::{MoveAnimation, TextEvent, WobbleEffects},
     assets::{GameAssets, SpriteKind},
     despawn_after::DespawnAfter,
     lighting::UI_LAYER,
-    map::{BlocksMovement, Map, MapPos, Pickup, TILE_HEIGHT, TILE_WIDTH, Tile},
+    map::{BlocksMovement, Map, MapPos, Pickup, Tile, TILE_HEIGHT, TILE_WIDTH},
     mob::{Mob, MobDamageEvent},
     renderer::PlaneMouseMovedEvent,
     ui::UiSettings,
+    GameState, PrimaryCamera, SDF_RES, Z_PLAYER,
 };
 
 const PLAYER_MOVE_DELAY: Duration = Duration::from_millis(200);
@@ -324,6 +325,7 @@ fn update_reload_indicator(
 
 #[allow(clippy::complexity)]
 fn update_shooting(
+    mut commands: Commands,
     player_query: Query<(&Transform, &Player)>,
     mut shoot_state: ResMut<ShootState>,
     mouse_world_coords: Res<MouseWorldCoords>,
@@ -334,6 +336,7 @@ fn update_shooting(
     mobs: Query<(Entity, &Transform), (With<Mob>, Without<Player>)>,
     tiles: Query<(&Tile, &Transform), (Without<Mob>, Without<Player>)>,
     settings: Res<UiSettings>,
+    assets: Res<GameAssets>,
     mut ev_spawn_bullet: EventWriter<ShootEvent>,
     mut ev_damage_mob: EventWriter<MobDamageEvent>,
     mut ev_player_move: EventReader<PlayerMoveEvent>,
@@ -370,7 +373,24 @@ fn update_shooting(
         && gun_state.ammo_available > 0
         && gun_state.ammo_loaded < equipped_info.max_load
     {
-        shoot_state.reloading = Some(Timer::new(equipped_info.reload_time, TimerMode::Once))
+        shoot_state.reloading = Some(Timer::new(equipped_info.reload_time, TimerMode::Once));
+
+        // TODO(kazasrinivas3): Clean this up at some point...
+        if let Some(sound) = match equipped {
+            GunType::Pistol => &assets.sfx.reload_pistol,
+            _ => &assets.sfx.reload_shotgun,
+        }
+        .choose(&mut rand::thread_rng())
+        {
+            commands.spawn((
+                AudioPlayer(sound.clone()),
+                PlaybackSettings {
+                    mode: bevy::audio::PlaybackMode::Despawn,
+                    volume: bevy::audio::Volume::new(1.0),
+                    ..default()
+                },
+            ));
+        }
     }
 
     if let Some(ref mut reload_timer) = shoot_state.reloading {
@@ -389,12 +409,51 @@ fn update_shooting(
 
     if shoot_state.reloading.is_none()
         && mouse_button.just_pressed(MouseButton::Left)
-        && (gun_state.ammo_loaded > 0 || settings.inf_ammo)
     {
-        // shoot
-        if !settings.inf_ammo {
-            gun_state.ammo_loaded -= 1;
+        let sound = if gun_state.ammo_loaded > 0 {
+            match equipped {
+                GunType::Pistol => &assets.sfx.fire_pistol,
+                _ => &assets.sfx.fire_shotgun,
+            }
+        } else {
+            match equipped {
+                GunType::Pistol => &assets.sfx.empty_pistol,
+                _ => &assets.sfx.empty_shotgun,
+            }
+        };
+        if let Some(sound) = sound.choose(&mut rand::thread_rng()) {
+            commands.spawn((
+                AudioPlayer(sound.clone()),
+                PlaybackSettings {
+                    mode: bevy::audio::PlaybackMode::Despawn,
+                    volume: bevy::audio::Volume::new(1.0),
+                    ..default()
+                },
+            ));
         }
+        // shoot
+        if gun_state.ammo_loaded <= 0 && !settings.inf_ammo {
+            return;
+        }
+        gun_state.ammo_loaded -= 1;
+
+        // TODO(kazasrinivas3): Clean this up at some point...
+        if let Some(sound) = match equipped {
+            GunType::Pistol => &assets.sfx.fire_pistol,
+            _ => &assets.sfx.fire_shotgun,
+        }
+        .choose(&mut rand::thread_rng())
+        {
+            commands.spawn((
+                AudioPlayer(sound.clone()),
+                PlaybackSettings {
+                    mode: bevy::audio::PlaybackMode::Despawn,
+                    volume: bevy::audio::Volume::new(1.0),
+                    ..default()
+                },
+            ));
+        }
+
         for _ in 0..equipped_info.num_projectiles {
             let line_start = player_pos.translation.truncate();
             shoot_state.focus -= PLAYER_SHOOT_FOCUS_PENALTY_SECS / PLAYER_FOCUS_TIME_SECS;

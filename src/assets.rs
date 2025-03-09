@@ -1,9 +1,9 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, path::Path};
 
 use bevy::prelude::*;
 
 use crate::{
-    map::{ItemKind, TILE_HEIGHT, TILE_WIDTH, TileKind},
+    map::{ItemKind, TileKind, TILE_HEIGHT, TILE_WIDTH},
     mob::MobKind,
     spawn::Spawn,
 };
@@ -151,6 +151,17 @@ impl GameAssets {
     }
 }
 
+fn add_audio_sources(
+    base_dir: &Path,
+    track_names: &[&'static str],
+    asset_server: &Res<AssetServer>,
+) -> Vec<Handle<AudioSource>> {
+    track_names
+        .iter()
+        .map(|track| asset_server.load::<AudioSource>(base_dir.join(track)))
+        .collect()
+}
+
 fn init_assets(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
@@ -162,6 +173,59 @@ fn init_assets(
     let base_track = asset_server.load::<AudioSource>("sfx/music/base_layer.ogg");
     let active_track = asset_server.load::<AudioSource>("sfx/music/active_layer.ogg");
     let monk_track = asset_server.load::<AudioSource>("sfx/music/scp_layer.ogg");
+
+    let empty_pistol = add_audio_sources(
+        Path::new("sfx/gun_sounds/dry/pistol"),
+        &["Dry Fire 2-1.ogg", "Dry Fire 2-2.ogg"],
+        &asset_server,
+    );
+    let empty_shotgun = add_audio_sources(
+        Path::new("sfx/gun_sounds/dry/shotgun"),
+        &["Dry Fire 3-1.ogg", "Dry Fire 3-2.ogg"],
+        &asset_server,
+    );
+
+    let fire_pistol = add_audio_sources(
+        Path::new("sfx/gun_sounds/fire/pistol"),
+        &[
+            "Gunshot 1-1.ogg",
+            "Gunshot 1-2.ogg",
+            "Gunshot 1-3.ogg",
+            "Gunshot 1-4.ogg",
+            "Gunshot 1-5.ogg",
+        ],
+        &asset_server,
+    );
+    let fire_shotgun = add_audio_sources(
+        Path::new("sfx/gun_sounds/fire/shotgun"),
+        &[
+            "Gunshot 5-1.ogg",
+            "Gunshot 5-2.ogg",
+            "Gunshot 5-3.ogg",
+            "Gunshot 5-4.ogg",
+            "Gunshot 5-5.ogg",
+            "Gunshot 5-6.ogg",
+        ],
+        &asset_server,
+    );
+
+    let reload_pistol = add_audio_sources(
+        Path::new("sfx/gun_sounds/reload/pistol"),
+        &[
+            "Unload 1-1.ogg",
+            "Unload 1-5.ogg",
+            "Unload 1-10.ogg",
+            "Unload 1-13.ogg",
+            "Unload 1-15.ogg",
+            "Unload 1-17.ogg",
+        ],
+        &asset_server,
+    );
+    let reload_shotgun = add_audio_sources(
+        Path::new("sfx/gun_sounds/reload/shotgun"),
+        &["Pumping 2-1.ogg", "Pumping 2-7.ogg", "Pumping 2-10.ogg"],
+        &asset_server,
+    );
 
     let mut sheets = HashMap::new();
     sheets.insert(
@@ -248,6 +312,13 @@ fn init_assets(
             base_track,
             active_track,
             monk_track,
+
+            reload_pistol,
+            reload_shotgun,
+            fire_pistol,
+            fire_shotgun,
+            empty_pistol,
+            empty_shotgun,
             ..default()
         },
     });
