@@ -78,27 +78,29 @@ fn fade_text(mut query: Query<(&mut TextColor, &mut TextFade)>, time: Res<Time>)
     }
 }
 
-#[derive(Component)]
-pub struct InjuryEffect {
+#[derive(Clone)]
+pub struct WobbleEffect {
     pub timer: Timer,
     pub ease: EasingCurve<f32>,
 }
 
-fn injury_effect(
-    mut commands: Commands,
-    mut mobs: Query<(Entity, &mut Transform, &mut InjuryEffect)>,
-    time: Res<Time>,
-) {
-    for (entity, mut transform, mut injury) in mobs.iter_mut() {
-        injury.timer.tick(time.delta());
-        let t = injury
-            .ease
-            .sample_clamped((injury.timer.fraction() * 2.0 - 1.0).abs());
-        transform.rotation = Quat::from_rotation_z(t);
+#[derive(Component, Default)]
+pub struct WobbleEffects {
+    pub effects: Vec<WobbleEffect>,
+}
 
-        if injury.timer.finished() {
-            commands.entity(entity).remove::<InjuryEffect>();
+fn wobble_effect(mut mobs: Query<(&mut Transform, &mut WobbleEffects)>, time: Res<Time>) {
+    for (mut transform, mut wobble) in mobs.iter_mut() {
+        let mut total_rotation = 0.0;
+        for effect in wobble.effects.iter_mut() {
+            effect.timer.tick(time.delta());
+            let t = effect
+                .ease
+                .sample_clamped((effect.timer.fraction() * 2.0 - 1.0).abs());
+            total_rotation += t;
         }
+        transform.rotation = Quat::from_rotation_z(total_rotation);
+        wobble.effects.retain(|w| !w.timer.finished());
     }
 }
 
@@ -113,7 +115,7 @@ pub struct AnimatePlugin;
 
 impl Plugin for AnimatePlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Update, (animate, spawn_text, fade_text, injury_effect))
+        app.add_systems(Update, (animate, spawn_text, fade_text, wobble_effect))
             .add_event::<TextEvent>();
     }
 }

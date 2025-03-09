@@ -1,7 +1,6 @@
 use std::time::Duration;
 
-use animation::{InjuryEffect, MuzzleFlash};
-use bevy::diagnostic::LogDiagnosticsPlugin;
+use animation::{MuzzleFlash, WobbleEffect, WobbleEffects};
 use bevy::input::mouse::{MouseScrollUnit, MouseWheel};
 use bevy::{
     asset::RenderAssetUsages,
@@ -200,12 +199,11 @@ fn setup(mut window: Query<&mut Window>) {
 }*/
 
 fn animate_player_damage(
-    mut commands: Commands,
-    query: Query<Entity, With<Player>>,
+    mut query: Query<&mut WobbleEffects, With<Player>>,
     mut ev_player_damage: EventReader<PlayerDamageEvent>,
 ) {
     if ev_player_damage.read().count() > 0 {
-        commands.entity(query.single()).insert(InjuryEffect {
+        query.single_mut().effects.push(WobbleEffect {
             timer: Timer::new(Duration::from_millis(200), TimerMode::Once),
             ease: EasingCurve::new(1.0, 0.0, EaseFunction::ElasticInOut),
         });
@@ -213,13 +211,12 @@ fn animate_player_damage(
 }
 
 fn animate_mob_damage(
-    mut commands: Commands,
-    query: Query<Entity, With<Mob>>,
+    mut query: Query<&mut WobbleEffects, With<Mob>>,
     mut ev_mob_damage: EventReader<MobDamageEvent>,
 ) {
     for ev in ev_mob_damage.read() {
-        if let Ok(entity) = query.get(ev.entity) {
-            commands.entity(entity).insert(InjuryEffect {
+        if let Ok(mut wobble) = query.get_mut(ev.entity) {
+            wobble.effects.push(WobbleEffect {
                 timer: Timer::new(Duration::from_millis(200), TimerMode::Once),
                 ease: EasingCurve::new(1.0, 0.0, EaseFunction::ElasticInOut),
             });

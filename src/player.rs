@@ -10,7 +10,7 @@ use rand::Rng as _;
 
 use crate::{
     GameState, PrimaryCamera, SDF_RES, Z_PLAYER,
-    animation::{MoveAnimation, TextEvent},
+    animation::{MoveAnimation, TextEvent, WobbleEffects},
     assets::{GameAssets, SpriteKind},
     despawn_after::DespawnAfter,
     lighting::UI_LAYER,
@@ -623,6 +623,7 @@ fn startup(mut commands: Commands, assets: Res<GameAssets>) {
         assets.get_sprite(SpriteKind::Player),
         Transform::from_translation(player_start_translation),
         RenderLayers::layer(1),
+        WobbleEffects::default(),
     ));
     commands.insert_resource(MoveTimer(Timer::new(PLAYER_MOVE_DELAY, TimerMode::Once)));
     commands.insert_resource(MouseWorldCoords(player_start_translation.truncate()));

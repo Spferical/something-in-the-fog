@@ -2,6 +2,7 @@ use bevy::{prelude::*, render::view::RenderLayers};
 
 use crate::{
     Z_ITEMS, Z_MOBS, Z_TILES,
+    animation::WobbleEffects,
     assets::{GameAssets, SpriteKind},
     map::{
         BlocksMovement, BlocksSight, ItemKind, LightsUp, MapPos, Pickup, TILE_HEIGHT, TILE_WIDTH,
@@ -72,6 +73,7 @@ pub fn spawn(
                         kind: *kind,
                     },
                     LightsUp::default(),
+                    WobbleEffects::default(),
                 ));
                 if let MobKind::KoolAidMan = kind {
                     entity_commands.insert(KoolAidMovement::default());

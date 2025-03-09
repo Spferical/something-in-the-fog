@@ -5,7 +5,7 @@ use mat::{Light, LightBundle, LightingSettings};
 
 mod mat;
 
-use crate::animation::{InjuryEffect, MuzzleFlash};
+use crate::animation::{MuzzleFlash, WobbleEffects};
 use crate::edge::EdgeTexture;
 use crate::player::{FlashlightInfo, Player};
 use crate::renderer::{NonOccluderTexture, OccluderTexture, PlaneMouseMovedEvent};
@@ -42,7 +42,7 @@ pub fn update_lighting_pass(
     mut materials: ResMut<Assets<LightingMaterial>>,
     mut mouse_reader: EventReader<PlaneMouseMovedEvent>,
     mut muzzle_flash: Query<(Entity, &mut MuzzleFlash)>,
-    mut player_injury: Query<&mut InjuryEffect, With<Player>>,
+    mut player_injury: Query<&mut WobbleEffects, With<Player>>,
     settings: ResMut<UiSettings>,
     flashlight_info: Res<FlashlightInfo>,
     time: Res<Time>,
@@ -76,7 +76,11 @@ pub fn update_lighting_pass(
     };
     let player_light_center = Vec4::new(0.5, 0.5, 0.11, 0.0);
 
-    let player_light_color = if let Ok(injury) = player_injury.get_single_mut() {
+    let player_light_color = if let Some(injury) = player_injury
+        .get_single_mut()
+        .ok()
+        .and_then(|p| p.effects.get(0).cloned())
+    {
         (Vec4::new(injury.timer.fraction(), 0.0, 0.0, 1.0) * 10.0 + Vec4::new(1.0, 1.0, 1.0, 1.0))
             .normalize()
     } else {

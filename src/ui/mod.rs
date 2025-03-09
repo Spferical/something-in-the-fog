@@ -176,8 +176,6 @@ fn update(
             });
             ui.label("");
             ui.horizontal_wrapped(|ui| {
-                ui.colored_label(Color32::RED, "DEBUG SETTINGS");
-                ui.separator();
                 ui.checkbox(&mut settings.debug_scroll, "scroll zoom");
                 ui.separator();
                 ui.checkbox(&mut settings.show_visibility, "viz");

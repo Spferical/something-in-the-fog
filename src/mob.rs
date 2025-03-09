@@ -6,7 +6,7 @@ use rand::{Rng, seq::SliceRandom};
 
 use crate::{
     Player,
-    animation::MoveAnimation,
+    animation::{MoveAnimation, WobbleEffect, WobbleEffects},
     map::{
         FlashlightMap, FovMap, LightsUp, Map, MapPos, PlayerVisibilityMap, SightBlockedMap, Tile,
         WalkBlockedMap, Zones, path, update_flashlight_map, update_fov_map, update_lit,
@@ -256,17 +256,22 @@ impl Default for KoolAidMovement {
     }
 }
 
-fn apply_light_sensitivity(mut mobs: Query<(&mut Transform, &mut Mob, &LightsUp)>) {
+fn apply_light_sensitivity(mut mobs: Query<(&mut WobbleEffects, &mut Mob, &LightsUp)>) {
     let mut rng = rand::thread_rng();
     // const LIT_THRESHOLD: f32 = 2.0;
-    for (mut transform, mut mob, lit) in mobs.iter_mut() {
+    for (mut wobble, mut mob, lit) in mobs.iter_mut() {
         if lit.is_lit && matches!(mob.kind, MobKind::Hider | MobKind::Zombie) {
-            let mut rotation = rng.r#gen::<f32>() - 0.5;
+            let mut angle = rng.r#gen::<f32>() - 0.5;
             if lit.is_brightly_lit {
-                rotation *= 2.0;
+                angle *= 2.0;
                 mob.move_timer.reset();
             }
-            transform.rotation = Quat::from_rotation_z(rotation);
+            if wobble.effects.is_empty() {
+                wobble.effects.push(WobbleEffect {
+                    timer: Timer::new(Duration::from_millis(50), TimerMode::Once),
+                    ease: EasingCurve::new(angle, 0.0, EaseFunction::Linear),
+                });
+            }
         }
     }
 }
@@ -286,6 +291,7 @@ fn move_mobs(
     player: Query<&MapPos, (With<Player>, Without<Mob>)>,
     mut walk_blocked_map: ResMut<WalkBlockedMap>,
     sight_blocked_map: Res<SightBlockedMap>,
+    vis_map: Res<PlayerVisibilityMap>,
     fov_map: Res<FovMap>,
     flashlight_map: Res<FlashlightMap>,
     time: Res<Time>,
@@ -305,7 +311,7 @@ fn move_mobs(
                 MobKind::Hider => last_known_player_pos
                     .filter(|p| {
                         p.distance_squared(mob_pos.0) <= HIDER_CHASE_DISTANCE * HIDER_CHASE_DISTANCE
-                            || saw_player.is_some() && mob.damage > 0
+                            || vis_map.0.contains(&mob_pos.0) && mob.damage > 0
                     })
                     .or_else(|| find_hiding_spot(mob_pos.0, &walk_blocked_map, &sight_blocked_map)),
                 _ => last_known_player_pos,
