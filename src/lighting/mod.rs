@@ -5,8 +5,9 @@ use mat::{Light, LightBundle, LightingSettings};
 
 mod mat;
 
-use crate::animation::MuzzleFlash;
+use crate::animation::{InjuryEffect, MuzzleFlash};
 use crate::edge::EdgeTexture;
+use crate::player::Player;
 use crate::renderer::{OccluderTextureCpu, PlaneMouseMovedEvent};
 use crate::sdf::SdfTexture;
 use crate::ui::UiSettings;
@@ -63,6 +64,7 @@ pub fn update_lighting_pass(
     mut materials: ResMut<Assets<LightingMaterial>>,
     mut mouse_reader: EventReader<PlaneMouseMovedEvent>,
     mut muzzle_flash: Query<(Entity, &mut MuzzleFlash)>,
+    mut player_injury: Query<&mut InjuryEffect, With<Player>>,
     settings: ResMut<UiSettings>,
     time: Res<Time>,
 ) {
@@ -74,6 +76,7 @@ pub fn update_lighting_pass(
     for ev in mouse_reader.read() {
         mouse_position = ev.0 + 0.5;
     }
+
     let flashlight_center = Vec4::new(0.5, 0.5, 0.2, 0.0);
     let delta = (Vec2::new(0.5, 0.5) - mouse_position).normalize();
     let flashlight = Light {
@@ -86,8 +89,15 @@ pub fn update_lighting_pass(
         ..default()
     };
     let player_light_center = Vec4::new(0.5, 0.5, 0.2, 0.0);
+
+    let player_light_color = if let Ok(injury) = player_injury.get_single_mut() {
+        (Vec4::new(injury.timer.fraction(), 0.0, 0.0, 1.0) * 10.0 + Vec4::new(1.0, 1.0, 1.0, 1.0))
+            .normalize()
+    } else {
+        Vec4::new(1.0, 1.0, 1.0, 1.0)
+    };
     let player_light = Light {
-        color: Vec4::new(1.0, 1.0, 1.0, 1.0),
+        color: player_light_color,
         intensity: 0.5,
         center: player_light_center,
         direction: Vec4::new(0.0, 0.0, 0.0, 0.0),

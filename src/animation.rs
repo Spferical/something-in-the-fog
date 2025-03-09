@@ -87,17 +87,21 @@ pub struct InjuryEffect {
     pub ease: EasingCurve<f32>,
 }
 
-fn injury_effect(mut mobs: Query<(&mut Transform, &mut InjuryEffect)>, time: Res<Time>) {
-    /*let Ok((mut transform, mut injury)) = player.get_single_mut() else {
-            return;
-    };*/
-
-    for (mut transform, mut injury) in mobs.iter_mut() {
+fn injury_effect(
+    mut commands: Commands,
+    mut mobs: Query<(Entity, &mut Transform, &mut InjuryEffect)>,
+    time: Res<Time>,
+) {
+    for (entity, mut transform, mut injury) in mobs.iter_mut() {
         injury.timer.tick(time.delta());
         let t = injury
             .ease
             .sample_clamped((injury.timer.fraction() * 2.0 - 1.0).abs());
         transform.rotation = Quat::from_rotation_z(t);
+
+        if injury.timer.finished() {
+            commands.entity(entity).remove::<InjuryEffect>();
+        }
     }
 }
 
