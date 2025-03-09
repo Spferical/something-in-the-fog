@@ -7,7 +7,10 @@ use bevy_egui::{
 use crate::{
     assets::PRESS_START_2P_BYTES,
     mob::MobKind,
-    player::{GunInfo, GunState, Inventory, PLAYER_MAX_DAMAGE, Player},
+    player::{
+        FLASHLIGHT_MAX_BATTERY, FlashlightInfo, GunInfo, GunState, Inventory, PLAYER_MAX_DAMAGE,
+        Player,
+    },
     spawn::Spawn,
 };
 
@@ -83,6 +86,7 @@ fn update(
     mut ev: EventWriter<UiEvent>,
     inventory: Res<Inventory>,
     player: Query<&Player>,
+    flashlight: Res<FlashlightInfo>,
 ) {
     settings.show_performance_overlay ^= keyboard_input.just_pressed(KeyCode::F3);
     settings.show_debug_settings ^= keyboard_input.just_pressed(KeyCode::F4);
@@ -109,6 +113,15 @@ fn update(
                 "x".repeat(player.damage.min(PLAYER_MAX_DAMAGE) as usize),
             );
         });
+        ui.horizontal(|ui| {
+            ui.label("Battery: ");
+            ui.spacing_mut().item_spacing = egui::Vec2::ZERO;
+            let quantized_juice =
+                (7.0 * (flashlight.battery / FLASHLIGHT_MAX_BATTERY)).round() as usize;
+            ui.colored_label(Color32::YELLOW, "x".repeat(quantized_juice));
+            ui.colored_label(Color32::GRAY, "x".repeat(7 - quantized_juice));
+        });
+
         ui.label("");
 
         ui.with_layout(egui::Layout::right_to_left(Align::Min), |ui| {
@@ -154,6 +167,7 @@ fn update(
         ui.label("reload: R");
         ui.label("scroll: swap gun");
         ui.label("right click: focus light");
+        ui.label("hold still: focus gun");
         if settings.show_debug_settings {
             ui.label("");
             ui.with_layout(egui::Layout::right_to_left(Align::Min), |ui| {

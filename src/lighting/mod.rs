@@ -58,9 +58,11 @@ pub fn update_lighting_pass(
 
     let flashlight_center = Vec4::new(0.5, 0.5, 0.21, 0.0);
     let delta = (Vec2::new(0.5, 0.5) - mouse_position).normalize();
+    let battery_curve = EasingCurve::new(0.0, 1.0, EaseFunction::CircularIn);
     let flashlight = Light {
         color: Vec4::new(1.0, 1.0, 1.0, 1.0),
-        intensity: 5000.0.lerp(20000.0, flashlight_info.focus_factor),
+        intensity: 5000.0.lerp(20000.0, flashlight_info.focus_factor)
+            * battery_curve.sample(flashlight_info.battery).unwrap_or(0.0),
         center: flashlight_center,
         direction: Vec4::new(delta.x, delta.y, 0.0, 0.0),
         focus: 50f32.lerp(20.0, flashlight_info.focus_factor).to_radians(),

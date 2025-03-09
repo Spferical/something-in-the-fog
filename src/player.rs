@@ -28,6 +28,7 @@ const PLAYER_SHOOT_FOCUS_PENALTY_SECS: f32 = 1.0;
 pub const PLAYER_MAX_DAMAGE: i32 = 8;
 pub const FLASHLIGHT_CONE_WIDTH_FOCUSED_DEGREES: f32 = 20.0;
 pub const FLASHLIGHT_CONE_WIDTH_UNFOCUSED_DEGREES: f32 = 40.0;
+pub const FLASHLIGHT_MAX_BATTERY: f32 = 1.0;
 
 #[derive(Component)]
 pub struct Player {
@@ -177,6 +178,7 @@ fn update_mouse_coords(
 
 #[derive(Resource)]
 pub struct FlashlightInfo {
+    pub battery: f32,
     pub cone_width_degrees: f32,
     // 0 to 1
     pub ease: EasingCurve<f32>,
@@ -189,6 +191,7 @@ pub struct FlashlightInfo {
 impl Default for FlashlightInfo {
     fn default() -> Self {
         Self {
+            battery: 1.0,
             cone_width_degrees: 0.0,
             ease: EasingCurve::new(0.0, 0.0, EaseFunction::Linear),
             ease_timer: Timer::new(Duration::from_secs(1), TimerMode::Once),
@@ -204,9 +207,20 @@ fn update_flashlight(
     time: Res<Time>,
 ) {
     flashlight_info.ease_timer.tick(time.delta());
+    flashlight_info.battery = if flashlight_info.focused {
+        flashlight_info.battery - time.delta_secs() / 8.0
+    } else {
+        flashlight_info.battery + time.delta_secs() / 16.0
+    };
+    flashlight_info.battery = flashlight_info.battery.clamp(0.0, FLASHLIGHT_MAX_BATTERY);
+    if flashlight_info.battery <= 0.0 {
+        flashlight_info.focused = false;
+    }
     const FLASHLIGHT_EASE_DURATION: Duration = Duration::from_millis(300);
     let mouse_pressed = mouse_button.pressed(MouseButton::Right);
-    if flashlight_info.focused != mouse_pressed {
+    if flashlight_info.focused != mouse_pressed
+        && !(flashlight_info.battery <= 0.1 && mouse_pressed)
+    {
         flashlight_info.focused = mouse_pressed;
         let target: f32 = if flashlight_info.focused { 1.0 } else { 0.0 };
         flashlight_info.ease =
