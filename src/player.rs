@@ -23,7 +23,7 @@ use crate::{
 
 const PLAYER_MOVE_DELAY: Duration = Duration::from_millis(200);
 const PLAYER_START: IVec2 = IVec2::new(0, 0);
-const PLAYER_FOCUS_TIME_SECS: f32 = 2.5;
+const PLAYER_FOCUS_TIME_SECS: f32 = 2.0;
 const PLAYER_MOVE_FOCUS_PENALTY_SECS: f32 = 1.0;
 const PLAYER_SHOOT_FOCUS_PENALTY_SECS: f32 = 1.0;
 pub const PLAYER_MAX_DAMAGE: i32 = 8;
