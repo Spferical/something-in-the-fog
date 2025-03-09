@@ -333,6 +333,7 @@ fn update_shooting(
     map: Res<Map>,
     mobs: Query<(Entity, &Transform), (With<Mob>, Without<Player>)>,
     tiles: Query<(&Tile, &Transform), (Without<Mob>, Without<Player>)>,
+    settings: Res<UiSettings>,
     mut ev_spawn_bullet: EventWriter<ShootEvent>,
     mut ev_damage_mob: EventWriter<MobDamageEvent>,
     mut ev_player_move: EventReader<PlayerMoveEvent>,
@@ -388,10 +389,12 @@ fn update_shooting(
 
     if shoot_state.reloading.is_none()
         && mouse_button.just_pressed(MouseButton::Left)
-        && gun_state.ammo_loaded > 0
+        && (gun_state.ammo_loaded > 0 || settings.inf_ammo)
     {
         // shoot
-        gun_state.ammo_loaded -= 1;
+        if !settings.inf_ammo {
+            gun_state.ammo_loaded -= 1;
+        }
         for _ in 0..equipped_info.num_projectiles {
             let line_start = player_pos.translation.truncate();
             shoot_state.focus -= PLAYER_SHOOT_FOCUS_PENALTY_SECS / PLAYER_FOCUS_TIME_SECS;

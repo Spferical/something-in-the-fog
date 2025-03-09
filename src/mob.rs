@@ -284,23 +284,26 @@ fn apply_light_sensitivity(
     // const LIT_THRESHOLD: f32 = 2.0;
     for (entity, mut wobble, mut mob, lit) in mobs.iter_mut() {
         let sensitivity = mob.kind.get_light_sensitivity();
-        if lit.is_lit {
-            if sensitivity == LightSensitivity::Yes {
-                let mut angle = rng.r#gen::<f32>() - 0.5;
-                if lit.is_brightly_lit {
+        if lit.is_lit && matches!(sensitivity, LightSensitivity::Yes | LightSensitivity::Very) {
+            let mut angle = rng.r#gen::<f32>() - 0.5;
+            const LIT_THRESHOLD: f32 = 1.0;
+            if lit.is_brightly_lit {
+                angle *= 2.0;
+                if sensitivity == LightSensitivity::Very {
                     angle *= 2.0;
-                    mob.move_timer.reset();
                 }
-                if wobble.effects.is_empty() {
-                    wobble.effects.push(WobbleEffect {
-                        timer: Timer::new(Duration::from_millis(50), TimerMode::Once),
-                        ease: EasingCurve::new(angle, 0.0, EaseFunction::Linear),
+                mob.move_timer.reset();
+                if sensitivity == LightSensitivity::Very && lit.lit_factor >= LIT_THRESHOLD {
+                    ev_damage.send(MobDamageEvent {
+                        damage: 999,
+                        entity,
                     });
                 }
-            } else if sensitivity == LightSensitivity::Very {
-                ev_damage.send(MobDamageEvent {
-                    damage: 999,
-                    entity,
+            }
+            if wobble.effects.is_empty() {
+                wobble.effects.push(WobbleEffect {
+                    timer: Timer::new(Duration::from_millis(50), TimerMode::Once),
+                    ease: EasingCurve::new(angle, 0.0, EaseFunction::Linear),
                 });
             }
         }

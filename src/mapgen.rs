@@ -528,7 +528,7 @@ pub fn gen_map() -> MapgenResult {
         .collect::<Vec<Pos>>();
     let spawns = free.choose_multiple(&mut rng, 30).collect::<Vec<_>>();
     for p in &spawns[0..15] {
-        mob_spawns.insert(**p, MobKind::KoolAidMan);
+        mob_spawns.insert(**p, MobKind::Ghost);
     }
     for p in &spawns[15..] {
         let spawn = if rng.gen_bool(0.5) {

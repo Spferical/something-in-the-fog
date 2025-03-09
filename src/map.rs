@@ -226,7 +226,7 @@ pub fn update_flashlight_map(
 pub struct LightsUp {
     pub is_lit: bool,
     pub is_brightly_lit: bool,
-    // increases when lit, never goes down
+    // increases when focused and lit, never goes down
     pub lit_factor: f32,
 }
 
@@ -240,8 +240,8 @@ pub fn update_lit(
         lit.is_lit = flashlight_map.0.contains(&pos.0);
         lit.is_brightly_lit = lit.is_lit && flashlight_info.focused;
         lit.lit_factor += match (lit.is_lit, lit.is_brightly_lit) {
-            (true, true) => time.delta_secs() * 2.0,
-            (true, false) => time.delta_secs(),
+            (true, true) => time.delta_secs(), // * 2.0,
+            // (true, false) => time.delta_secs(),
             _ => 0.0,
         };
     }

@@ -26,6 +26,7 @@ pub struct UiSettings {
     pub debug_scroll: bool,
     pub show_visibility: bool,
     pub nohurt: bool,
+    pub inf_ammo: bool,
     pub toggle_2d: bool,
     pub show_fov: bool,
     pub show_flashlight: bool,
@@ -41,6 +42,7 @@ impl Default for UiSettings {
             show_fov: false,
             show_flashlight: false,
             nohurt: true,
+            inf_ammo: false,
             toggle_2d: false,
         }
     }
@@ -185,6 +187,8 @@ fn update(
                 ui.checkbox(&mut settings.show_flashlight, "flash");
                 ui.separator();
                 ui.checkbox(&mut settings.nohurt, "nohurt");
+                ui.separator();
+                ui.checkbox(&mut settings.inf_ammo, "inf ammo");
                 ui.separator();
                 ui.checkbox(&mut settings.toggle_2d, "toggle_2d");
                 ui.separator();
