@@ -233,7 +233,7 @@ fn lighting_simple(
     // let ro = vec3(screen_size / 2.0, 0.0);
     // let ro = vec3(0.5, 0.5, 1.0);
     let ro = vec3(0.5, 0.5, 1.0);
-    let ro_lighting = vec3(0.5, 0.5, 0.3);
+    let ro_lighting = vec3(0.5, 0.5, 0.4);
 
     let rd = normalize(vec3(uv, 0.0) - ro);
     let ray_outputs = trace_ray(ro, rd, u32(16), 0.01, 1000.0, 1e-4);
@@ -244,7 +244,7 @@ fn lighting_simple(
     var total_light = vec3(0.0);
     for (var light_i = 0; light_i < settings.num_lights; light_i++) {
         let light = lights.lights[light_i];
-        if length(light.center.xyz - endpoints) > 0.8 {
+        if length(light.center.xyz - endpoints) > 1.5 {
             continue;
         }
         total_light += lighting_simple(endpoints, light, ro_lighting, normal);

@@ -65,7 +65,7 @@ pub fn update_lighting_pass(
         attenuation: 10.0,
         ..default()
     };
-    let player_light_center = Vec4::new(0.5, 0.5, 0.3, 0.0);
+    let player_light_center = Vec4::new(0.5, 0.5, 0.41, 0.0);
 
     let player_light_color = if let Ok(injury) = player_injury.get_single_mut() {
         (Vec4::new(injury.timer.fraction(), 0.0, 0.0, 1.0) * 10.0 + Vec4::new(1.0, 1.0, 1.0, 1.0))
@@ -75,7 +75,7 @@ pub fn update_lighting_pass(
     };
     let player_light = Light {
         color: player_light_color,
-        intensity: 0.5,
+        intensity: 50.0,
         center: player_light_center,
         direction: Vec4::new(0.0, 0.0, 0.0, 0.0),
         focus: 1.0,
