@@ -37,7 +37,7 @@ fn sdf_2d(uv: vec3f) -> f32 {
 }
 
 fn sdf_extruded(p_: vec3<f32>) -> f32 {
-    let p = p_ - vec3f(0.0, 0.0, 0.1);
+    let p = p_ - vec3f(0.0, 0.0, 0.0);
     let d = sdf_2d(p);
     let h = 0.1;
     let w = vec2f(d, abs(p.z) - h);
@@ -168,7 +168,7 @@ fn fog_trace(
 
     var accum = color;
 
-    var fog_color = vec3f(0.5, 0.6, 0.7) * 1e-4;
+    var fog_color = vec3f(0.5, 0.6, 0.7) * 5e-4;
 
     var t = 0.0;
     let step_size = tmax / f32(trace_iters);
@@ -186,7 +186,7 @@ fn fog_trace(
     return accum;
 }
 
-fn narrow_beam(a: vec2f, b: vec2f, limit: f32) -> f32 {
+fn narrow_beam(a: vec3f, b: vec3f, limit: f32) -> f32 {
     let angle = acos(dot(a, b));
     return max(-angle + limit, 0.0);
 }
@@ -198,7 +198,7 @@ fn lighting_simple(
     normal: vec3f
 ) -> vec3<f32> {
     let pi = radians(180.0);
-    let shadow = visibility(pos, camera_origin, u32(8), 1e-6, 0.001);
+    let shadow = visibility(pos, camera_origin, u32(16), 1e-6, 0.1);
     let l = normalize(light.center.xyz - pos);
     
     let t = length(pos - camera_origin);
@@ -206,7 +206,8 @@ fn lighting_simple(
 
     var intensity = light.intensity;
     if (light.focus > 0.0) {
-        intensity = intensity * narrow_beam(l.xy, light.direction.xy, light.focus);
+        intensity = intensity * narrow_beam(l.xyz, light.direction.xyz, light.focus);
+        // intensity = intensity * narrow_beam(l, light.direction.xyz, light.focus);
     }
     if (light.attenuation > 0.0) {
         intensity = intensity * (
