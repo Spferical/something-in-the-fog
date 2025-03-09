@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use animation::{MuzzleFlash, WobbleEffect, WobbleEffects};
+use animation::{MuzzleFlash, TextEvent, WobbleEffect, WobbleEffects};
 use bevy::input::mouse::{MouseScrollUnit, MouseWheel};
 use bevy::{
     asset::RenderAssetUsages,
@@ -10,10 +10,10 @@ use bevy::{
         view::RenderLayers,
     },
 };
-use map::Zones;
+use map::{Map, MapPos, Tile, TileKind, Zones};
 use mob::{Mob, MobDamageEvent};
 use player::{Inventory, Player, PlayerDamageEvent, ShootEvent};
-use spawn::SpawnEvent;
+use spawn::{Spawn, SpawnEvent};
 use ui::{UiEvent, UiSettings};
 
 mod animation;
@@ -170,6 +170,8 @@ fn update_camera(
 #[derive(Resource)]
 struct GameState {
     game_over: bool,
+    #[allow(unused)]
+    victory: bool,
 }
 
 fn setup(mut window: Query<&mut Window>) {
@@ -274,6 +276,31 @@ fn handle_ui_event(
     }
 }
 
+fn handle_victory(
+    mut commands: Commands,
+    player_query: Query<&map::MapPos, With<Player>>,
+    tile_query: Query<(Entity, &Tile), Without<Player>>,
+    mut state: ResMut<GameState>,
+    map: Res<Map>,
+    mut ev_text: EventWriter<TextEvent>,
+    mut ev_spawn: EventWriter<SpawnEvent>,
+) {
+    let player_pos = player_query.single();
+    let mut iter = tile_query.iter_many(map.get(player_pos.0));
+    while let Some((entity, tile)) = iter.fetch_next() {
+        if matches!(tile.0, TileKind::Lever) {
+            commands.entity(entity).despawn_recursive();
+            state.victory = true;
+            ev_spawn.send(SpawnEvent(player_pos.0, Spawn::Tile(TileKind::LeverPulled)));
+            ev_text.send(TextEvent {
+                text: "You win!".into(),
+                position: MapPos(player_pos.0 + IVec2::new(0, 1)).to_vec2(),
+                duration: Duration::from_secs(10),
+            });
+        }
+    }
+}
+
 fn main() {
     App::new()
         .add_plugins(DefaultPlugins.set(ImagePlugin::default_nearest()))
@@ -301,10 +328,14 @@ fn main() {
                 animate_player_damage,
                 animate_mob_damage,
                 animate_muzzle_flash,
+                handle_victory,
                 //handle_game_over,
             )
                 .chain(),
         )
-        .insert_resource(GameState { game_over: false })
+        .insert_resource(GameState {
+            game_over: false,
+            victory: false,
+        })
         .run();
 }

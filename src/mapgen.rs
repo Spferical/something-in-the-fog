@@ -396,6 +396,7 @@ pub fn gen_map() -> MapgenResult {
             None
         }
     }
+    mapgen.tile_map[Pos::new(3, 3)] = Some(TileKind::Lever);
 
     mapgen
         .tile_map

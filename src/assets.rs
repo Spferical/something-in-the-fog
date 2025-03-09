@@ -82,6 +82,12 @@ impl GameAssets {
             SpriteKind::Spawn(Spawn::Tile(TileKind::Crate)) => {
                 self.get_sprite_by_index(SpriteSheet::OryxTerrainObjects, 20 * 3 + 5)
             }
+            SpriteKind::Spawn(Spawn::Tile(TileKind::Lever)) => {
+                self.get_sprite_by_index(SpriteSheet::OryxTerrainObjects, 20 * 7 + 9)
+            }
+            SpriteKind::Spawn(Spawn::Tile(TileKind::LeverPulled)) => {
+                self.get_sprite_by_index(SpriteSheet::OryxTerrainObjects, 20 * 7 + 10)
+            }
             SpriteKind::Spawn(Spawn::Tile(TileKind::Bush)) => {
                 self.get_sprite_by_index(SpriteSheet::OryxTerrainObjects, 20 * 10 + 3)
             }
@@ -133,6 +139,9 @@ impl GameAssets {
                 Color::LinearRgba(LinearRgba::rgb(0.0, 0.5, 0.0))
             }
             SpriteKind::Spawn(Spawn::Tile(TileKind::Door)) => {
+                Color::srgba_u8(0xad, 0x4e, 0x37, 0xff)
+            }
+            SpriteKind::Spawn(Spawn::Tile(TileKind::Lever | TileKind::LeverPulled)) => {
                 Color::srgba_u8(0xad, 0x4e, 0x37, 0xff)
             }
             SpriteKind::Spawn(Spawn::Mob(MobKind::Zombie)) => {
@@ -285,7 +294,7 @@ fn init_assets(
                 20,
                 12,
                 None,
-                Some(UVec2::splat(1)),
+                Some(UVec2::new(0, 1)),
             )),
         ),
     );

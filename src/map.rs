@@ -113,6 +113,8 @@ pub enum TileKind {
     Tree,
     Crate,
     ShippingContainer,
+    Lever,
+    LeverPulled,
 }
 
 impl TileKind {
@@ -120,13 +122,14 @@ impl TileKind {
         use TileKind::*;
         match self {
             Wall | Tree | ShippingContainer => true,
-            Bush | Crate | Door => false,
+            Bush | Crate | Door | Lever | LeverPulled => false,
         }
     }
     pub fn blocks_sight(&self) -> bool {
         use TileKind::*;
         match self {
             Wall | Tree | Bush | Crate | Door | ShippingContainer => true,
+            Lever | LeverPulled => false,
         }
     }
 }
