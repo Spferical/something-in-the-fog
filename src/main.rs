@@ -211,15 +211,17 @@ fn animate_player_damage(
 }
 
 fn animate_mob_damage(
-    mut query: Query<&mut WobbleEffects, With<Mob>>,
+    mut query: Query<(&mut WobbleEffects, &Mob)>,
     mut ev_mob_damage: EventReader<MobDamageEvent>,
 ) {
     for ev in ev_mob_damage.read() {
-        if let Ok(mut wobble) = query.get_mut(ev.entity) {
-            wobble.effects.push(WobbleEffect {
-                timer: Timer::new(Duration::from_millis(200), TimerMode::Once),
-                ease: EasingCurve::new(1.0, 0.0, EaseFunction::ElasticInOut),
-            });
+        if let Ok((mut wobble, mob)) = query.get_mut(ev.entity) {
+            if mob.kind.max_damage() < 99 {
+                wobble.effects.push(WobbleEffect {
+                    timer: Timer::new(Duration::from_millis(200), TimerMode::Once),
+                    ease: EasingCurve::new(1.0, 0.0, EaseFunction::ElasticInOut),
+                });
+            }
         }
     }
 }
