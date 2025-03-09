@@ -155,37 +155,44 @@ fn update(
         ui.label("scroll: swap gun");
         ui.label("right click: focus light");
         if settings.show_debug_settings {
-            ui.style_mut().wrap_mode = Some(egui::TextWrapMode::Wrap);
-            ui.colored_label(Color32::RED, "DEBUG SETTINGS");
-            ui.separator();
-            ui.checkbox(&mut settings.debug_scroll, "scroll zoom");
-            ui.separator();
-            ui.checkbox(&mut settings.show_visibility, "viz");
-            ui.separator();
-            ui.checkbox(&mut settings.show_fov, "fov");
-            ui.separator();
-            ui.checkbox(&mut settings.show_flashlight, "flash");
-            ui.separator();
-            ui.checkbox(&mut settings.nohurt, "nohurt");
-            ui.separator();
-            ui.checkbox(&mut settings.toggle_2d, "toggle_2d");
-            ui.separator();
-            ui.label("spawn");
-            if ui.button("m").clicked() {
-                ev.send(UiEvent::Spawn(Spawn::Mob(MobKind::Sculpture)));
-            }
-            if ui.button("k").clicked() {
-                ev.send(UiEvent::Spawn(Spawn::Mob(MobKind::KoolAidMan)));
-            }
-            if ui.button("z").clicked() {
-                ev.send(UiEvent::Spawn(Spawn::Mob(MobKind::Zombie)));
-            }
-            ui.label("Teleport to... ");
-            for i in 0..=5 {
-                if ui.button(format!("{i}")).clicked() {
-                    ev.send(UiEvent::TeleportPlayer(i));
+            ui.label("");
+            ui.with_layout(egui::Layout::right_to_left(Align::Min), |ui| {
+                ui.colored_label(Color32::RED, "DEBUG SETTINGS");
+                ui.add(Separator::default().horizontal());
+            });
+            ui.label("");
+            ui.horizontal_wrapped(|ui| {
+                ui.colored_label(Color32::RED, "DEBUG SETTINGS");
+                ui.separator();
+                ui.checkbox(&mut settings.debug_scroll, "scroll zoom");
+                ui.separator();
+                ui.checkbox(&mut settings.show_visibility, "viz");
+                ui.separator();
+                ui.checkbox(&mut settings.show_fov, "fov");
+                ui.separator();
+                ui.checkbox(&mut settings.show_flashlight, "flash");
+                ui.separator();
+                ui.checkbox(&mut settings.nohurt, "nohurt");
+                ui.separator();
+                ui.checkbox(&mut settings.toggle_2d, "toggle_2d");
+                ui.separator();
+                ui.label("spawn");
+                if ui.button("m").clicked() {
+                    ev.send(UiEvent::Spawn(Spawn::Mob(MobKind::Sculpture)));
                 }
-            }
+                if ui.button("k").clicked() {
+                    ev.send(UiEvent::Spawn(Spawn::Mob(MobKind::KoolAidMan)));
+                }
+                if ui.button("z").clicked() {
+                    ev.send(UiEvent::Spawn(Spawn::Mob(MobKind::Zombie)));
+                }
+                ui.label("Teleport to... ");
+                for i in 0..=5 {
+                    if ui.button(format!("{i}")).clicked() {
+                        ev.send(UiEvent::TeleportPlayer(i));
+                    }
+                }
+            });
         }
     });
 }
