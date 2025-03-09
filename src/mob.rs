@@ -286,7 +286,7 @@ fn apply_light_sensitivity(mut mobs: Query<(&mut Transform, &mut Mob, &LightsUp)
     let mut rng = rand::thread_rng();
     // const LIT_THRESHOLD: f32 = 2.0;
     for (mut transform, mut mob, lit) in mobs.iter_mut() {
-        if lit.is_lit {
+        if lit.is_lit && matches!(mob.kind, MobKind::Hider | MobKind::Zombie) {
             let mut rotation = rng.r#gen::<f32>() - 0.5;
             if lit.is_brightly_lit {
                 rotation *= 2.0;
