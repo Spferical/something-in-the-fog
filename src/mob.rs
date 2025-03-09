@@ -113,9 +113,11 @@ fn path_to(
     source: IVec2,
     target: IVec2,
     walk_blocked_map: &WalkBlockedMap,
+    sight_blocked_map: &SightBlockedMap,
     fov_map: &FovMap,
     flashlight_map: &FlashlightMap,
     avoid_player_sight: bool,
+    avoid_doors: bool,
     avoid_player_flashlight: bool,
     path_through_walls: bool,
 ) -> Option<Vec<IVec2>> {
@@ -123,7 +125,10 @@ fn path_to(
         source,
         target,
         MAX_PATH,
-        |p| !path_through_walls && walk_blocked_map.0.contains(&p),
+        |p| {
+            (!path_through_walls && walk_blocked_map.0.contains(&p))
+                || (avoid_doors && sight_blocked_map.0.contains(&p))
+        },
         |p| {
             if avoid_player_sight && fov_map.0.contains(&p) {
                 99
@@ -389,6 +394,7 @@ fn move_mobs(
             }
             if let Some(target_pos) = target_pos {
                 let avoid_player_sight = matches!(mob.kind, MobKind::Sculpture);
+                let avoid_doors = matches!(mob.kind, MobKind::Sculpture);
                 let avoid_player_flashlight = true;
                 let bust_through_walls = kool_aid.is_some();
                 let move_pos = if bust_through_walls {
@@ -398,9 +404,11 @@ fn move_mobs(
                         mob_pos.0,
                         target_pos,
                         &walk_blocked_map,
+                        &sight_blocked_map,
                         &fov_map,
                         &flashlight_map,
                         avoid_player_sight,
+                        avoid_doors,
                         avoid_player_flashlight,
                         false,
                     )
@@ -408,8 +416,11 @@ fn move_mobs(
                 };
                 if let Some(move_pos) = move_pos {
                     if move_pos != player_pos.0 {
+                        // Sculpture can't move into sight or onto doors
                         if !(matches!(mob.kind, MobKind::Sculpture)
-                            && (fov_map.0.contains(&move_pos) || fov_map.0.contains(&mob_pos.0)))
+                            && (fov_map.0.contains(&move_pos)
+                                || fov_map.0.contains(&mob_pos.0)
+                                || sight_blocked_map.0.contains(&move_pos)))
                         {
                             walk_blocked_map.0.insert(move_pos);
                             mob_pos.0 = move_pos;
