@@ -28,12 +28,6 @@ pub enum MobKind {
     KoolAidMan,
 }
 
-#[derive(Event)]
-pub struct NoticedEvent {
-    pub kind: MobKind,
-    pub noticed: bool,
-}
-
 impl MobKind {
     pub fn get_move_delay(&self) -> Duration {
         use MobKind::*;
@@ -161,7 +155,6 @@ fn update_mobs_seeing_player(
     player_visibility_map: Res<PlayerVisibilityMap>,
     sight_blocked_map: Res<SightBlockedMap>,
     mut ev_player_move: EventReader<PlayerMoveEvent>,
-    mut ev_noticed: EventWriter<NoticedEvent>,
     player: Query<&MapPos, (With<Player>, Without<Mob>)>,
 ) {
     let player_pos = player.single();
@@ -180,11 +173,6 @@ fn update_mobs_seeing_player(
                 if *last_seen_player_pos == source.0 && player_sees_mob {
                     // Mob saw player move into a hiding spot.
                     commands.entity(entity).insert(SawPlayer::new(dest.0));
-
-                    ev_noticed.send(NoticedEvent {
-                        kind: mob.kind,
-                        noticed: true,
-                    });
                 }
             }
         }
@@ -213,7 +201,6 @@ fn update_hearing_player(
     mut commands: Commands,
     mobs: Query<(Entity, &Mob), With<HearsPlayer>>,
     mut ev_shoot: EventReader<ShootEvent>,
-    mut ev_noticed: EventWriter<NoticedEvent>,
     map: Res<Map>,
 ) {
     const HEARING_RADIUS: i32 = 20;
@@ -221,10 +208,6 @@ fn update_hearing_player(
         let map_pos = MapPos::from_vec2(*start);
         for (entity, mob) in mobs.iter_many(map.get_nearby(map_pos.0, HEARING_RADIUS)) {
             commands.entity(entity).insert(HeardPlayer::new(map_pos.0));
-            ev_noticed.send(NoticedEvent {
-                kind: mob.kind,
-                noticed: true,
-            });
         }
     }
 }
@@ -236,7 +219,6 @@ fn forget_player(
         Query<(Entity, &Mob, &MapPos, &mut HeardPlayer)>,
         Query<(Entity, &Mob, &MapPos, &mut SawPlayer)>,
     )>,
-    mut ev_noticed: EventWriter<NoticedEvent>,
     time: Res<Time>,
 ) {
     const FORGET_DURATION: Duration = Duration::from_secs(30);
@@ -248,10 +230,6 @@ fn forget_player(
             if matches!(mob.kind, MobKind::Sculpture) {
                 info!("forgot about player (hearing)!");
             }
-            ev_noticed.send(NoticedEvent {
-                kind: mob.kind,
-                noticed: false,
-            });
         }
     }
     for (entity, mob, pos, mut saw_player) in set.p1().iter_mut() {
@@ -259,10 +237,6 @@ fn forget_player(
         if pos.0 == saw_player.pos || saw_player.time_since.elapsed() > FORGET_DURATION {
             // Mob is standing on last seen player position.
             commands.entity(entity).remove::<SawPlayer>();
-            ev_noticed.send(NoticedEvent {
-                kind: mob.kind,
-                noticed: false,
-            });
             if matches!(mob.kind, MobKind::Sculpture) {
                 info!("forgot about player (seeing)!");
             }
@@ -496,7 +470,6 @@ impl Plugin for MobPlugin {
                 .after(update_lit),
         )
         .add_event::<MobDamageEvent>()
-        .add_event::<NoticedEvent>()
         .add_event::<BustThroughWallEvent>();
     }
 }
