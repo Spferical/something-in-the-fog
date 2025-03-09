@@ -152,7 +152,13 @@ pub struct Inventory {
 
 fn swap_gun(mut inventory: ResMut<Inventory>, mut ev_scroll: EventReader<MouseWheel>) {
     for event in ev_scroll.read() {
-        let gun_types = inventory.guns.keys().copied().collect::<Vec<GunType>>();
+        let gun_types = inventory
+            .guns
+            .iter()
+            .filter(|(_t, s)| s.present)
+            .map(|(t, _s)| t)
+            .copied()
+            .collect::<Vec<GunType>>();
         let mut i = gun_types
             .iter()
             .enumerate()
