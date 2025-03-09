@@ -20,7 +20,8 @@ struct FadeIn;
 #[derive(Component)]
 struct FadeOut;
 
-const FADE_TIME: f32 = 2.0;
+const FADE_IN_TIME: f32 = 2.0;
+const FADE_OUT_TIME: f32 = 10.0;
 
 pub fn setup_background_music(mut commands: Commands, game_assets: Res<GameAssets>) {
     commands.spawn((
@@ -105,7 +106,7 @@ fn update_mob_audio(
 
 fn fade_in(mut audio_sink: Query<&mut AudioSink, With<FadeIn>>, time: Res<Time>) {
     for audio in audio_sink.iter_mut() {
-        audio.set_volume(audio.volume() + time.delta_secs() / FADE_TIME);
+        audio.set_volume(audio.volume() + time.delta_secs() / FADE_IN_TIME);
         if audio.volume() >= 1.0 {
             audio.set_volume(1.0);
         }
@@ -114,7 +115,7 @@ fn fade_in(mut audio_sink: Query<&mut AudioSink, With<FadeIn>>, time: Res<Time>)
 
 fn fade_out(mut audio_sink: Query<&mut AudioSink, With<FadeOut>>, time: Res<Time>) {
     for audio in audio_sink.iter_mut() {
-        audio.set_volume(audio.volume() - time.delta_secs() / FADE_TIME);
+        audio.set_volume(audio.volume() - time.delta_secs() / FADE_OUT_TIME);
         if audio.volume() <= 0.0 {
             audio.set_volume(0.0);
         }
