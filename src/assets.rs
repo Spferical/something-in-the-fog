@@ -50,7 +50,7 @@ impl GameAssets {
         );
         sprite.custom_size = match sheet {
             SpriteSheet::Urizen => Some(Vec2::new(48.0, 48.0)),
-            _ => Some(Vec2::new(48.0, 32.0)),
+            _ => Some(Vec2::new(32.0, 48.0)),
         };
         sprite
     }
