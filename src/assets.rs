@@ -222,7 +222,9 @@ fn init_assets(
         )),
         pixel: meshes.add(Rectangle::new(1.0, 1.0)),
         white: materials.add(Color::LinearRgba(LinearRgba::WHITE)),
-        sight_line: materials.add(Color::Srgba(bevy::color::palettes::basic::WHITE.with_alpha(0.5))),
+        sight_line: materials.add(Color::Srgba(
+            bevy::color::palettes::basic::WHITE.with_alpha(0.5),
+        )),
         reload_indicator_material: materials.add(Color::Srgba(
             bevy::color::palettes::basic::WHITE.with_alpha(0.25),
         )),

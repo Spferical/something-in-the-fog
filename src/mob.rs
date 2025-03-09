@@ -282,7 +282,7 @@ fn move_mobs(
     mut ev_player_damage: EventWriter<PlayerDamageEvent>,
 ) {
     let player_pos = player.single();
-    for (entity, mut mob, mut mob_pos, mut transform, saw_player, heard_player, mut kool_aid) in
+    for (entity, mut mob, mut mob_pos, transform, saw_player, heard_player, mut kool_aid) in
         mobs.iter_mut()
     {
         mob.move_timer.tick(time.delta());
