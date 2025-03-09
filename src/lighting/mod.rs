@@ -5,12 +5,11 @@ use mat::{Light, LightBundle, LightingSettings};
 
 mod mat;
 
+use crate::PrimaryCamera;
 use crate::edge::EdgeTexture;
-use crate::map::TILE_SIZE;
 use crate::renderer::{OccluderTextureCpu, PlaneMouseMovedEvent};
 use crate::sdf::SdfTexture;
 use crate::ui::UiSettings;
-use crate::{PrimaryCamera, SDF_RES};
 use bevy::render::view::RenderLayers;
 pub use mat::LightingMaterial;
 
@@ -61,7 +60,7 @@ pub fn update_lighting_pass(
     query: Query<&MeshMaterial3d<LightingMaterial>, With<RenderPlane>>,
     mut materials: ResMut<Assets<LightingMaterial>>,
     mut mouse_reader: EventReader<PlaneMouseMovedEvent>,
-    mut settings: ResMut<UiSettings>,
+    settings: ResMut<UiSettings>,
 ) {
     let Ok(mat) = query.get_single() else {
         return;
@@ -139,10 +138,7 @@ pub fn setup_lighting_pass(
     let mut lights = [Light::default(); 8];
     lights[0] = flashlight;
 
-    let settings = LightingSettings {
-        tile_size: TILE_SIZE as i32,
-        toggle_2d: 0,
-    };
+    let settings = LightingSettings { toggle_2d: 0 };
 
     let plane = meshes.add(Plane3d::default().mesh().size(1.0, aspect_ratio));
     commands.spawn((

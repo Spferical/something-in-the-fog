@@ -7,7 +7,6 @@ mod prepare;
 
 use crate::SDF_RES;
 use crate::edge::EdgeTexture;
-use crate::map::TILE_SIZE;
 use crate::renderer::OccluderTextureCpu;
 use bevy::render::view::RenderLayers;
 pub use mat::SdfMaterial;
@@ -90,7 +89,6 @@ pub fn setup_sdf_pass(
                 seed_texture: Some(ping_image.clone()),
                 iteration: i as i32,
                 probe_size: 1 << (num_passes - i - 1),
-                tile_size: TILE_SIZE as i32,
             })),
             RenderLayers::layer(ping_it),
         ));

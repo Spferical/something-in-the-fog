@@ -8,29 +8,29 @@
 @group(2) @binding(2) var seed_texture: texture_2d<f32>;
 @group(2) @binding(3) var<uniform> iteration: i32;
 @group(2) @binding(4) var<uniform> probe_size: i32;
-@group(2) @binding(5) var<uniform> tile_size: i32;
+// @group(2) @binding(5) var<uniform> tile_size: i32;
 
-fn get_tile_coord_from_screen_coord(position: vec2i) -> vec2i {
-    var ndc = view_transformations::frag_coord_to_ndc(
-        vec4f(vec2f(position.xy), 1.0, 0.0)
-    );
-    ndc.z = 1.0;
-    let world_coord = view_transformations::position_ndc_to_world(ndc).xy;
-    let tile_coord = vec2i(world_coord / f32(tile_size) - 0.5);
-    return tile_coord;
-}
+// fn get_tile_coord_from_screen_coord(position: vec2i) -> vec2i {
+//     var ndc = view_transformations::frag_coord_to_ndc(
+//         vec4f(vec2f(position.xy), 1.0, 0.0)
+//     );
+//     ndc.z = 1.0;
+//     let world_coord = view_transformations::position_ndc_to_world(ndc).xy;
+//     let tile_coord = vec2i(world_coord / f32(tile_size) - 0.5);
+//     return tile_coord;
+// }
 
-fn get_screen_coord_from_tile_coord(tile_coord: vec2i) -> vec2i {
-    let world_coord = vec2f(tile_coord * tile_size) + 0.5;
-    
-    let ndc = view_transformations::position_world_to_ndc(
-        vec3f(world_coord, 1.0)
-    );
-    let screen_coord = view_transformations::ndc_to_frag_coord(
-        ndc.xy
-    );
-    return vec2i(screen_coord);
-}
+// fn get_screen_coord_from_tile_coord(tile_coord: vec2i) -> vec2i {
+//     let world_coord = vec2f(tile_coord * tile_size) + 0.5;
+//     
+//     let ndc = view_transformations::position_world_to_ndc(
+//         vec3f(world_coord, 1.0)
+//     );
+//     let screen_coord = view_transformations::ndc_to_frag_coord(
+//         ndc.xy
+//     );
+//     return vec2i(screen_coord);
+// }
 
 fn query_seeds(position: vec2i) -> vec2f {
     let screen_size_sdf = textureDimensions(seed_texture);

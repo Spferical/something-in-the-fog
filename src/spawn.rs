@@ -3,7 +3,10 @@ use bevy::{prelude::*, render::view::RenderLayers};
 use crate::{
     Z_ITEMS, Z_MOBS, Z_TILES,
     assets::{GameAssets, SpriteKind},
-    map::{BlocksMovement, BlocksSight, ItemKind, MapPos, Pickup, TILE_SIZE, Tile, TileKind},
+    map::{
+        BlocksMovement, BlocksSight, ItemKind, MapPos, Pickup, TILE_HEIGHT, TILE_WIDTH, Tile,
+        TileKind,
+    },
     mob::{HearsPlayer, KoolAidMovement, Mob, MobKind, SeesPlayer},
 };
 
@@ -43,8 +46,8 @@ pub fn spawn(
             sprite,
             MapPos(*pos),
             Transform::from_translation(Vec3::new(
-                TILE_SIZE * pos.x as f32,
-                TILE_SIZE * pos.y as f32,
+                TILE_WIDTH * pos.x as f32,
+                TILE_HEIGHT * pos.y as f32,
                 z,
             )),
             RenderLayers::layer(1),

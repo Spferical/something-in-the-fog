@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use bevy::{prelude::*, sprite::AlphaMode2d};
 
 use crate::{
-    map::{ItemKind, TILE_SIZE, TileKind},
+    map::{ItemKind, TILE_HEIGHT, TILE_WIDTH, TileKind},
     mob::MobKind,
     spawn::Spawn,
 };
@@ -51,7 +51,7 @@ impl GameAssets {
             },
         );
         sprite.custom_size = match sheet {
-            SpriteSheet::Urizen => Some(Vec2::new(48.0, 48.0)),
+            SpriteSheet::Urizen => Some(Vec2::new(24.0, 24.0)),
             _ => Some(Vec2::new(32.0, 48.0)),
         };
         sprite
@@ -212,8 +212,14 @@ fn init_assets(
     commands.insert_resource(GameAssets {
         font: fonts.add(Font::try_from_bytes(PRESS_START_2P_BYTES.into()).unwrap()),
         sheets,
-        square: meshes.add(Rectangle::new(TILE_SIZE, TILE_SIZE)),
-        reload_indicator_mesh: meshes.add(CircularSector::from_degrees(TILE_SIZE, 360.0)),
+        square: meshes.add(Rectangle::new(
+            TILE_WIDTH.min(TILE_HEIGHT),
+            TILE_WIDTH.min(TILE_HEIGHT),
+        )),
+        reload_indicator_mesh: meshes.add(CircularSector::from_degrees(
+            TILE_WIDTH.min(TILE_HEIGHT),
+            360.0,
+        )),
         pixel: meshes.add(Rectangle::new(1.0, 1.0)),
         white: materials.add(Color::LinearRgba(LinearRgba::WHITE)),
         sight_line: materials.add(ColorMaterial {

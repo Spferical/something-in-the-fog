@@ -13,7 +13,7 @@ use crate::{
     animation::{MoveAnimation, TextEvent},
     assets::{GameAssets, SpriteKind},
     despawn_after::DespawnAfter,
-    map::{BlocksMovement, Map, MapPos, Pickup, TILE_SIZE, Tile},
+    map::{BlocksMovement, Map, MapPos, Pickup, TILE_HEIGHT, TILE_WIDTH, Tile},
     mob::{Mob, MobDamageEvent},
     renderer::PlaneMouseMovedEvent,
     ui::UiSettings,
@@ -244,7 +244,7 @@ fn update_reload_indicator(
         .map(|timer| timer.fraction_remaining())
         .unwrap_or(0.0);
     if let Some(mesh) = meshes.get_mut(mesh_handle.id()) {
-        *mesh = CircularSector::from_turns(TILE_SIZE, fraction_left).into();
+        *mesh = CircularSector::from_turns(TILE_WIDTH.min(TILE_HEIGHT), fraction_left).into();
     }
     transform.rotation = Quat::from_rotation_z(fraction_left * PI);
 }
@@ -329,7 +329,7 @@ fn update_shooting(
                     Some(entity),
                     Aabb2d::new(
                         transform.translation.truncate(),
-                        Vec2::splat(TILE_SIZE / 2.0),
+                        Vec2::new(TILE_WIDTH, TILE_HEIGHT) / 2.0,
                     ),
                 ));
             }
@@ -339,7 +339,7 @@ fn update_shooting(
                         None,
                         Aabb2d::new(
                             transform.translation.truncate(),
-                            Vec2::splat(TILE_SIZE / 2.0),
+                            Vec2::new(TILE_WIDTH, TILE_HEIGHT) / 2.0,
                         ),
                     ));
                 }

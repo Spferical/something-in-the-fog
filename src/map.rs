@@ -8,7 +8,8 @@ use crate::{
     ui::UiSettings,
 };
 
-pub const TILE_SIZE: f32 = 48.0;
+pub const TILE_WIDTH: f32 = 32.0;
+pub const TILE_HEIGHT: f32 = 48.0;
 
 #[derive(Component, Debug, Clone)]
 pub struct MapPos(pub IVec2);
@@ -16,8 +17,8 @@ pub struct MapPos(pub IVec2);
 impl MapPos {
     pub fn to_vec2(&self) -> Vec2 {
         Vec2 {
-            x: TILE_SIZE * self.0.x as f32,
-            y: TILE_SIZE * self.0.y as f32,
+            x: TILE_WIDTH * self.0.x as f32,
+            y: TILE_HEIGHT * self.0.y as f32,
         }
     }
     pub fn from_vec3(vec3: Vec3) -> Self {
@@ -25,8 +26,8 @@ impl MapPos {
     }
     pub fn from_vec2(vec2: Vec2) -> Self {
         Self(IVec2 {
-            x: (vec2.x / TILE_SIZE) as i32,
-            y: (vec2.y / TILE_SIZE) as i32,
+            x: (vec2.x / TILE_WIDTH) as i32,
+            y: (vec2.y / TILE_HEIGHT) as i32,
         })
     }
 }

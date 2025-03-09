@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use bevy::{prelude::*, render::view::RenderLayers};
 
-use crate::{Z_TEXT, assets::GameAssets, despawn_after::DespawnAfter, map::TILE_SIZE};
+use crate::{Z_TEXT, assets::GameAssets, despawn_after::DespawnAfter, map::TILE_HEIGHT};
 
 #[derive(Component)]
 pub struct MoveAnimation {
@@ -57,7 +57,7 @@ fn spawn_text(
             RenderLayers::layer(1),
             MoveAnimation {
                 from: *position,
-                to: position + Vec2::new(0.0, TILE_SIZE),
+                to: position + Vec2::new(0.0, TILE_HEIGHT),
                 timer,
                 ease: EaseFunction::QuadraticIn,
             },
