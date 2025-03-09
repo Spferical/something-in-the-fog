@@ -25,14 +25,32 @@ pub enum MobKind {
     Zombie,
     Sculpture,
     Hider,
+    Ghost,
     KoolAidMan,
 }
 
+#[derive(Debug, PartialEq, Eq)]
+pub enum LightSensitivity {
+    Very,
+    Yes,
+    No,
+}
+
 impl MobKind {
+    pub fn get_light_sensitivity(&self) -> LightSensitivity {
+        use LightSensitivity::*;
+        use MobKind::*;
+        match self {
+            Ghost => Very,
+            Zombie | Hider => Yes,
+            Sculpture | KoolAidMan => No,
+        }
+    }
     pub fn get_move_delay(&self) -> Duration {
         use MobKind::*;
         match self {
             Zombie => Duration::from_secs(1),
+            Ghost => Duration::from_secs(1),
             Sculpture => Duration::from_millis(16),
             Hider => Duration::from_millis(200),
             KoolAidMan => Duration::from_millis(100),
@@ -43,6 +61,7 @@ impl MobKind {
         use MobKind::*;
         match self {
             Zombie => 3,
+            Ghost => 99,
             Sculpture => 99,
             Hider => 2,
             KoolAidMan => 5,
@@ -53,6 +72,7 @@ impl MobKind {
         use MobKind::*;
         match self {
             Zombie => EaseFunction::BounceIn,
+            Ghost => EaseFunction::Linear,
             Sculpture => EaseFunction::Linear,
             Hider => EaseFunction::CubicIn,
             KoolAidMan => EaseFunction::BounceOut,
@@ -256,20 +276,31 @@ impl Default for KoolAidMovement {
     }
 }
 
-fn apply_light_sensitivity(mut mobs: Query<(&mut WobbleEffects, &mut Mob, &LightsUp)>) {
+fn apply_light_sensitivity(
+    mut mobs: Query<(Entity, &mut WobbleEffects, &mut Mob, &LightsUp)>,
+    mut ev_damage: EventWriter<MobDamageEvent>,
+) {
     let mut rng = rand::thread_rng();
     // const LIT_THRESHOLD: f32 = 2.0;
-    for (mut wobble, mut mob, lit) in mobs.iter_mut() {
-        if lit.is_lit && matches!(mob.kind, MobKind::Hider | MobKind::Zombie) {
-            let mut angle = rng.r#gen::<f32>() - 0.5;
-            if lit.is_brightly_lit {
-                angle *= 2.0;
-                mob.move_timer.reset();
-            }
-            if wobble.effects.is_empty() {
-                wobble.effects.push(WobbleEffect {
-                    timer: Timer::new(Duration::from_millis(50), TimerMode::Once),
-                    ease: EasingCurve::new(angle, 0.0, EaseFunction::Linear),
+    for (entity, mut wobble, mut mob, lit) in mobs.iter_mut() {
+        let sensitivity = mob.kind.get_light_sensitivity();
+        if lit.is_lit {
+            if sensitivity == LightSensitivity::Yes {
+                let mut angle = rng.r#gen::<f32>() - 0.5;
+                if lit.is_brightly_lit {
+                    angle *= 2.0;
+                    mob.move_timer.reset();
+                }
+                if wobble.effects.is_empty() {
+                    wobble.effects.push(WobbleEffect {
+                        timer: Timer::new(Duration::from_millis(50), TimerMode::Once),
+                        ease: EasingCurve::new(angle, 0.0, EaseFunction::Linear),
+                    });
+                }
+            } else if sensitivity == LightSensitivity::Very {
+                ev_damage.send(MobDamageEvent {
+                    damage: 999,
+                    entity,
                 });
             }
         }

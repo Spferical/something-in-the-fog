@@ -98,6 +98,9 @@ impl GameAssets {
             SpriteKind::Spawn(Spawn::Mob(MobKind::Hider)) => {
                 self.get_sprite_by_index(SpriteSheet::OryxMonsters, 4 * 19 + 2)
             }
+            SpriteKind::Spawn(Spawn::Mob(MobKind::Ghost)) => {
+                self.get_sprite_by_index(SpriteSheet::OryxMonsters, 16 * 19 + 2)
+            }
             SpriteKind::Spawn(Spawn::Mob(MobKind::KoolAidMan)) => {
                 self.get_sprite_by_index(SpriteSheet::OryxMonsters, 14 * 19 + 15)
             }
@@ -136,6 +139,7 @@ impl GameAssets {
             SpriteKind::Spawn(Spawn::Mob(MobKind::KoolAidMan)) => {
                 Color::LinearRgba(LinearRgba::RED)
             }
+            SpriteKind::Spawn(Spawn::Mob(MobKind::Ghost)) => Color::LinearRgba(LinearRgba::WHITE),
             SpriteKind::Spawn(Spawn::Item(ItemKind::Ammo(..))) => {
                 Color::LinearRgba(bevy::color::palettes::basic::GRAY.into())
             }
