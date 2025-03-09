@@ -31,6 +31,7 @@ pub fn setup_background_music(mut commands: Commands, game_assets: Res<GameAsset
             ..default()
         },
         BaseTrack,
+        FadeIn,
     ));
 
     commands.spawn((
