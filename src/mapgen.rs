@@ -331,12 +331,6 @@ pub fn gen_map() -> MapgenResult {
             None
         }
     }
-    item_spawns.insert(
-        Pos::new(3, 3),
-        ItemKind::Gun(GunType::Shotgun, GunType::Shotgun.get_info().max_load),
-    );
-    item_spawns.insert(Pos::new(3, 4), ItemKind::Ammo(GunType::Shotgun, 4));
-    mob_spawns.insert(Pos::new(4, 4), MobKind::Sculpture);
 
     tile_map.set_rect(field_rect.top_edge(), Some(TileKind::Tree));
     tile_map.set_rect(field_rect.left_edge(), Some(TileKind::Tree));
@@ -371,11 +365,11 @@ pub fn gen_map() -> MapgenResult {
         .into_iter()
         .filter(|p| tile_map[*p].filter(TileKind::blocks_movement).is_none())
         .collect::<Vec<Pos>>();
-    let spawns = free.choose_multiple(&mut rng, 36).collect::<Vec<_>>();
-    for p in &spawns[0..30] {
+    let spawns = free.choose_multiple(&mut rng, 26).collect::<Vec<_>>();
+    for p in &spawns[0..20] {
         mob_spawns.insert(**p, MobKind::Zombie);
     }
-    for p in &spawns[30..] {
+    for p in &spawns[20..] {
         item_spawns.insert(**p, ItemKind::Ammo(GunType::Pistol, 15));
     }
 
@@ -463,7 +457,7 @@ pub fn gen_map() -> MapgenResult {
                 && !item_spawns.contains_key(p)
         })
         .collect::<Vec<Pos>>();
-    let spawns = free.choose_multiple(&mut rng, 36).collect::<Vec<_>>();
+    let spawns = free.choose_multiple(&mut rng, 60).collect::<Vec<_>>();
     for p in &spawns[0..30] {
         mob_spawns.insert(**p, MobKind::Hider);
     }
@@ -521,6 +515,28 @@ pub fn gen_map() -> MapgenResult {
             }
             break;
         }
+    }
+    let free = railyard_rect
+        .into_iter()
+        .filter(|p| {
+            tile_map[*p]
+                .filter(|t| t.blocks_movement() || t.blocks_sight())
+                .is_none()
+                && !mob_spawns.contains_key(p)
+                && !item_spawns.contains_key(p)
+        })
+        .collect::<Vec<Pos>>();
+    let spawns = free.choose_multiple(&mut rng, 30).collect::<Vec<_>>();
+    for p in &spawns[0..15] {
+        mob_spawns.insert(**p, MobKind::KoolAidMan);
+    }
+    for p in &spawns[15..] {
+        let spawn = if rng.gen_bool(0.5) {
+            ItemKind::Ammo(GunType::Pistol, 15)
+        } else {
+            ItemKind::Ammo(GunType::Shotgun, 2)
+        };
+        item_spawns.insert(**p, spawn);
     }
 
     let mut spawns: HashMap<IVec2, Vec<Spawn>> = HashMap::new();

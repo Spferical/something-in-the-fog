@@ -145,7 +145,7 @@ struct FadeOut;
 #[derive(Component)]
 struct HurtEffect;
 
-fn setup(mut commands: Commands, assets: Res<GameAssets>, mut window: Query<&mut Window>) {
+fn setup(commands: Commands, assets: Res<GameAssets>, mut window: Query<&mut Window>) {
     window.single_mut().resizable = true;
 }
 

@@ -7,7 +7,7 @@ use crate::{
     assets::GameAssets,
     despawn_after::DespawnAfter,
     map::TILE_HEIGHT,
-    player::{GunInfo, Player},
+    player::GunInfo,
 };
 
 #[derive(Component)]
