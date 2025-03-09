@@ -54,7 +54,7 @@ pub fn update_lighting_pass(
         mouse_position = ev.0 + 0.5;
     }
 
-    let flashlight_center = Vec4::new(0.5, 0.5, 0.2, 0.0);
+    let flashlight_center = Vec4::new(0.5, 0.5, 0.25, 0.0);
     let delta = (Vec2::new(0.5, 0.5) - mouse_position).normalize();
     let flashlight = Light {
         color: Vec4::new(1.0, 1.0, 1.0, 1.0),
