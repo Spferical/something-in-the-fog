@@ -5,7 +5,7 @@ const BG: vec3<f32> = vec3<f32>(0.0, 0.0, 0.0);
 const ZOOM: f32 = 3.0;
 const OCTAVES: i32 = 4;
 
-const INTENSITY: f32 = 100.0;
+const INTENSITY: f32 = 130.0;
 
 fn random(st: vec2<f32>) -> f32 {
     return fract(sin(dot(st, vec2<f32>(12.9818, 79.279))) * 43758.5453123);
