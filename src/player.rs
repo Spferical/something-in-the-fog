@@ -108,7 +108,7 @@ impl GunType {
                 loads_one_at_a_time: false,
                 muzzle_flash_max_intensity: 20000.0,
                 muzzle_flash_attenuation: 3.0,
-                muzzle_flash_focus: 5.0,
+                muzzle_flash_focus: 45f32.to_radians(),
                 reload_time: Duration::from_secs(2),
             },
             GunType::Shotgun => GunInfo {
@@ -119,7 +119,7 @@ impl GunType {
                 loads_one_at_a_time: true,
                 muzzle_flash_max_intensity: 20000.0,
                 muzzle_flash_attenuation: 2.0,
-                muzzle_flash_focus: 3.0,
+                muzzle_flash_focus: 80f32.to_radians(),
                 reload_time: Duration::from_millis(500),
             },
         }

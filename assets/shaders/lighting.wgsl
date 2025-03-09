@@ -186,6 +186,11 @@ fn fog_trace(
     return accum;
 }
 
+fn narrow_beam(a: vec2f, b: vec2f, limit: f32) -> f32 {
+    let angle = acos(dot(a, b));
+    return max(-angle + limit, 0.0);
+}
+
 fn lighting_simple(
     pos: vec3f,
     light: Light,
@@ -200,11 +205,8 @@ fn lighting_simple(
     let rd = normalize(pos - camera_origin);
 
     var intensity = light.intensity;
-    if (light.focus > 1.0) {
-        intensity = intensity * pow(
-            clamp(dot(l.xy, light.direction.xy), 0.0, 1.0),
-            light.focus
-        );
+    if (light.focus > 0.0) {
+        intensity = intensity * narrow_beam(l.xy, light.direction.xy, light.focus);
     }
     if (light.attenuation > 0.0) {
         intensity = intensity * (

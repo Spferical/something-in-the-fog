@@ -56,15 +56,15 @@ pub fn update_lighting_pass(
         mouse_position = ev.0 + 0.5;
     }
 
-    let flashlight_center = Vec4::new(0.5, 0.5, 0.25, 0.0);
+    let flashlight_center = Vec4::new(0.5, 0.5, 0.23, 0.0);
     let delta = (Vec2::new(0.5, 0.5) - mouse_position).normalize();
     let flashlight = Light {
         color: Vec4::new(1.0, 1.0, 1.0, 1.0),
         intensity: 5000.0.lerp(10000.0, flashlight_info.focus_factor),
         center: flashlight_center,
         direction: Vec4::new(delta.x, delta.y, 0.0, 0.0),
-        focus: 20.0.lerp(100.0, flashlight_info.focus_factor),
-        attenuation: 10.0.lerp(1.0, flashlight_info.focus_factor),
+        focus: 45f32.to_radians(),
+        attenuation: 2.0,
         ..default()
     };
     let player_light_center = Vec4::new(0.5, 0.5, 0.41, 0.0);
@@ -80,7 +80,7 @@ pub fn update_lighting_pass(
         intensity: 50.0,
         center: player_light_center,
         direction: Vec4::new(0.0, 0.0, 0.0, 0.0),
-        focus: 1.0,
+        focus: 0.0,
         attenuation: 5.0,
         ..default()
     };
@@ -140,7 +140,7 @@ pub fn setup_lighting_pass(
         return;
     };
 
-    let flashlight_center = Vec4::new(0.5, 0.5, 0.2, 0.0);
+    /*let flashlight_center = Vec4::new(0.5, 0.5, 0.2, 0.0);
     let flashlight = Light {
         color: Vec4::new(1.0, 1.0, 1.0, 1.0),
         intensity: 10.0,
@@ -149,10 +149,10 @@ pub fn setup_lighting_pass(
         focus: 1.0,
         attenuation: 1.0,
         ..default()
-    };
+    };*/
 
     let mut lights = [Light::default(); 8];
-    lights[0] = flashlight;
+    // lights[0] = flashlight;
 
     let settings = LightingSettings {
         toggle_2d: 0,
