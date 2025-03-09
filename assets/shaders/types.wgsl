@@ -11,8 +11,9 @@ struct Light {
     direction: vec4f,
     focus: f32,
     attenuation: f32,
+    flicker: i32
     
-    _padding: f32
+    // _padding: f32
 }
 
 struct LightBundle {

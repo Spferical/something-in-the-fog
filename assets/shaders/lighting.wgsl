@@ -269,7 +269,10 @@ fn lighting_simple(
 
     var total_light = vec3(0.0);
     for (var light_i = 0; light_i < settings.num_lights; light_i++) {
-        let light = lights.lights[light_i];
+        var light = lights.lights[light_i];
+        if (light.flicker > 0) {
+            light.intensity *= (fbm(vec2f(view_bindings::globals.time * 3.0, 0.0)));
+        }
         if length(light.center.xyz - endpoints) > 1.5 {
             continue;
         }

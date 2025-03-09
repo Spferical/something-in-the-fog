@@ -79,6 +79,7 @@ pub fn update_lighting_pass(
         direction: Vec4::new(delta.x, delta.y, 0.3, 0.0).normalize(),
         focus: 50f32.lerp(20.0, flashlight_info.focus_factor).to_radians(),
         attenuation: 10f32.lerp(1.0, flashlight_info.focus_factor),
+        flicker: 1,
         ..default()
     };
     let player_light_center = Vec4::new(0.5, 0.5, 0.11, 0.0);
@@ -160,19 +161,7 @@ pub fn setup_lighting_pass(
         return;
     };
 
-    /*let flashlight_center = Vec4::new(0.5, 0.5, 0.2, 0.0);
-    let flashlight = Light {
-        color: Vec4::new(1.0, 1.0, 1.0, 1.0),
-        intensity: 10.0,
-        center: flashlight_center,
-        direction: Vec4::new(1.0, 0.0, 0.0, 0.0),
-        focus: 1.0,
-        attenuation: 1.0,
-        ..default()
-    };*/
-
     let mut lights = [Light::default(); 8];
-    // lights[0] = flashlight;
 
     let settings = LightingSettings {
         toggle_2d: 0,

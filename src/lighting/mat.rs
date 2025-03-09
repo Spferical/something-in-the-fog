@@ -11,7 +11,8 @@ pub struct Light {
     pub direction: Vec4,
     pub focus: f32,
     pub attenuation: f32,
-    pub _padding: f32,
+    pub flicker: i32,
+    // pub _padding: f32,
 }
 
 #[derive(Clone, Default, ShaderType)]
