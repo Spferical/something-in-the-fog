@@ -11,7 +11,7 @@ pub struct Light {
     pub direction: Vec4,
     pub focus: f32,
     pub attenuation: f32,
-    pub _padding: f32
+    pub _padding: f32,
 }
 
 #[derive(Clone, Default, ShaderType)]
@@ -23,7 +23,7 @@ pub struct LightBundle {
 pub struct LightingSettings {
     pub toggle_2d: i32,
     pub num_lights: i32,
-    pub _padding: Vec2
+    pub _padding: Vec2,
 }
 
 #[derive(AsBindGroup, Clone, Default, Asset, TypePath)]

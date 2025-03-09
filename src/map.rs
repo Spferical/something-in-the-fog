@@ -1,9 +1,12 @@
-use std::collections::{HashMap, HashSet};
+use std::{
+    collections::{HashMap, HashSet},
+    f32::consts::PI,
+};
 
 use bevy::prelude::*;
 
 use crate::{
-    player::{GunType, Player},
+    player::{FlashlightInfo, GunType, MouseWorldCoords, Player},
     spawn::SpawnEvent,
     ui::UiSettings,
 };
@@ -188,16 +191,68 @@ pub fn update_player_visibility(
     }
 }
 
+#[derive(Default, Resource)]
+pub struct FlashlightMap(pub HashSet<IVec2>);
+
+pub fn update_flashlight_map(
+    player_vis_map: Res<PlayerVisibilityMap>,
+    mut flashlight_map: ResMut<FlashlightMap>,
+    mouse_world_coords: Res<MouseWorldCoords>,
+    q_player: Query<&Transform, With<Player>>,
+    flashlight_info: Res<FlashlightInfo>,
+) {
+    flashlight_map.0.clear();
+    let player_pos = q_player.single().translation.xy();
+    let flashlight_dir = mouse_world_coords.0 - player_pos;
+    let allowed_angle_radians = flashlight_info.cone_width_degrees * (PI / 180.0);
+    info!("{flashlight_dir:?}");
+    for &p in player_vis_map.0.iter() {
+        let world_pos = MapPos(p).to_vec2();
+        if (world_pos - player_pos).angle_to(flashlight_dir).abs() <= allowed_angle_radians {
+            flashlight_map.0.insert(p);
+        }
+    }
+}
+
+// like the flashlight map but more forgiving
+#[derive(Default, Resource)]
+pub struct FovMap(pub HashSet<IVec2>);
+
+pub fn update_fov_map(
+    mut fov_map: ResMut<FovMap>,
+    vis_map: Res<PlayerVisibilityMap>,
+    mouse_world_coords: Res<MouseWorldCoords>,
+    q_player: Query<&Transform, With<Player>>,
+) {
+    pub const FOV_CONE_DEGREES: f32 = 70.0;
+    fov_map.0.clear();
+    let player_pos = q_player.single().translation.xy();
+    let flashlight_dir = mouse_world_coords.0 - player_pos;
+    let allowed_angle_radians = FOV_CONE_DEGREES * (PI / 180.0);
+    for &p in vis_map.0.iter() {
+        let world_pos = MapPos(p).to_vec2();
+        if (world_pos - player_pos).angle_to(flashlight_dir).abs() <= allowed_angle_radians {
+            fov_map.0.insert(p);
+        }
+    }
+}
+
 pub fn apply_visibility(
     player_vis_map: Res<PlayerVisibilityMap>,
+    flashlight_map: Res<FlashlightMap>,
+    fov_map: Res<FovMap>,
     mut query: Query<(&MapPos, &mut Visibility)>,
     settings: Res<UiSettings>,
 ) {
     for (map_pos, mut visibility) in query.iter_mut() {
-        *visibility = if !settings.show_visibility || player_vis_map.0.contains(&map_pos.0) {
-            Visibility::Inherited
-        } else {
+        *visibility = if settings.show_visibility && !player_vis_map.0.contains(&map_pos.0) {
             Visibility::Hidden
+        } else if settings.show_flashlight && !flashlight_map.0.contains(&map_pos.0) {
+            Visibility::Hidden
+        } else if settings.show_fov && !fov_map.0.contains(&map_pos.0) {
+            Visibility::Hidden
+        } else {
+            Visibility::Inherited
         };
     }
 }
@@ -211,6 +266,8 @@ impl Plugin for WorldPlugin {
         app.init_resource::<SightBlockedMap>();
         app.init_resource::<WalkBlockedMap>();
         app.init_resource::<PlayerVisibilityMap>();
+        app.init_resource::<FlashlightMap>();
+        app.init_resource::<FovMap>();
         app.add_systems(Startup, startup);
         app.add_systems(
             Update,
@@ -219,6 +276,8 @@ impl Plugin for WorldPlugin {
                 update_visibility,
                 update_walkability,
                 update_player_visibility,
+                update_flashlight_map,
+                update_fov_map,
                 apply_visibility,
             )
                 .chain()

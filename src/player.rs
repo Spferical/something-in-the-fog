@@ -9,14 +9,14 @@ use bevy::{
 use rand::Rng as _;
 
 use crate::{
+    GameState, PrimaryCamera, SDF_RES, Z_PLAYER,
     animation::{MoveAnimation, TextEvent},
     assets::{GameAssets, SpriteKind},
     despawn_after::DespawnAfter,
-    map::{BlocksMovement, Map, MapPos, Pickup, Tile, TILE_HEIGHT, TILE_WIDTH},
+    map::{BlocksMovement, Map, MapPos, Pickup, TILE_HEIGHT, TILE_WIDTH, Tile},
     mob::{Mob, MobDamageEvent},
     renderer::PlaneMouseMovedEvent,
     ui::UiSettings,
-    GameState, PrimaryCamera, SDF_RES, Z_PLAYER,
 };
 
 const PLAYER_MOVE_DELAY: Duration = Duration::from_millis(200);
@@ -25,6 +25,8 @@ const PLAYER_FOCUS_TIME_SECS: f32 = 2.5;
 const PLAYER_MOVE_FOCUS_PENALTY_SECS: f32 = 1.0;
 const PLAYER_SHOOT_FOCUS_PENALTY_SECS: f32 = 1.0;
 pub const PLAYER_MAX_DAMAGE: i32 = 8;
+pub const FLASHLIGHT_CONE_WIDTH_FOCUSED_DEGREES: f32 = 20.0;
+pub const FLASHLIGHT_CONE_WIDTH_UNFOCUSED_DEGREES: f32 = 40.0;
 
 #[derive(Component)]
 pub struct Player {
@@ -170,6 +172,56 @@ fn update_mouse_coords(
             mouse_world_coords.0 = world_pos;
         }
     }
+}
+
+#[derive(Resource)]
+pub struct FlashlightInfo {
+    pub cone_width_degrees: f32,
+    pub ease: EasingCurve<f32>,
+    pub ease_timer: Timer,
+    pub focused: bool,
+}
+
+impl Default for FlashlightInfo {
+    fn default() -> Self {
+        Self {
+            cone_width_degrees: 0.0,
+            ease: EasingCurve::new(
+                0.0,
+                FLASHLIGHT_CONE_WIDTH_UNFOCUSED_DEGREES,
+                EaseFunction::Linear,
+            ),
+            ease_timer: Timer::new(Duration::from_secs(1), TimerMode::Once),
+            focused: false,
+        }
+    }
+}
+
+fn update_flashlight(
+    mouse_button: Res<ButtonInput<MouseButton>>,
+    mut flashlight_info: ResMut<FlashlightInfo>,
+    time: Res<Time>,
+) {
+    flashlight_info.ease_timer.tick(time.delta());
+    const FLASHLIGHT_EASE_DURATION: Duration = Duration::from_millis(300);
+    let mouse_pressed = mouse_button.pressed(MouseButton::Right);
+    if flashlight_info.focused != mouse_pressed {
+        flashlight_info.focused = mouse_pressed;
+        let target: f32 = if flashlight_info.focused {
+            FLASHLIGHT_CONE_WIDTH_FOCUSED_DEGREES
+        } else {
+            FLASHLIGHT_CONE_WIDTH_UNFOCUSED_DEGREES
+        };
+        flashlight_info.ease = EasingCurve::new(
+            flashlight_info.cone_width_degrees,
+            target,
+            EaseFunction::Linear,
+        );
+        flashlight_info.ease_timer = Timer::new(FLASHLIGHT_EASE_DURATION, TimerMode::Once);
+    }
+    flashlight_info.cone_width_degrees = flashlight_info
+        .ease
+        .sample_clamped(flashlight_info.ease_timer.fraction());
 }
 
 #[derive(Component)]
@@ -597,6 +649,7 @@ impl Plugin for PlayerPlugin {
                 pickup,
                 swap_gun,
                 update_mouse_coords,
+                update_flashlight,
                 update_shooting,
                 update_sight_lines,
                 spawn_bullets,
@@ -608,6 +661,7 @@ impl Plugin for PlayerPlugin {
         )
         .add_event::<ShootEvent>()
         .add_event::<PlayerMoveEvent>()
-        .add_event::<PlayerDamageEvent>();
+        .add_event::<PlayerDamageEvent>()
+        .init_resource::<FlashlightInfo>();
     }
 }

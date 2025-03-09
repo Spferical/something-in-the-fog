@@ -5,13 +5,13 @@ use mat::{Light, LightBundle, LightingSettings};
 
 mod mat;
 
+use crate::PrimaryCamera;
 use crate::animation::{InjuryEffect, MuzzleFlash};
 use crate::edge::EdgeTexture;
 use crate::player::Player;
 use crate::renderer::{OccluderTextureCpu, PlaneMouseMovedEvent};
 use crate::sdf::SdfTexture;
 use crate::ui::UiSettings;
-use crate::PrimaryCamera;
 use bevy::render::view::RenderLayers;
 pub use mat::LightingMaterial;
 

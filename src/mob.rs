@@ -8,8 +8,9 @@ use crate::{
     Player,
     animation::MoveAnimation,
     map::{
-        Map, MapPos, PlayerVisibilityMap, SightBlockedMap, Tile, WalkBlockedMap, Zones, path,
-        update_visibility, update_walkability,
+        FlashlightMap, FovMap, Map, MapPos, PlayerVisibilityMap, SightBlockedMap, Tile,
+        WalkBlockedMap, Zones, path, update_flashlight_map, update_fov_map, update_visibility,
+        update_walkability,
     },
     player::{PlayerDamageEvent, PlayerMoveEvent, ShootEvent},
     spawn::{Spawn, SpawnEvent},
@@ -87,12 +88,15 @@ fn damage_mobs(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn path_to(
     source: IVec2,
     target: IVec2,
     walk_blocked_map: &WalkBlockedMap,
-    player_visibility_map: &PlayerVisibilityMap,
+    fov_map: &FovMap,
+    flashlight_map: &FlashlightMap,
     avoid_player_sight: bool,
+    avoid_player_flashlight: bool,
     path_through_walls: bool,
 ) -> Option<Vec<IVec2>> {
     path(
@@ -101,8 +105,10 @@ fn path_to(
         MAX_PATH,
         |p| !path_through_walls && walk_blocked_map.0.contains(&p),
         |p| {
-            if avoid_player_sight && player_visibility_map.0.contains(&p) {
+            if avoid_player_sight && fov_map.0.contains(&p) {
                 99
+            } else if avoid_player_flashlight && flashlight_map.0.contains(&p) {
+                1
             } else {
                 0
             }
@@ -259,7 +265,8 @@ fn move_mobs(
     player: Query<&MapPos, (With<Player>, Without<Mob>)>,
     mut walk_blocked_map: ResMut<WalkBlockedMap>,
     sight_blocked_map: Res<SightBlockedMap>,
-    player_visibility_map: Res<PlayerVisibilityMap>,
+    fov_map: Res<FovMap>,
+    flashlight_map: Res<FlashlightMap>,
     time: Res<Time>,
     mut ev_bust: EventWriter<BustThroughWallEvent>,
     mut ev_player_damage: EventWriter<PlayerDamageEvent>,
@@ -320,6 +327,7 @@ fn move_mobs(
             }
             if let Some(target_pos) = target_pos {
                 let avoid_player_sight = matches!(mob.kind, MobKind::Sculpture);
+                let avoid_player_flashlight = true;
                 let bust_through_walls = kool_aid.is_some();
                 let move_pos = if bust_through_walls {
                     Some(target_pos)
@@ -328,8 +336,10 @@ fn move_mobs(
                         mob_pos.0,
                         target_pos,
                         &walk_blocked_map,
-                        &player_visibility_map,
+                        &fov_map,
+                        &flashlight_map,
                         avoid_player_sight,
+                        avoid_player_flashlight,
                         false,
                     )
                     .and_then(|path| path.get(1).copied())
@@ -337,7 +347,7 @@ fn move_mobs(
                 if let Some(move_pos) = move_pos {
                     if move_pos != player_pos.0 {
                         if !(matches!(mob.kind, MobKind::Sculpture)
-                            && player_visibility_map.0.contains(&move_pos))
+                            && (fov_map.0.contains(&move_pos) || fov_map.0.contains(&mob_pos.0)))
                         {
                             walk_blocked_map.0.insert(move_pos);
                             mob_pos.0 = move_pos;
@@ -358,7 +368,7 @@ fn move_mobs(
                             mob.move_timer.reset();
                         }
                     } else if !(matches!(mob.kind, MobKind::Sculpture)
-                        && player_visibility_map.0.contains(&mob_pos.0))
+                        && fov_map.0.contains(&mob_pos.0))
                     {
                         info!("{:?} damaging player", mob.kind);
                         ev_player_damage.send(PlayerDamageEvent { damage: 1 });
@@ -432,7 +442,9 @@ impl Plugin for MobPlugin {
             )
                 .chain()
                 .after(update_visibility)
-                .after(update_walkability),
+                .after(update_walkability)
+                .after(update_fov_map)
+                .after(update_flashlight_map),
         )
         .add_event::<MobDamageEvent>()
         .add_event::<BustThroughWallEvent>();

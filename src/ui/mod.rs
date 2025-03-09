@@ -22,6 +22,8 @@ pub struct UiSettings {
     pub show_visibility: bool,
     pub nohurt: bool,
     pub toggle_2d: bool,
+    pub show_fov: bool,
+    pub show_flashlight: bool,
 }
 
 impl Default for UiSettings {
@@ -31,6 +33,8 @@ impl Default for UiSettings {
             show_debug_settings: true,
             debug_scroll: false,
             show_visibility: false,
+            show_fov: false,
+            show_flashlight: false,
             nohurt: true,
             toggle_2d: false,
         }
@@ -154,6 +158,10 @@ fn update(
                 ui.checkbox(&mut settings.debug_scroll, "scroll zoom");
                 ui.separator();
                 ui.checkbox(&mut settings.show_visibility, "viz");
+                ui.separator();
+                ui.checkbox(&mut settings.show_fov, "fov");
+                ui.separator();
+                ui.checkbox(&mut settings.show_flashlight, "flash");
                 ui.separator();
                 ui.checkbox(&mut settings.nohurt, "nohurt");
                 ui.separator();

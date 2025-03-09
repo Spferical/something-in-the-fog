@@ -336,6 +336,7 @@ pub fn gen_map() -> MapgenResult {
         ItemKind::Gun(GunType::Shotgun, GunType::Shotgun.get_info().max_load),
     );
     item_spawns.insert(Pos::new(3, 4), ItemKind::Ammo(GunType::Shotgun, 4));
+    mob_spawns.insert(Pos::new(4, 4), MobKind::Sculpture);
 
     tile_map.set_rect(field_rect.top_edge(), Some(TileKind::Tree));
     tile_map.set_rect(field_rect.left_edge(), Some(TileKind::Tree));
