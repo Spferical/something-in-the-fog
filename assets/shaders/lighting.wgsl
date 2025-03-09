@@ -38,7 +38,7 @@ fn sdf_2d(uv: vec3f) -> f32 {
 
 fn sdf_extruded(p: vec3<f32>) -> f32 {
     let d = sdf_2d(p);
-    let h = 0.1;
+    let h = 0.15;
     let w = vec2f(d, abs(p.z) - h);
     return min(max(w.x, w.y), 0.0) + length(max(w, vec2f(0.0, 0.0)));
 }
@@ -146,13 +146,13 @@ fn apply_fog(col: vec3f,
              t: f32,
              ro: vec3f,
              rd: vec3f) -> vec3f {
-                 let a: f32 = 0.5;
-                 let b: f32 = 0.05;
+    let a: f32 = 0.5;
+    let b: f32 = 0.05;
 
-                 var fogAmount = (a/b) * exp(-ro.y*b) * (1.0-exp(-t*rd.y*b))/rd.y;
-                 var fogColor = vec3f(0.5, 0.6, 0.7);
-                 return mix(col, fogColor, fogAmount);
-             }
+    var fogAmount = (a/b) * exp(-ro.y*b) * (1.0-exp(-t*rd.y*b))/rd.y;
+    var fogColor = vec3f(0.5, 0.6, 0.7);
+    return mix(col, fogColor, fogAmount);
+}
 
 fn fog_trace(
     color: vec3f,
