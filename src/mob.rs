@@ -357,7 +357,9 @@ fn move_mobs(
                             }
                             mob.move_timer.reset();
                         }
-                    } else {
+                    } else if !(matches!(mob.kind, MobKind::Sculpture)
+                        && player_visibility_map.0.contains(&mob_pos.0))
+                    {
                         info!("{:?} damaging player", mob.kind);
                         ev_player_damage.send(PlayerDamageEvent { damage: 1 });
                         mob.move_timer.reset();
