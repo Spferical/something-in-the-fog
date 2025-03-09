@@ -161,7 +161,7 @@ pub fn setup_lighting_pass(
         return;
     };
 
-    let mut lights = [Light::default(); 8];
+    let lights = [Light::default(); 8];
 
     let settings = LightingSettings {
         toggle_2d: 0,

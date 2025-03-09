@@ -176,7 +176,7 @@ impl SawPlayer {
 
 fn update_mobs_seeing_player(
     mut commands: Commands,
-    mobs: Query<(Entity, &Mob, &MapPos, Option<&SawPlayer>), With<SeesPlayer>>,
+    mobs: Query<(Entity, &MapPos, Option<&SawPlayer>), With<SeesPlayer>>,
     player_visibility_map: Res<PlayerVisibilityMap>,
     sight_blocked_map: Res<SightBlockedMap>,
     mut ev_player_move: EventReader<PlayerMoveEvent>,
@@ -184,7 +184,7 @@ fn update_mobs_seeing_player(
 ) {
     let player_pos = player.single();
     let last_player_move = ev_player_move.read().last();
-    for (entity, mob, mob_pos, saw_player) in mobs.iter() {
+    for (entity, mob_pos, saw_player) in mobs.iter() {
         let player_sees_mob = player_visibility_map.0.contains(&mob_pos.0);
         let player_is_hidden = sight_blocked_map.0.contains(&player_pos.0);
         if player_sees_mob && !player_is_hidden {
@@ -224,14 +224,14 @@ impl HeardPlayer {
 
 fn update_hearing_player(
     mut commands: Commands,
-    mobs: Query<(Entity, &Mob), With<HearsPlayer>>,
+    mobs: Query<Entity, With<HearsPlayer>>,
     mut ev_shoot: EventReader<ShootEvent>,
     map: Res<Map>,
 ) {
     const HEARING_RADIUS: i32 = 20;
     for ShootEvent { start, .. } in ev_shoot.read() {
         let map_pos = MapPos::from_vec2(*start);
-        for (entity, mob) in mobs.iter_many(map.get_nearby(map_pos.0, HEARING_RADIUS)) {
+        for entity in mobs.iter_many(map.get_nearby(map_pos.0, HEARING_RADIUS)) {
             commands.entity(entity).insert(HeardPlayer::new(map_pos.0));
         }
     }
