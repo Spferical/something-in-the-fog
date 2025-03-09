@@ -242,6 +242,9 @@ fn lighting_simple(
     var total_light = vec3(0.0);
     for (var light_i = 0; light_i < settings.num_lights; light_i++) {
         let light = lights.lights[light_i];
+        if length(light.center.xyz - endpoints) > 0.8 {
+            continue;
+        }
         total_light += lighting_simple(endpoints, light, ro_lighting, normal);
     }
     return vec4(total_light, 1.0);
