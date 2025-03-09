@@ -33,6 +33,14 @@ impl MapPos {
             y: (vec2.y / TILE_HEIGHT) as i32,
         })
     }
+    pub fn corners(&self) -> [Vec2; 4] {
+        [
+            self.to_vec2(),
+            self.to_vec2() + Vec2::new(0.0, 1.0),
+            self.to_vec2() + Vec2::new(1.0, 0.0),
+            self.to_vec2() + Vec2::new(1.0, 1.0),
+        ]
+    }
 }
 
 #[derive(Component)]
@@ -205,11 +213,31 @@ pub fn update_flashlight_map(
     let player_pos = q_player.single().translation.xy();
     let flashlight_dir = mouse_world_coords.0 - player_pos;
     let allowed_angle_radians = flashlight_info.cone_width_degrees * (PI / 180.0);
-    info!("{flashlight_dir:?}");
     for &p in player_vis_map.0.iter() {
-        let world_pos = MapPos(p).to_vec2();
-        if (world_pos - player_pos).angle_to(flashlight_dir).abs() <= allowed_angle_radians {
-            flashlight_map.0.insert(p);
+        for world_pos in MapPos(p).corners() {
+            if (world_pos - player_pos).angle_to(flashlight_dir).abs() <= allowed_angle_radians {
+                flashlight_map.0.insert(p);
+            }
+        }
+    }
+}
+
+#[derive(Default, Component)]
+pub struct LightsUp {
+    pub is_lit: bool,
+    // increases when lit, never goes down
+    pub lit_factor: f32,
+}
+
+pub fn update_lit(
+    flashlight_map: Res<FlashlightMap>,
+    mut q_lights_up: Query<(&MapPos, &mut LightsUp)>,
+    time: Res<Time>,
+) {
+    for (pos, mut lit) in q_lights_up.iter_mut() {
+        lit.is_lit = flashlight_map.0.contains(&pos.0);
+        if lit.is_lit {
+            lit.lit_factor += time.delta_secs();
         }
     }
 }
@@ -230,9 +258,10 @@ pub fn update_fov_map(
     let flashlight_dir = mouse_world_coords.0 - player_pos;
     let allowed_angle_radians = FOV_CONE_DEGREES * (PI / 180.0);
     for &p in vis_map.0.iter() {
-        let world_pos = MapPos(p).to_vec2();
-        if (world_pos - player_pos).angle_to(flashlight_dir).abs() <= allowed_angle_radians {
-            fov_map.0.insert(p);
+        for world_pos in MapPos(p).corners() {
+            if (world_pos - player_pos).angle_to(flashlight_dir).abs() <= allowed_angle_radians {
+                fov_map.0.insert(p);
+            }
         }
     }
 }
@@ -279,6 +308,7 @@ impl Plugin for WorldPlugin {
                 update_flashlight_map,
                 update_fov_map,
                 apply_visibility,
+                update_lit,
             )
                 .chain()
                 .after(crate::spawn::spawn),

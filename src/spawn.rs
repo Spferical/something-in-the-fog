@@ -4,8 +4,8 @@ use crate::{
     Z_ITEMS, Z_MOBS, Z_TILES,
     assets::{GameAssets, SpriteKind},
     map::{
-        BlocksMovement, BlocksSight, ItemKind, MapPos, Pickup, TILE_HEIGHT, TILE_WIDTH, Tile,
-        TileKind,
+        BlocksMovement, BlocksSight, ItemKind, LightsUp, MapPos, Pickup, TILE_HEIGHT, TILE_WIDTH,
+        Tile, TileKind,
     },
     mob::{HearsPlayer, KoolAidMovement, Mob, MobKind, SeesPlayer},
 };
@@ -71,6 +71,7 @@ pub fn spawn(
                         damage: 0,
                         kind: *kind,
                     },
+                    LightsUp::default(),
                 ));
                 if let MobKind::KoolAidMan = kind {
                     entity_commands.insert(KoolAidMovement::default());

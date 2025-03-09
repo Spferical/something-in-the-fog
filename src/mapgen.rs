@@ -322,6 +322,7 @@ pub fn gen_map() -> MapgenResult {
 
     // field
     let start = Pos::new(0, 0);
+    mob_spawns.insert(Pos::new(3, 3), MobKind::Sculpture);
     let field_rect = rogue_algebra::Rect::new_centered(start, 16, 24);
     // field is empty and surrounded by trees on 3 sides.
     for pos in field_rect.into_iter() {

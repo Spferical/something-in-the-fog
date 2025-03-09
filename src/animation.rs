@@ -3,8 +3,8 @@ use std::time::Duration;
 use bevy::{prelude::*, render::view::RenderLayers};
 
 use crate::{
-    assets::GameAssets, despawn_after::DespawnAfter, lighting::UI_LAYER, map::TILE_HEIGHT,
-    player::GunInfo, Z_TEXT,
+    Z_TEXT, assets::GameAssets, despawn_after::DespawnAfter, lighting::UI_LAYER, map::TILE_HEIGHT,
+    player::GunInfo,
 };
 
 #[derive(Component)]

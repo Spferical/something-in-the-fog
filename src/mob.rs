@@ -2,15 +2,15 @@ use std::time::Duration;
 
 use bevy::{prelude::*, time::Stopwatch};
 use line_drawing::WalkGrid;
-use rand::seq::SliceRandom;
+use rand::{Rng, seq::SliceRandom};
 
 use crate::{
     Player,
     animation::MoveAnimation,
     map::{
-        FlashlightMap, FovMap, Map, MapPos, PlayerVisibilityMap, SightBlockedMap, Tile,
-        WalkBlockedMap, Zones, path, update_flashlight_map, update_fov_map, update_visibility,
-        update_walkability,
+        FlashlightMap, FovMap, LightsUp, Map, MapPos, PlayerVisibilityMap, SightBlockedMap, Tile,
+        WalkBlockedMap, Zones, path, update_flashlight_map, update_fov_map, update_lit,
+        update_visibility, update_walkability,
     },
     player::{PlayerDamageEvent, PlayerMoveEvent, ShootEvent},
     spawn::{Spawn, SpawnEvent},
@@ -250,6 +250,16 @@ impl Default for KoolAidMovement {
     }
 }
 
+fn apply_light_sensitivity(mut mobs: Query<(&mut Transform, &mut Mob, &LightsUp)>) {
+    let mut rng = rand::thread_rng();
+    for (mut transform, mut mob, lit) in mobs.iter_mut() {
+        if lit.is_lit && lit.lit_factor <= 2.0 {
+            mob.move_timer.reset();
+            transform.rotation = Quat::from_rotation_z(rng.r#gen::<f32>() - 0.5);
+        }
+    }
+}
+
 #[allow(clippy::complexity)]
 fn move_mobs(
     mut commands: Commands,
@@ -272,7 +282,7 @@ fn move_mobs(
     mut ev_player_damage: EventWriter<PlayerDamageEvent>,
 ) {
     let player_pos = player.single();
-    for (entity, mut mob, mut mob_pos, transform, saw_player, heard_player, mut kool_aid) in
+    for (entity, mut mob, mut mob_pos, mut transform, saw_player, heard_player, mut kool_aid) in
         mobs.iter_mut()
     {
         mob.move_timer.tick(time.delta());
@@ -439,12 +449,14 @@ impl Plugin for MobPlugin {
                 damage_mobs,
                 move_mobs,
                 bust_through_walls,
+                apply_light_sensitivity,
             )
                 .chain()
                 .after(update_visibility)
                 .after(update_walkability)
                 .after(update_fov_map)
-                .after(update_flashlight_map),
+                .after(update_flashlight_map)
+                .after(update_lit),
         )
         .add_event::<MobDamageEvent>()
         .add_event::<BustThroughWallEvent>();
