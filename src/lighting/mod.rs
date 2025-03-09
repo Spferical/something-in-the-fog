@@ -61,6 +61,7 @@ pub fn update_lighting_pass(
     query: Query<&MeshMaterial3d<LightingMaterial>, With<RenderPlane>>,
     mut materials: ResMut<Assets<LightingMaterial>>,
     mut mouse_reader: EventReader<PlaneMouseMovedEvent>,
+    mut settings: ResMut<UiSettings>,
 ) {
     let Ok(mat) = query.get_single() else {
         return;
@@ -94,6 +95,7 @@ pub fn update_lighting_pass(
         mat.lights.lights[0] = flashlight;
         mat.lights.lights[1] = player_light;
         mat.num_lights = 2;
+        mat.lighting_settings.toggle_2d = settings.toggle_2d as i32;
     }
 }
 
@@ -105,7 +107,6 @@ pub fn setup_lighting_pass(
     edge_texture_query: Query<&EdgeTexture>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<LightingMaterial>>,
-    mut settings: ResMut<UiSettings>,
     query_camera: Query<(&Camera, &GlobalTransform), With<PrimaryCamera>>,
     // mut standard_materials: ResMut<Assets<StandardMaterial>>,
 ) {
@@ -140,7 +141,7 @@ pub fn setup_lighting_pass(
 
     let settings = LightingSettings {
         tile_size: TILE_SIZE as i32,
-        toggle_2d: settings.toggle_2d as i32,
+        toggle_2d: 0,
     };
 
     let plane = meshes.add(Plane3d::default().mesh().size(1.0, aspect_ratio));
