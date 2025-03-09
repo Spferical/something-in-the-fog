@@ -35,9 +35,10 @@ fn sdf_2d(uv: vec3f) -> f32 {
     return sdf;
 }
 
-fn sdf_extruded(p: vec3<f32>) -> f32 {
+fn sdf_extruded(p_: vec3<f32>) -> f32 {
+    let p = p_ - vec3f(0.0, 0.0, 0.1);
     let d = sdf_2d(p);
-    let h = 0.15;
+    let h = 0.1;
     let w = vec2f(d, abs(p.z) - h);
     return min(max(w.x, w.y), 0.0) + length(max(w, vec2f(0.0, 0.0)));
 }
@@ -80,7 +81,8 @@ fn visibility(ro: vec3f, end_pt: vec3f, trace_iters: u32, eps: f32, w: f32) -> f
     var ph: f32 = 1e8;
 
     let maxt = length(end_pt - ro);
-    var t: f32 = 0.05;
+    // var t: f32 = 0.05;
+    var t: f32 = 0.01;
     for (var i = 0u; i < trace_iters && t < maxt; i++) {
         let p = ro + rd * t;
         let h = sdf(p);
@@ -231,7 +233,7 @@ fn lighting_simple(
     // let ro = vec3(screen_size / 2.0, 0.0);
     // let ro = vec3(0.5, 0.5, 1.0);
     let ro = vec3(0.5, 0.5, 1.0);
-    let ro_lighting = vec3(0.5, 0.5, 0.2);
+    let ro_lighting = vec3(0.5, 0.5, 0.3);
 
     let rd = normalize(vec3(uv, 0.0) - ro);
     let ray_outputs = trace_ray(ro, rd, u32(16), 0.01, 1000.0, 1e-4);
