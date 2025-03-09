@@ -5,6 +5,7 @@ use mat::{Light, LightBundle, LightingSettings};
 
 mod mat;
 
+use crate::animation::MuzzleFlash;
 use crate::edge::EdgeTexture;
 use crate::renderer::{OccluderTextureCpu, PlaneMouseMovedEvent};
 use crate::sdf::SdfTexture;
@@ -57,10 +58,13 @@ pub fn get_mouse_location(
 }
 
 pub fn update_lighting_pass(
+    mut commands: Commands,
     query: Query<&MeshMaterial3d<LightingMaterial>, With<RenderPlane>>,
     mut materials: ResMut<Assets<LightingMaterial>>,
     mut mouse_reader: EventReader<PlaneMouseMovedEvent>,
+    mut muzzle_flash: Query<(Entity, &mut MuzzleFlash)>,
     settings: ResMut<UiSettings>,
+    time: Res<Time>,
 ) {
     let Ok(mat) = query.get_single() else {
         return;
@@ -97,6 +101,27 @@ pub fn update_lighting_pass(
         mat.lights.lights[1] = player_light;
         mat.lighting_settings.num_lights = 2;
         mat.lighting_settings.toggle_2d = settings.toggle_2d as i32;
+
+        if let Ok((entity, mut flash)) = muzzle_flash.get_single_mut() {
+            flash.timer.tick(time.delta());
+            let intensity_scalar = flash.ease.sample_clamped(flash.timer.fraction());
+
+            let muzzle_flash_light = Light {
+                color: Vec4::new(1.0, 1.0, 0.7, 1.0),
+                intensity: 10000.0 * intensity_scalar,
+                center: player_light_center,
+                direction: Vec4::new(delta.x, delta.y, 0.0, 0.0),
+                focus: 4.0,
+                attenuation: 3.0,
+                ..default()
+            };
+            mat.lights.lights[2] = muzzle_flash_light;
+            mat.lighting_settings.num_lights += 1;
+
+            if flash.timer.finished() {
+                commands.entity(entity).despawn();
+            }
+        }
     }
 }
 

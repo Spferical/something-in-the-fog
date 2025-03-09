@@ -9,14 +9,14 @@ use bevy::{
 use rand::Rng as _;
 
 use crate::{
-    GameState, PrimaryCamera, SDF_RES, Z_PLAYER,
     animation::{MoveAnimation, TextEvent},
     assets::{GameAssets, SpriteKind},
     despawn_after::DespawnAfter,
-    map::{BlocksMovement, Map, MapPos, Pickup, TILE_HEIGHT, TILE_WIDTH, Tile},
+    map::{BlocksMovement, Map, MapPos, Pickup, Tile, TILE_HEIGHT, TILE_WIDTH},
     mob::{Mob, MobDamageEvent},
     renderer::PlaneMouseMovedEvent,
     ui::UiSettings,
+    GameState, PrimaryCamera, SDF_RES, Z_PLAYER,
 };
 
 const PLAYER_MOVE_DELAY: Duration = Duration::from_millis(200);
@@ -88,6 +88,9 @@ pub struct GunInfo {
     pub num_projectiles: usize,
     pub max_load: usize,
     pub loads_one_at_a_time: bool,
+    pub muzzle_flash_max_intensity: f32,
+    pub muzzle_flash_attenuation: f32,
+    pub muzzle_flash_focus: f32,
     reload_time: Duration,
 }
 
@@ -100,6 +103,9 @@ impl GunType {
                 num_projectiles: 1,
                 max_load: 15,
                 loads_one_at_a_time: false,
+                muzzle_flash_max_intensity: 10000.0,
+                muzzle_flash_attenuation: 3.0,
+                muzzle_flash_focus: 4.0,
                 reload_time: Duration::from_secs(2),
             },
             GunType::Shotgun => GunInfo {
@@ -108,6 +114,9 @@ impl GunType {
                 num_projectiles: 10,
                 max_load: 2,
                 loads_one_at_a_time: true,
+                muzzle_flash_max_intensity: 10000.0,
+                muzzle_flash_attenuation: 2.0,
+                muzzle_flash_focus: 2.0,
                 reload_time: Duration::from_millis(500),
             },
         }

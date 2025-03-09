@@ -2,7 +2,9 @@ use std::time::Duration;
 
 use bevy::{prelude::*, render::view::RenderLayers};
 
-use crate::{Z_TEXT, assets::GameAssets, despawn_after::DespawnAfter, map::TILE_HEIGHT};
+use crate::{
+    assets::GameAssets, despawn_after::DespawnAfter, map::TILE_HEIGHT, player::GunInfo, Z_TEXT,
+};
 
 #[derive(Component)]
 pub struct MoveAnimation {
@@ -91,6 +93,13 @@ fn fade_color_material(
         let color = &mut materials.get_mut(material.0.id()).unwrap().color;
         *color = color.with_alpha(fade.ease.sample_clamped(fade.timer.fraction()));
     }
+}
+
+#[derive(Component)]
+pub struct MuzzleFlash {
+    pub timer: Timer,
+    pub ease: EasingCurve<f32>,
+    pub info: GunInfo,
 }
 
 pub struct AnimatePlugin;

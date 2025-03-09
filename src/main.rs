@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use animation::FadeColorMaterial;
+use animation::{FadeColorMaterial, MuzzleFlash};
 use assets::GameAssets;
 use bevy::diagnostic::LogDiagnosticsPlugin;
 use bevy::input::mouse::{MouseScrollUnit, MouseWheel};
@@ -13,7 +13,7 @@ use bevy::{
     },
 };
 use map::Zones;
-use player::{Player, PlayerDamageEvent};
+use player::{Inventory, Player, PlayerDamageEvent, ShootEvent};
 use ui::{UiEvent, UiSettings};
 
 mod animation;
@@ -189,6 +189,28 @@ fn animate_player_damage(
     }
 }
 
+fn animate_muzzle_flash(
+    mut commands: Commands,
+    mut query: Query<&mut MuzzleFlash>,
+    mut gun: Res<Inventory>,
+    mut ev_shoot_event: EventReader<ShootEvent>,
+) {
+    if ev_shoot_event.read().count() > 0 {
+        let timer = Timer::new(Duration::from_millis(100), TimerMode::Once);
+        let info = gun.equipped.get_info();
+        if let Ok(mut flash) = query.get_single_mut() {
+            flash.timer = timer;
+            flash.info = info;
+        } else {
+            commands.spawn(MuzzleFlash {
+                timer,
+                ease: EasingCurve::new(0.25, 0.0, EaseFunction::CubicInOut),
+                info,
+            });
+        };
+    }
+}
+
 fn handle_ui_event(
     mut ev: EventReader<UiEvent>,
     zones: Res<Zones>,
@@ -232,6 +254,7 @@ fn main() {
                 update_camera,
                 on_resize,
                 animate_player_damage,
+                animate_muzzle_flash,
                 handle_game_over,
             )
                 .chain(),
