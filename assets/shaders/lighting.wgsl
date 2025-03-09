@@ -251,7 +251,8 @@ fn lighting_simple(
     let ui_elem = textureSample(
         ui_texture,
         seed_sampler,
-        endpoints.xy
+        (ro + rd * 1.4).xy
+        // endpoints.xy
     );
     let color = mix(ui_elem.xyz, total_light, 1 - ui_elem.a);
     return vec4(color, 1.0);
