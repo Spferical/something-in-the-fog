@@ -21,29 +21,6 @@ const LIGHTING_LAYER: usize = 4;
 #[derive(Component)]
 pub struct RenderPlane;
 
-/*pub fn alter_fov(
-    mut commands: Commands,
-    mut entity: Query<Entity, With<PerspectiveProjection>>,
-    time: Res<Time>,
-) {
-    let Ok(entity) = entity.get_single_mut() else {
-        return;
-    };
-
-    let fov = ((time.elapsed().as_millis() as f32) / 1000.0).cos() * 40. + 60.;
-    let y = ((time.elapsed().as_millis() as f32) / 1000.0).cos() * 0.1 + 0.5;
-    println!("got here, fov {:?}", fov);
-    let proj = PerspectiveProjection {
-        fov: fov.to_radians(),
-        ..default()
-    };
-    // commands.entity(entity).insert(proj);
-    commands
-        .entity(entity)
-        //.insert(Transform::from_xyz(0.0, y, 0.0).looking_at(Vec3::ZERO, -Vec3::Z))
-        .insert(proj);
-}*/
-
 pub fn get_mouse_location(
     pointers: Query<&PointerInteraction>,
     mut mouse_writer: EventWriter<PlaneMouseMovedEvent>,

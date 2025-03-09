@@ -147,13 +147,6 @@ struct HurtEffect;
 
 fn setup(mut commands: Commands, assets: Res<GameAssets>, mut window: Query<&mut Window>) {
     window.single_mut().resizable = true;
-    /*commands.spawn((
-        HurtEffect,
-        Mesh2d(assets.square.clone()),
-        MeshMaterial2d(assets.hurt_effect_material.clone()),
-        RenderLayers::layer(1),
-        Transform::from_translation(Vec3::ZERO.with_z(9.0)).with_scale(Vec3::splat(99999.0)),
-    ));*/
 }
 
 /*fn handle_game_over(
