@@ -225,20 +225,25 @@ pub fn update_flashlight_map(
 #[derive(Default, Component)]
 pub struct LightsUp {
     pub is_lit: bool,
+    pub is_brightly_lit: bool,
     // increases when lit, never goes down
     pub lit_factor: f32,
 }
 
 pub fn update_lit(
     flashlight_map: Res<FlashlightMap>,
+    flashlight_info: Res<FlashlightInfo>,
     mut q_lights_up: Query<(&MapPos, &mut LightsUp)>,
     time: Res<Time>,
 ) {
     for (pos, mut lit) in q_lights_up.iter_mut() {
         lit.is_lit = flashlight_map.0.contains(&pos.0);
-        if lit.is_lit {
-            lit.lit_factor += time.delta_secs();
-        }
+        lit.is_brightly_lit = lit.is_lit && flashlight_info.focused;
+        lit.lit_factor += match (lit.is_lit, lit.is_brightly_lit) {
+            (true, true) => time.delta_secs() * 2.0,
+            (true, false) => time.delta_secs(),
+            _ => 0.0,
+        };
     }
 }
 

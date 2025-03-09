@@ -27,8 +27,8 @@ mod mob;
 mod player;
 mod renderer;
 mod sdf;
-mod spawn;
 mod sound;
+mod spawn;
 mod ui;
 
 pub const SDF_RES: u32 = 768;

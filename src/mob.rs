@@ -2,18 +2,18 @@ use std::time::Duration;
 
 use bevy::{prelude::*, time::Stopwatch};
 use line_drawing::WalkGrid;
-use rand::{seq::SliceRandom, Rng};
+use rand::{Rng, seq::SliceRandom};
 
 use crate::{
+    Player,
     animation::MoveAnimation,
     map::{
-        path, update_flashlight_map, update_fov_map, update_lit, update_visibility,
-        update_walkability, FlashlightMap, FovMap, LightsUp, Map, MapPos, PlayerVisibilityMap,
-        SightBlockedMap, Tile, WalkBlockedMap, Zones,
+        FlashlightMap, FovMap, LightsUp, Map, MapPos, PlayerVisibilityMap, SightBlockedMap, Tile,
+        WalkBlockedMap, Zones, path, update_flashlight_map, update_fov_map, update_lit,
+        update_visibility, update_walkability,
     },
     player::{PlayerDamageEvent, PlayerMoveEvent, ShootEvent},
     spawn::{Spawn, SpawnEvent},
-    Player,
 };
 
 const MAX_PATH: i32 = 100;
@@ -284,10 +284,15 @@ impl Default for KoolAidMovement {
 
 fn apply_light_sensitivity(mut mobs: Query<(&mut Transform, &mut Mob, &LightsUp)>) {
     let mut rng = rand::thread_rng();
+    // const LIT_THRESHOLD: f32 = 2.0;
     for (mut transform, mut mob, lit) in mobs.iter_mut() {
-        if lit.is_lit && lit.lit_factor <= 2.0 {
-            mob.move_timer.reset();
-            transform.rotation = Quat::from_rotation_z(rng.r#gen::<f32>() - 0.5);
+        if lit.is_lit {
+            let mut rotation = rng.r#gen::<f32>() - 0.5;
+            if lit.is_brightly_lit {
+                rotation *= 2.0;
+                mob.move_timer.reset();
+            }
+            transform.rotation = Quat::from_rotation_z(rotation);
         }
     }
 }

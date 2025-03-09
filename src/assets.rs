@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use bevy::prelude::*;
 
 use crate::{
-    map::{ItemKind, TileKind, TILE_HEIGHT, TILE_WIDTH},
+    map::{ItemKind, TILE_HEIGHT, TILE_WIDTH, TileKind},
     mob::MobKind,
     spawn::Spawn,
 };
