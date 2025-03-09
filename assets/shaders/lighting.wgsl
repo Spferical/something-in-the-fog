@@ -214,6 +214,12 @@ fn lighting_simple(
     let screen_size = vec2f(textureDimensions(seed_texture));
     let uv = vec2f(mesh.uv.x, mesh.uv.y);
 
+    if (settings.toggle_2d > 0) {
+        return vec4f(textureSample(screen_texture, seed_sampler, uv).xy / screen_size,
+                     0.0,
+                     1.0);
+    }
+
     let inside_texture = textureSample(screen_texture, seed_sampler, uv.xy).a > 0.5;
     let height = select(0.0, 0.5, inside_texture);
     // let endpoints = vec3(uv, 0.0);

@@ -17,5 +17,6 @@ struct LightBundle {
 }
 
 struct LightingSettings {
-    tile_size: i32
+    tile_size: i32,
+    toggle_2d: i32
 }

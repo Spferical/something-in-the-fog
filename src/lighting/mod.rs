@@ -11,6 +11,7 @@ use crate::edge::EdgeTexture;
 use crate::map::TILE_SIZE;
 use crate::renderer::{OccluderTextureCpu, PlaneMouseMovedEvent};
 use crate::sdf::SdfTexture;
+use crate::ui::UiSettings;
 use crate::{PrimaryCamera, SDF_RES};
 use bevy::render::view::RenderLayers;
 pub use mat::LightingMaterial;
@@ -67,6 +68,7 @@ pub fn setup_lighting_pass(
     primary_camera_query: Query<&Transform, With<PrimaryCamera>>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<LightingMaterial>>,
+    mut settings: ResMut<UiSettings>,
     // mut standard_materials: ResMut<Assets<StandardMaterial>>,
 ) {
     let (width, height) = (
@@ -90,6 +92,7 @@ pub fn setup_lighting_pass(
 
     let settings = LightingSettings {
         tile_size: TILE_SIZE as i32,
+        toggle_2d: settings.toggle_2d as i32
     };
     let lights = [Light::default(); 8];
 

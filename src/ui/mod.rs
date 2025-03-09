@@ -21,6 +21,7 @@ pub struct UiSettings {
     pub debug_scroll: bool,
     pub show_visibility: bool,
     pub nohurt: bool,
+    pub toggle_2d: bool
 }
 
 impl Default for UiSettings {
@@ -31,6 +32,7 @@ impl Default for UiSettings {
             debug_scroll: false,
             show_visibility: false,
             nohurt: true,
+            toggle_2d: false
         }
     }
 }
@@ -154,6 +156,8 @@ fn update(
                 ui.checkbox(&mut settings.show_visibility, "viz");
                 ui.separator();
                 ui.checkbox(&mut settings.nohurt, "nohurt");
+                ui.separator();
+                ui.checkbox(&mut settings.toggle_2d, "toggle_2d");
                 ui.separator();
                 ui.label("Teleport to... ");
                 for i in 0..=5 {
