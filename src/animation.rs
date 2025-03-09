@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use bevy::{prelude::*, render::view::RenderLayers};
 
-use crate::{assets::GameAssets, despawn_after::DespawnAfter, map::TILE_SIZE};
+use crate::{Z_TEXT, assets::GameAssets, despawn_after::DespawnAfter, map::TILE_SIZE};
 
 #[derive(Component)]
 pub struct MoveAnimation {
@@ -49,7 +49,7 @@ fn spawn_text(
     {
         let timer = Timer::new(*duration, TimerMode::Once);
         commands.spawn((
-            Transform::from_translation(position.extend(3.0)),
+            Transform::from_translation(position.extend(Z_TEXT)),
             Text2d::new(text),
             TextFont::from_font(assets.font.clone()),
             TextFade(timer.clone()),

@@ -14,12 +14,10 @@ pub static PRESS_START_2P_BYTES: &[u8] =
 #[derive(Resource)]
 pub struct GameAssets {
     pub font: Handle<Font>,
-    pub circle: Handle<Mesh>,
     pub square: Handle<Mesh>,
     pub pixel: Handle<Mesh>,
     pub white: Handle<ColorMaterial>,
     pub sight_line: Handle<ColorMaterial>,
-    pub small_square: Handle<Mesh>,
     pub reload_indicator_mesh: Handle<Mesh>,
     pub reload_indicator_material: Handle<ColorMaterial>,
     pub hurt_effect_material: Handle<ColorMaterial>,
@@ -200,8 +198,6 @@ fn init_assets(
         font: fonts.add(Font::try_from_bytes(PRESS_START_2P_BYTES.into()).unwrap()),
         sheets,
         square: meshes.add(Rectangle::new(TILE_SIZE, TILE_SIZE)),
-        small_square: meshes.add(Rectangle::new(10.0, 10.0)),
-        circle: meshes.add(Circle::new(TILE_SIZE / 2.0)),
         reload_indicator_mesh: meshes.add(CircularSector::from_degrees(TILE_SIZE, 360.0)),
         pixel: meshes.add(Rectangle::new(1.0, 1.0)),
         white: materials.add(Color::LinearRgba(LinearRgba::WHITE)),

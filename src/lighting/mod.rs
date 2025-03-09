@@ -90,7 +90,7 @@ pub fn setup_lighting_pass(
 
     let settings = LightingSettings {
         tile_size: TILE_SIZE as i32,
-        toggle_2d: settings.toggle_2d as i32
+        toggle_2d: settings.toggle_2d as i32,
     };
     let lights = [Light::default(); 8];
 

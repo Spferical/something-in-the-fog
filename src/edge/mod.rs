@@ -6,8 +6,8 @@ use bevy::{asset::Handle, ecs::component::Component, image::Image};
 mod mat;
 mod prepare;
 
-use crate::renderer::OccluderTextureCpu;
 use crate::SDF_RES;
+use crate::renderer::OccluderTextureCpu;
 pub use mat::EdgeMaterial;
 pub use prepare::{on_resize_edge_texture, prepare_edge_texture};
 

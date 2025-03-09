@@ -5,10 +5,10 @@ use bevy::{core_pipeline::tonemapping::Tonemapping, prelude::*};
 mod mat;
 mod prepare;
 
+use crate::SDF_RES;
 use crate::edge::EdgeTexture;
 use crate::map::TILE_SIZE;
 use crate::renderer::OccluderTextureCpu;
-use crate::SDF_RES;
 use bevy::render::view::RenderLayers;
 pub use mat::SdfMaterial;
 pub use prepare::{on_resize_sdf_texture, prepare_sdf_texture};

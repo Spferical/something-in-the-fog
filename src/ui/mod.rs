@@ -21,7 +21,7 @@ pub struct UiSettings {
     pub debug_scroll: bool,
     pub show_visibility: bool,
     pub nohurt: bool,
-    pub toggle_2d: bool
+    pub toggle_2d: bool,
 }
 
 impl Default for UiSettings {
@@ -32,7 +32,7 @@ impl Default for UiSettings {
             debug_scroll: false,
             show_visibility: false,
             nohurt: true,
-            toggle_2d: false
+            toggle_2d: false,
         }
     }
 }

@@ -34,19 +34,12 @@ pub fn spawn(
 ) {
     for SpawnEvent(pos, spawn) in ev_spawn.read() {
         let sprite = world_assets.get_sprite(SpriteKind::Spawn(spawn.clone()));
-        let mesh = match spawn {
-            Spawn::Tile(_) => world_assets.square.clone(),
-            Spawn::Mob(_) => world_assets.circle.clone(),
-            Spawn::Item(ItemKind::Ammo(..)) => world_assets.small_square.clone(),
-            Spawn::Item(ItemKind::Gun(..)) => world_assets.small_square.clone(),
-        };
         let z = match spawn {
             Spawn::Tile(..) => Z_TILES,
             Spawn::Mob(..) => Z_MOBS,
             Spawn::Item(..) => Z_ITEMS,
         };
         let mut entity_commands = commands.spawn((
-            Mesh2d(mesh),
             sprite,
             MapPos(*pos),
             Transform::from_translation(Vec3::new(
