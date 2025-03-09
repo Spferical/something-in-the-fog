@@ -174,6 +174,7 @@ struct GameState {
 
 fn setup(mut window: Query<&mut Window>) {
     window.single_mut().resizable = true;
+    window.single_mut().fit_canvas_to_parent = true;
 }
 
 /*fn handle_game_over(
