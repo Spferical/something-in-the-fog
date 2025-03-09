@@ -3,13 +3,27 @@ use std::collections::HashMap;
 use bevy::prelude::*;
 
 use crate::{
-    map::{ItemKind, TILE_HEIGHT, TILE_WIDTH, TileKind},
+    map::{ItemKind, TileKind, TILE_HEIGHT, TILE_WIDTH},
     mob::MobKind,
     spawn::Spawn,
 };
 
 pub static PRESS_START_2P_BYTES: &[u8] =
     include_bytes!("../assets/PressStart2P/PressStart2P-Regular.ttf");
+
+#[derive(Resource, Default)]
+pub struct Sfx {
+    pub base_track: Handle<AudioSource>,
+    pub active_track: Handle<AudioSource>,
+    pub monk_track: Handle<AudioSource>,
+
+    pub reload_pistol: Vec<Handle<AudioSource>>,
+    pub reload_shotgun: Vec<Handle<AudioSource>>,
+    pub fire_pistol: Vec<Handle<AudioSource>>,
+    pub fire_shotgun: Vec<Handle<AudioSource>>,
+    pub empty_pistol: Vec<Handle<AudioSource>>,
+    pub empty_shotgun: Vec<Handle<AudioSource>>,
+}
 
 #[derive(Resource)]
 pub struct GameAssets {
@@ -20,6 +34,7 @@ pub struct GameAssets {
     pub reload_indicator_mesh: Handle<Mesh>,
     pub reload_indicator_material: Handle<ColorMaterial>,
     pub sheets: HashMap<SpriteSheet, (Handle<Image>, Handle<TextureAtlasLayout>)>,
+    pub sfx: Sfx,
 }
 
 #[derive(PartialEq, Eq, Hash)]
@@ -140,6 +155,10 @@ fn init_assets(
     mut texture_atlas_layouts: ResMut<Assets<TextureAtlasLayout>>,
     asset_server: Res<AssetServer>,
 ) {
+    let base_track = asset_server.load::<AudioSource>("sfx/music/base_layer.ogg");
+    let active_track = asset_server.load::<AudioSource>("sfx/music/active_layer.ogg");
+    let monk_track = asset_server.load::<AudioSource>("sfx/music/scp_layer.ogg");
+
     let mut sheets = HashMap::new();
     sheets.insert(
         SpriteSheet::Urizen,
@@ -221,6 +240,12 @@ fn init_assets(
         reload_indicator_material: materials.add(Color::Srgba(
             bevy::color::palettes::basic::WHITE.with_alpha(0.25),
         )),
+        sfx: Sfx {
+            base_track,
+            active_track,
+            monk_track,
+            ..default()
+        },
     });
 }
 

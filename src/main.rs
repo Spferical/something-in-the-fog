@@ -28,6 +28,7 @@ mod player;
 mod renderer;
 mod sdf;
 mod spawn;
+mod sound;
 mod ui;
 
 pub const SDF_RES: u32 = 768;
@@ -279,6 +280,7 @@ fn main() {
             spawn::SpawnPlugin,
             player::PlayerPlugin,
             mob::MobPlugin,
+            sound::SoundPlugin,
             despawn_after::DespawnAfterPlugin,
         ))
         .add_systems(Startup, (create_camera, setup))
