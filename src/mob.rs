@@ -27,6 +27,7 @@ pub enum MobKind {
     Hider,
     Ghost,
     KoolAidMan,
+    Eyeball,
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -41,7 +42,7 @@ impl MobKind {
         use LightSensitivity::*;
         use MobKind::*;
         match self {
-            Ghost => Very,
+            Ghost | Eyeball => Very,
             Zombie | Hider => Yes,
             Sculpture | KoolAidMan => No,
         }
@@ -49,6 +50,7 @@ impl MobKind {
     pub fn get_move_delay(&self) -> Duration {
         use MobKind::*;
         match self {
+            Eyeball => Duration::from_secs(1),
             Zombie => Duration::from_secs(1),
             Ghost => Duration::from_secs(1),
             Sculpture => Duration::from_millis(16),
@@ -62,6 +64,7 @@ impl MobKind {
         match self {
             Zombie => 3,
             Ghost => 99,
+            Eyeball => 99,
             Sculpture => 99,
             Hider => 2,
             KoolAidMan => 5,
@@ -71,6 +74,7 @@ impl MobKind {
     pub fn get_ease_function_for_movement(&self) -> EaseFunction {
         use MobKind::*;
         match self {
+            Eyeball => EaseFunction::CircularInOut,
             Zombie => EaseFunction::BounceIn,
             Ghost => EaseFunction::Linear,
             Sculpture => EaseFunction::Linear,
@@ -286,19 +290,21 @@ fn apply_light_sensitivity(
     mut ev_damage: EventWriter<MobDamageEvent>,
 ) {
     let mut rng = rand::thread_rng();
-    // const LIT_THRESHOLD: f32 = 2.0;
     for (entity, mut wobble, mut mob, lit) in mobs.iter_mut() {
         let sensitivity = mob.kind.get_light_sensitivity();
         if lit.is_lit && matches!(sensitivity, LightSensitivity::Yes | LightSensitivity::Very) {
             let mut angle = rng.r#gen::<f32>() - 0.5;
-            const LIT_THRESHOLD: f32 = 1.0;
+            let lit_threshold = match mob.kind {
+                MobKind::Eyeball => 30.0,
+                _ => 1.0,
+            };
             if lit.is_brightly_lit {
                 angle *= 2.0;
                 if sensitivity == LightSensitivity::Very {
                     angle *= 2.0;
                 }
                 mob.move_timer.reset();
-                if sensitivity == LightSensitivity::Very && lit.lit_factor >= LIT_THRESHOLD {
+                if sensitivity == LightSensitivity::Very && lit.lit_factor >= lit_threshold {
                     ev_damage.send(MobDamageEvent {
                         damage: 999,
                         entity,

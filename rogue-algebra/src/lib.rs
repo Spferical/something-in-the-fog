@@ -600,6 +600,25 @@ impl Rect {
             y2: self.y2.min(other.y2),
         })
     }
+    #[must_use]
+    pub fn shift_to_right_of(&self, other: Rect) -> Rect {
+        let offset_x = ((other.x2 + 1) - self.x1).max(0);
+        *self + Offset::new(offset_x, 0)
+    }
+}
+
+impl Add<Offset> for Rect {
+    type Output = Rect;
+
+    fn add(self, rhs: Offset) -> Self::Output {
+        let Rect { x1, y1, x2, y2 } = self;
+        Self {
+            x1: x1 + rhs.x,
+            y1: y1 + rhs.y,
+            x2: x2 + rhs.x,
+            y2: y2 + rhs.y,
+        }
+    }
 }
 
 /// Iterator over the positions in a rectangle. Goes row-by-row from the

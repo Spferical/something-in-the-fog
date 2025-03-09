@@ -112,6 +112,9 @@ impl GameAssets {
             SpriteKind::Spawn(Spawn::Mob(MobKind::KoolAidMan)) => {
                 self.get_sprite_by_index(SpriteSheet::OryxMonsters, 14 * 19 + 15)
             }
+            SpriteKind::Spawn(Spawn::Mob(MobKind::Eyeball)) => {
+                self.get_sprite_by_index(SpriteSheet::OryxMonsters, 14 * 19 + 7)
+            }
             SpriteKind::Spawn(Spawn::Item(ItemKind::Ammo(GunType::Pistol, ..))) => {
                 self.get_sprite_by_index(SpriteSheet::Urizen, 103 * 22 + 68)
             }
@@ -156,6 +159,7 @@ impl GameAssets {
             SpriteKind::Spawn(Spawn::Mob(MobKind::KoolAidMan)) => {
                 Color::LinearRgba(LinearRgba::RED)
             }
+            SpriteKind::Spawn(Spawn::Mob(MobKind::Eyeball)) => Color::LinearRgba(LinearRgba::BLUE),
             SpriteKind::Spawn(Spawn::Mob(MobKind::Ghost)) => Color::LinearRgba(LinearRgba::WHITE),
             SpriteKind::Spawn(Spawn::Item(ItemKind::Ammo(..))) => {
                 Color::LinearRgba(bevy::color::palettes::basic::GRAY.into())

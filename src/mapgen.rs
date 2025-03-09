@@ -1,7 +1,7 @@
 #![allow(unused)]
 use bevy::math::{IRect, IVec2};
 use rand::{Rng, rngs::ThreadRng, seq::SliceRandom as _};
-use rogue_algebra::{Pos, Rect, TileMap};
+use rogue_algebra::{Offset, Pos, Rect, TileMap};
 use std::collections::{HashMap, HashSet};
 
 use crate::{
@@ -385,9 +385,15 @@ pub fn gen_map() -> MapgenResult {
         item_spawns,
     };
 
-    // field
     let start = Pos::new(0, 0);
-    let field_rect = rogue_algebra::Rect::new_centered(start, 16, 24);
+    let field_rect = Rect::new_centered(start, 16, 24);
+    let forest_rect = Rect::new_centered(start, 80, 24).shift_to_right_of(field_rect);
+    let warehouse_zone_rect = Rect::new_centered(start, 80, 44).shift_to_right_of(forest_rect);
+    let forest2_rect = Rect::new_centered(start, 80, 44).shift_to_right_of(warehouse_zone_rect);
+    let railyard_rect = Rect::new_centered(start, 80, 44).shift_to_right_of(forest2_rect);
+    let final_rect = Rect::new_centered(start, 40, 40).shift_to_right_of(railyard_rect);
+
+    // field
     // field is empty and surrounded by trees on 3 sides.
     for pos in field_rect.into_iter() {
         mapgen.tile_map[pos] = if mapgen.rng.gen_bool(0.1) {
@@ -409,9 +415,6 @@ pub fn gen_map() -> MapgenResult {
         .set_rect(field_rect.bottom_edge(), Some(TileKind::Tree));
 
     // forest
-    let mut forest_rect = field_rect.right_edge();
-    forest_rect.x2 += 81;
-    forest_rect.x1 += 1;
     mapgen
         .tile_map
         .set_rect(forest_rect.expand_y(1), Some(TileKind::Tree));
@@ -426,11 +429,10 @@ pub fn gen_map() -> MapgenResult {
     );
 
     // warehouse
-    let mut warehouse_zone_rect = forest_rect.right_edge();
-    warehouse_zone_rect.x1 += 1;
-    warehouse_zone_rect.x2 += 81;
-    warehouse_zone_rect.y1 -= 20;
-    warehouse_zone_rect.y2 += 20;
+    mapgen
+        .tile_map
+        .set_rect(warehouse_zone_rect.expand_y(1), Some(TileKind::Tree));
+
     mapgen.tile_map.set_rect(warehouse_zone_rect, None);
     // clearing with one big building in it
     let warehouse_rect = Rect {
@@ -519,9 +521,6 @@ pub fn gen_map() -> MapgenResult {
     );
 
     // another forest, but with spiders and ghosts
-    let mut forest2_rect = warehouse_zone_rect.right_edge();
-    forest2_rect.x1 += 1;
-    forest2_rect.x2 += 81;
     mapgen
         .tile_map
         .set_rect(forest2_rect.expand_y(1), Some(TileKind::Tree));
@@ -539,9 +538,6 @@ pub fn gen_map() -> MapgenResult {
     );
 
     // Railyard. Wide open but with large shipping containers obscuring vision.
-    let mut railyard_rect = forest2_rect.right_edge();
-    railyard_rect.x1 += 1;
-    railyard_rect.x2 += 81;
     let mut boxes_zone = railyard_rect;
     boxes_zone.x1 += 1;
     mapgen
@@ -597,6 +593,9 @@ pub fn gen_map() -> MapgenResult {
         ],
     );
 
+    // final zone: boss room
+    mapgen.tile_map.set_rect(final_rect, None);
+
     let mut spawns: HashMap<IVec2, Vec<Spawn>> = HashMap::new();
     for (pos, tile) in mapgen.tile_map.iter() {
         if let Some(tile) = tile {
@@ -626,6 +625,7 @@ pub fn gen_map() -> MapgenResult {
             warehouse_zone_rect.into(),
             forest2_rect.into(),
             railyard_rect.into(),
+            final_rect.into(),
         ],
     }
 }

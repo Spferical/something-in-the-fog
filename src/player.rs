@@ -442,7 +442,9 @@ fn update_shooting(
         if gun_state.ammo_loaded == 0 && !settings.inf_ammo {
             return;
         }
-        gun_state.ammo_loaded -= 1;
+        if !settings.inf_ammo {
+            gun_state.ammo_loaded -= 1;
+        }
 
         // TODO(kazasrinivas3): Clean this up at some point...
         if let Some(sound) = match equipped {
