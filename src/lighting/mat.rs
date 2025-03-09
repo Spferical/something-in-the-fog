@@ -21,7 +21,7 @@ pub struct LightBundle {
 #[derive(Clone, Default, ShaderType)]
 pub struct LightingSettings {
     pub tile_size: i32,
-    pub toggle_2d: i32
+    pub toggle_2d: i32,
 }
 
 #[derive(AsBindGroup, Clone, Default, Asset, TypePath)]

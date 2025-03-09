@@ -2,7 +2,6 @@ use std::time::Duration;
 
 use animation::FadeColorMaterial;
 use assets::GameAssets;
-use bevy::core_pipeline::tonemapping::DebandDither;
 use bevy::diagnostic::LogDiagnosticsPlugin;
 use bevy::input::mouse::{MouseScrollUnit, MouseWheel};
 use bevy::{
@@ -14,9 +13,7 @@ use bevy::{
     },
 };
 use map::Zones;
-use map::{Map, MapPos, TILE_SIZE, Tile};
 use player::{Player, PlayerDamageEvent};
-use rand::Rng as _;
 use ui::{UiEvent, UiSettings};
 
 mod animation;
@@ -42,6 +39,7 @@ const Z_PLAYER: f32 = 1.0;
 const Z_TILES: f32 = 3.0;
 const Z_ITEMS: f32 = 4.0;
 const Z_MOBS: f32 = 2.0;
+const Z_TEXT: f32 = 9.0;
 
 fn on_resize(mut resize_reader: EventReader<bevy::window::WindowResized>) {
     for _e in resize_reader.read() {}

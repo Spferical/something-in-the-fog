@@ -2,7 +2,11 @@ use std::collections::HashMap;
 
 use bevy::{prelude::*, sprite::AlphaMode2d};
 
-use crate::map::TILE_SIZE;
+use crate::{
+    map::{ItemKind, TILE_SIZE, TileKind},
+    mob::MobKind,
+    spawn::Spawn,
+};
 
 pub static PRESS_START_2P_BYTES: &[u8] =
     include_bytes!("../assets/PressStart2P/PressStart2P-Regular.ttf");
@@ -10,19 +14,10 @@ pub static PRESS_START_2P_BYTES: &[u8] =
 #[derive(Resource)]
 pub struct GameAssets {
     pub font: Handle<Font>,
-    pub circle: Handle<Mesh>,
     pub square: Handle<Mesh>,
     pub pixel: Handle<Mesh>,
     pub white: Handle<ColorMaterial>,
-    pub gray: Handle<ColorMaterial>,
-    pub green: Handle<ColorMaterial>,
-    pub dark_green: Handle<ColorMaterial>,
-    pub red: Handle<ColorMaterial>,
-    pub purple: Handle<ColorMaterial>,
     pub sight_line: Handle<ColorMaterial>,
-    pub brown: Handle<ColorMaterial>,
-    pub aqua: Handle<ColorMaterial>,
-    pub small_square: Handle<Mesh>,
     pub reload_indicator_mesh: Handle<Mesh>,
     pub reload_indicator_material: Handle<ColorMaterial>,
     pub hurt_effect_material: Handle<ColorMaterial>,
@@ -34,18 +29,107 @@ pub struct GameAssets {
 pub enum SpriteSheet {
     Urizen,
     OryxAvatar,
+    OryxTerrain,
+    OryxTerrainObjects,
+}
+
+pub enum SpriteKind {
+    Player,
+    Spawn(Spawn),
 }
 
 impl GameAssets {
-    pub fn get_sprite(&self, sheet: SpriteSheet, index: usize) -> Sprite {
+    pub fn get_sprite_by_index(&self, sheet: SpriteSheet, index: usize) -> Sprite {
         let (texture, layout) = self.sheets.get(&sheet).unwrap();
-        Sprite::from_atlas_image(
+        let mut sprite = Sprite::from_atlas_image(
             texture.clone(),
             TextureAtlas {
                 layout: layout.clone(),
                 index,
             },
-        )
+        );
+        sprite.custom_size = match sheet {
+            SpriteSheet::Urizen => Some(Vec2::new(48.0, 48.0)),
+            _ => Some(Vec2::new(48.0, 32.0)),
+        };
+        sprite
+    }
+    pub fn get_sprite(&self, kind: SpriteKind) -> Sprite {
+        let mut sprite = match kind {
+            SpriteKind::Player => self.get_sprite_by_index(SpriteSheet::OryxAvatar, 1),
+            SpriteKind::Spawn(Spawn::Tile(TileKind::Wall)) => {
+                self.get_sprite_by_index(SpriteSheet::OryxTerrain, 0)
+            }
+            SpriteKind::Spawn(Spawn::Tile(TileKind::ShippingContainer)) => {
+                self.get_sprite_by_index(SpriteSheet::OryxTerrainObjects, 7)
+            }
+            SpriteKind::Spawn(Spawn::Tile(TileKind::Crate)) => {
+                self.get_sprite_by_index(SpriteSheet::OryxTerrainObjects, 20 * 3 + 5)
+            }
+            SpriteKind::Spawn(Spawn::Tile(TileKind::Bush)) => {
+                self.get_sprite_by_index(SpriteSheet::OryxTerrainObjects, 20 * 10 + 3)
+            }
+            SpriteKind::Spawn(Spawn::Tile(TileKind::Tree)) => {
+                self.get_sprite_by_index(SpriteSheet::OryxTerrainObjects, 20 * 6 + 6)
+            }
+            SpriteKind::Spawn(Spawn::Tile(TileKind::Door)) => {
+                self.get_sprite_by_index(SpriteSheet::OryxTerrainObjects, 20 + 3)
+            }
+            SpriteKind::Spawn(Spawn::Mob(MobKind::Zombie)) => {
+                self.get_sprite_by_index(SpriteSheet::OryxAvatar, 1)
+            }
+            SpriteKind::Spawn(Spawn::Mob(MobKind::Sculpture)) => {
+                self.get_sprite_by_index(SpriteSheet::OryxAvatar, 1)
+            }
+            SpriteKind::Spawn(Spawn::Mob(MobKind::Hider)) => {
+                self.get_sprite_by_index(SpriteSheet::OryxAvatar, 1)
+            }
+            SpriteKind::Spawn(Spawn::Mob(MobKind::KoolAidMan)) => {
+                self.get_sprite_by_index(SpriteSheet::OryxAvatar, 1)
+            }
+            SpriteKind::Spawn(Spawn::Item(ItemKind::Ammo(..))) => {
+                self.get_sprite_by_index(SpriteSheet::Urizen, 103 * 22 + 52)
+            }
+            SpriteKind::Spawn(Spawn::Item(ItemKind::Gun(..))) => {
+                self.get_sprite_by_index(SpriteSheet::Urizen, 103 * 22 + 52)
+            }
+        };
+        sprite.color = match kind {
+            SpriteKind::Player => Color::LinearRgba(LinearRgba::WHITE),
+            SpriteKind::Spawn(Spawn::Tile(TileKind::Wall)) => Color::LinearRgba(LinearRgba::WHITE),
+            SpriteKind::Spawn(Spawn::Tile(TileKind::ShippingContainer)) => {
+                Color::srgba_u8(0xad, 0x4e, 0x37, 0xff)
+            }
+            SpriteKind::Spawn(Spawn::Tile(TileKind::Crate)) => {
+                Color::LinearRgba(bevy::color::palettes::basic::GRAY.into())
+            }
+            SpriteKind::Spawn(Spawn::Tile(TileKind::Bush)) => Color::LinearRgba(LinearRgba::GREEN),
+            SpriteKind::Spawn(Spawn::Tile(TileKind::Tree)) => {
+                Color::LinearRgba(LinearRgba::rgb(0.0, 0.5, 0.0))
+            }
+            SpriteKind::Spawn(Spawn::Tile(TileKind::Door)) => {
+                Color::srgba_u8(0xad, 0x4e, 0x37, 0xff)
+            }
+            SpriteKind::Spawn(Spawn::Mob(MobKind::Zombie)) => {
+                Color::LinearRgba(LinearRgba::rgb(1.0, 0.0, 1.0))
+            }
+            SpriteKind::Spawn(Spawn::Mob(MobKind::Sculpture)) => {
+                Color::srgba_u8(0xad, 0x4e, 0x37, 0xff)
+            }
+            SpriteKind::Spawn(Spawn::Mob(MobKind::Hider)) => {
+                Color::LinearRgba(bevy::color::palettes::basic::AQUA.into())
+            }
+            SpriteKind::Spawn(Spawn::Mob(MobKind::KoolAidMan)) => {
+                Color::LinearRgba(LinearRgba::RED)
+            }
+            SpriteKind::Spawn(Spawn::Item(ItemKind::Ammo(..))) => {
+                Color::LinearRgba(bevy::color::palettes::basic::GRAY.into())
+            }
+            SpriteKind::Spawn(Spawn::Item(ItemKind::Gun(..))) => {
+                Color::LinearRgba(bevy::color::palettes::basic::GRAY.into())
+            }
+        };
+        sprite
     }
 }
 
@@ -79,8 +163,34 @@ fn init_assets(
                 UVec2::new(16, 24),
                 6,
                 2,
-                Some(UVec2::splat(1)),
-                Some(UVec2::splat(1)),
+                None,
+                None,
+            )),
+        ),
+    );
+    sheets.insert(
+        SpriteSheet::OryxTerrain,
+        (
+            asset_server.load("oryx_roguelike_2.0/Terrain.png"),
+            texture_atlas_layouts.add(TextureAtlasLayout::from_grid(
+                UVec2::new(16, 24),
+                16,
+                11,
+                None,
+                None,
+            )),
+        ),
+    );
+    sheets.insert(
+        SpriteSheet::OryxTerrainObjects,
+        (
+            asset_server.load("oryx_roguelike_2.0/Terrain_Objects.png"),
+            texture_atlas_layouts.add(TextureAtlasLayout::from_grid(
+                UVec2::new(16, 24),
+                20,
+                12,
+                None,
+                None,
             )),
         ),
     );
@@ -88,18 +198,9 @@ fn init_assets(
         font: fonts.add(Font::try_from_bytes(PRESS_START_2P_BYTES.into()).unwrap()),
         sheets,
         square: meshes.add(Rectangle::new(TILE_SIZE, TILE_SIZE)),
-        circle: meshes.add(Circle::new(TILE_SIZE / 2.0)),
         reload_indicator_mesh: meshes.add(CircularSector::from_degrees(TILE_SIZE, 360.0)),
         pixel: meshes.add(Rectangle::new(1.0, 1.0)),
-        small_square: meshes.add(Rectangle::new(10.0, 10.0)),
         white: materials.add(Color::LinearRgba(LinearRgba::WHITE)),
-        gray: materials.add(Color::LinearRgba(bevy::color::palettes::basic::GRAY.into())),
-        brown: materials.add(Color::srgba_u8(0xad, 0x4e, 0x37, 0xff)),
-        green: materials.add(Color::LinearRgba(LinearRgba::GREEN)),
-        dark_green: materials.add(Color::LinearRgba(LinearRgba::rgb(0.0, 0.5, 0.0))),
-        red: materials.add(Color::LinearRgba(LinearRgba::RED)),
-        purple: materials.add(Color::LinearRgba(LinearRgba::rgb(1.0, 0.0, 1.0))),
-        aqua: materials.add(Color::LinearRgba(bevy::color::palettes::basic::AQUA.into())),
         sight_line: materials.add(ColorMaterial {
             color: Color::Srgba(bevy::color::palettes::basic::YELLOW.with_alpha(0.5)),
             alpha_mode: AlphaMode2d::Opaque,

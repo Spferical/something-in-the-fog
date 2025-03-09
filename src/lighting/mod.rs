@@ -1,9 +1,6 @@
-use bevy::color::palettes::tailwind::RED_500;
 use bevy::core_pipeline::tonemapping::{DebandDither, Tonemapping};
-use bevy::math::VectorSpace;
 use bevy::picking::pointer::PointerInteraction;
 use bevy::prelude::*;
-use bevy::render::render_graph::RenderLabel;
 use mat::{Light, LightBundle, LightingSettings};
 
 mod mat;
@@ -81,7 +78,7 @@ pub fn update_lighting_pass(
         center: flashlight_center,
         direction: Vec4::new(delta.x, delta.y, 0.0, 0.0),
         focus: 10.0,
-        attenuation: 1.0
+        attenuation: 1.0,
     };
     let player_light_center = Vec4::new(0.5, 0.5, 0.15, 0.0);
     let player_light = Light {
@@ -90,7 +87,7 @@ pub fn update_lighting_pass(
         center: player_light_center,
         direction: Vec4::new(0.0, 0.0, 0.0, 0.0),
         focus: 1.0,
-        attenuation: 5.0
+        attenuation: 5.0,
     };
 
     if let Some(mat) = materials.get_mut(mat) {
@@ -143,7 +140,7 @@ pub fn setup_lighting_pass(
 
     let settings = LightingSettings {
         tile_size: TILE_SIZE as i32,
-        toggle_2d: settings.toggle_2d as i32
+        toggle_2d: settings.toggle_2d as i32,
     };
 
     let plane = meshes.add(Plane3d::default().mesh().size(1.0, aspect_ratio));
