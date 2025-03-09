@@ -283,7 +283,7 @@ fn init_assets(
                 20,
                 12,
                 None,
-                None,
+                Some(UVec2::splat(1)),
             )),
         ),
     );
