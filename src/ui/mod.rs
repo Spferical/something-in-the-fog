@@ -6,7 +6,9 @@ use bevy_egui::{
 
 use crate::{
     assets::PRESS_START_2P_BYTES,
+    mob::MobKind,
     player::{GunInfo, GunState, Inventory, PLAYER_MAX_DAMAGE, Player},
+    spawn::Spawn,
 };
 
 pub mod performance;
@@ -71,6 +73,7 @@ fn startup(mut contexts: EguiContexts) {
 #[derive(Event)]
 pub enum UiEvent {
     TeleportPlayer(usize),
+    Spawn(Spawn),
 }
 
 fn update(
@@ -151,33 +154,40 @@ fn update(
         ui.label("reload: R");
         ui.label("scroll: swap gun");
         ui.label("right click: focus light");
-    });
-    if settings.show_debug_settings {
-        egui::TopBottomPanel::bottom("debug_panel").show(ctx, |ui| {
-            ui.horizontal(|ui| {
-                ui.colored_label(Color32::RED, "DEBUG SETTINGS");
-                ui.separator();
-                ui.checkbox(&mut settings.debug_scroll, "scroll zoom");
-                ui.separator();
-                ui.checkbox(&mut settings.show_visibility, "viz");
-                ui.separator();
-                ui.checkbox(&mut settings.show_fov, "fov");
-                ui.separator();
-                ui.checkbox(&mut settings.show_flashlight, "flash");
-                ui.separator();
-                ui.checkbox(&mut settings.nohurt, "nohurt");
-                ui.separator();
-                ui.checkbox(&mut settings.toggle_2d, "toggle_2d");
-                ui.separator();
-                ui.label("Teleport to... ");
-                for i in 0..=5 {
-                    if ui.button(format!("{i}")).clicked() {
-                        ev.send(UiEvent::TeleportPlayer(i));
-                    }
+        if settings.show_debug_settings {
+            ui.style_mut().wrap_mode = Some(egui::TextWrapMode::Wrap);
+            ui.colored_label(Color32::RED, "DEBUG SETTINGS");
+            ui.separator();
+            ui.checkbox(&mut settings.debug_scroll, "scroll zoom");
+            ui.separator();
+            ui.checkbox(&mut settings.show_visibility, "viz");
+            ui.separator();
+            ui.checkbox(&mut settings.show_fov, "fov");
+            ui.separator();
+            ui.checkbox(&mut settings.show_flashlight, "flash");
+            ui.separator();
+            ui.checkbox(&mut settings.nohurt, "nohurt");
+            ui.separator();
+            ui.checkbox(&mut settings.toggle_2d, "toggle_2d");
+            ui.separator();
+            ui.label("spawn");
+            if ui.button("m").clicked() {
+                ev.send(UiEvent::Spawn(Spawn::Mob(MobKind::Sculpture)));
+            }
+            if ui.button("k").clicked() {
+                ev.send(UiEvent::Spawn(Spawn::Mob(MobKind::KoolAidMan)));
+            }
+            if ui.button("z").clicked() {
+                ev.send(UiEvent::Spawn(Spawn::Mob(MobKind::Zombie)));
+            }
+            ui.label("Teleport to... ");
+            for i in 0..=5 {
+                if ui.button(format!("{i}")).clicked() {
+                    ev.send(UiEvent::TeleportPlayer(i));
                 }
-            })
-        });
-    }
+            }
+        }
+    });
 }
 
 // from https://github.com/vladbat00/bevy_egui/issues/47

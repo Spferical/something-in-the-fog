@@ -2,7 +2,7 @@ use bevy::prelude::*;
 
 use crate::{
     assets::GameAssets,
-    mob::{HeardPlayer, Mob, MobKind, NoticedEvent, SawPlayer},
+    mob::{HeardPlayer, Mob, MobKind, SawPlayer},
 };
 
 #[derive(Component)]
@@ -24,18 +24,17 @@ const FADE_TIME: f32 = 2.0;
 
 pub fn setup_background_music(mut commands: Commands, game_assets: Res<GameAssets>) {
     commands.spawn((
-        AudioPlayer(game_assets.sfx.base_track.clone().into()),
+        AudioPlayer(game_assets.sfx.base_track.clone()),
         PlaybackSettings {
             mode: bevy::audio::PlaybackMode::Loop,
             volume: bevy::audio::Volume::ZERO,
             ..default()
         },
         BaseTrack,
-        FadeIn,
     ));
 
     commands.spawn((
-        AudioPlayer(game_assets.sfx.active_track.clone().into()),
+        AudioPlayer(game_assets.sfx.active_track.clone()),
         PlaybackSettings {
             mode: bevy::audio::PlaybackMode::Loop,
             volume: bevy::audio::Volume::ZERO,
@@ -45,7 +44,7 @@ pub fn setup_background_music(mut commands: Commands, game_assets: Res<GameAsset
     ));
 
     commands.spawn((
-        AudioPlayer(game_assets.sfx.monk_track.clone().into()),
+        AudioPlayer(game_assets.sfx.monk_track.clone()),
         PlaybackSettings {
             mode: bevy::audio::PlaybackMode::Loop,
             volume: bevy::audio::Volume::ZERO,
@@ -55,9 +54,10 @@ pub fn setup_background_music(mut commands: Commands, game_assets: Res<GameAsset
     ));
 }
 
-pub fn update_mob_audio(
+#[allow(clippy::type_complexity)]
+fn update_mob_audio(
     mut commands: Commands,
-    mut q_saw_player: Query<&Mob, Or<(With<SawPlayer>, With<HeardPlayer>)>>,
+    q_saw_player: Query<&Mob, Or<(With<SawPlayer>, With<HeardPlayer>)>>,
     query_active_track: Query<(Entity, Option<&FadeIn>, Option<&FadeOut>), With<ActiveTrack>>,
     query_monk_track: Query<(Entity, Option<&FadeIn>, Option<&FadeOut>), With<MonkTrack>>,
 ) {
@@ -93,40 +93,29 @@ pub fn update_mob_audio(
             .entity(monk_track)
             .insert(FadeIn)
             .remove::<FadeOut>();
-        println!("Fading monk track in!");
     }
     if !should_play_monk && monk_fading_out.is_none() {
         commands
             .entity(monk_track)
             .insert(FadeOut)
             .remove::<FadeIn>();
-        println!("Fading monk track out!");
     }
 }
 
-fn fade_in(
-    mut commands: Commands,
-    mut audio_sink: Query<(&mut AudioSink, Entity), With<FadeIn>>,
-    time: Res<Time>,
-) {
-    for (audio, entity) in audio_sink.iter_mut() {
+fn fade_in(mut audio_sink: Query<&mut AudioSink, With<FadeIn>>, time: Res<Time>) {
+    for audio in audio_sink.iter_mut() {
         audio.set_volume(audio.volume() + time.delta_secs() / FADE_TIME);
         if audio.volume() >= 1.0 {
             audio.set_volume(1.0);
-            commands.entity(entity).remove::<FadeIn>();
         }
     }
 }
 
-fn fade_out(
-    mut commands: Commands,
-    mut audio_sink: Query<(&mut AudioSink, Entity), With<FadeOut>>,
-    time: Res<Time>,
-) {
-    for (audio, entity) in audio_sink.iter_mut() {
+fn fade_out(mut audio_sink: Query<&mut AudioSink, With<FadeOut>>, time: Res<Time>) {
+    for audio in audio_sink.iter_mut() {
         audio.set_volume(audio.volume() - time.delta_secs() / FADE_TIME);
         if audio.volume() <= 0.0 {
-            commands.entity(entity).despawn_recursive();
+            audio.set_volume(0.0);
         }
     }
 }

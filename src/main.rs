@@ -14,6 +14,7 @@ use bevy::{
 use map::Zones;
 use mob::{Mob, MobDamageEvent};
 use player::{Inventory, Player, PlayerDamageEvent, ShootEvent};
+use spawn::SpawnEvent;
 use ui::{UiEvent, UiSettings};
 
 mod animation;
@@ -250,6 +251,7 @@ fn animate_muzzle_flash(
 
 fn handle_ui_event(
     mut ev: EventReader<UiEvent>,
+    mut ev_spawn: EventWriter<SpawnEvent>,
     zones: Res<Zones>,
     mut player_query: Query<(&mut Transform, &mut map::MapPos), With<Player>>,
 ) {
@@ -263,6 +265,12 @@ fn handle_ui_event(
                     transform.translation = map_pos.to_vec2().extend(transform.translation.z);
                 }
             }
+            UiEvent::Spawn(spawn) => {
+                ev_spawn.send(SpawnEvent(
+                    player_query.single().1.0 + IVec2::new(1, 0),
+                    spawn.clone(),
+                ));
+            }
         }
     }
 }
@@ -273,7 +281,7 @@ fn main() {
         .add_plugins((
             ui::UiPlugin,
             ui::performance::PerformanceUiPlugin,
-            LogDiagnosticsPlugin::default(),
+            // LogDiagnosticsPlugin::default(),
             assets::AssetsPlugin,
             map::WorldPlugin,
             animation::AnimatePlugin,
