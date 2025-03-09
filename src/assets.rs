@@ -31,8 +31,10 @@ pub enum SpriteSheet {
     OryxAvatar,
     OryxTerrain,
     OryxTerrainObjects,
+    OryxMonsters,
 }
 
+#[derive(Debug)]
 pub enum SpriteKind {
     Player,
     Spawn(Spawn),
@@ -79,13 +81,13 @@ impl GameAssets {
                 self.get_sprite_by_index(SpriteSheet::OryxAvatar, 1)
             }
             SpriteKind::Spawn(Spawn::Mob(MobKind::Sculpture)) => {
-                self.get_sprite_by_index(SpriteSheet::OryxAvatar, 1)
+                self.get_sprite_by_index(SpriteSheet::OryxMonsters, 20 * 3 * 10)
             }
             SpriteKind::Spawn(Spawn::Mob(MobKind::Hider)) => {
-                self.get_sprite_by_index(SpriteSheet::OryxAvatar, 1)
+                self.get_sprite_by_index(SpriteSheet::OryxMonsters, 4 * 19 + 2)
             }
             SpriteKind::Spawn(Spawn::Mob(MobKind::KoolAidMan)) => {
-                self.get_sprite_by_index(SpriteSheet::OryxAvatar, 1)
+                self.get_sprite_by_index(SpriteSheet::OryxMonsters, 14 * 19 + 15)
             }
             SpriteKind::Spawn(Spawn::Item(ItemKind::Ammo(..))) => {
                 self.get_sprite_by_index(SpriteSheet::Urizen, 103 * 22 + 52)
@@ -189,6 +191,19 @@ fn init_assets(
                 UVec2::new(16, 24),
                 20,
                 12,
+                None,
+                None,
+            )),
+        ),
+    );
+    sheets.insert(
+        SpriteSheet::OryxMonsters,
+        (
+            asset_server.load("oryx_roguelike_2.0/Monsters.png"),
+            texture_atlas_layouts.add(TextureAtlasLayout::from_grid(
+                UVec2::new(16, 24),
+                19,
+                26,
                 None,
                 None,
             )),

@@ -40,7 +40,7 @@ pub struct BlocksSight;
 #[derive(Component)]
 pub struct Tile(pub TileKind);
 
-#[derive(Clone, Copy)]
+#[derive(Debug, Clone, Copy)]
 pub enum ItemKind {
     Ammo(GunType, usize),
     Gun(GunType, usize),

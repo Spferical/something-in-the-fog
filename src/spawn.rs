@@ -7,7 +7,7 @@ use crate::{
     mob::{HearsPlayer, KoolAidMovement, Mob, MobKind, SeesPlayer},
 };
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub enum Spawn {
     Tile(TileKind),
     Mob(MobKind),
