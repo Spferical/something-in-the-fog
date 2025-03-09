@@ -234,7 +234,7 @@ fn lighting_simple(
     // let ro = vec3(screen_size / 2.0, 0.0);
     // let ro = vec3(0.5, 0.5, 1.0);
     let ro = vec3(0.5, 0.5, 1.0);
-    let ro_lighting = vec3(0.5, 0.5, 0.4);
+    let ro_lighting = vec3(0.5, 0.5, 0.3);
 
     let rd = normalize(vec3(uv, 0.0) - ro);
     let ray_outputs = trace_ray(ro, rd, u32(16), 0.01, 1000.0, 1e-4);
