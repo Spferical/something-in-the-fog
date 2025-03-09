@@ -149,6 +149,8 @@ fn update(
         ui.label("move: WASD");
         ui.label("shoot: click");
         ui.label("reload: R");
+        ui.label("scroll: swap gun");
+        ui.label("right click: focus light");
     });
     if settings.show_debug_settings {
         egui::TopBottomPanel::bottom("debug_panel").show(ctx, |ui| {
