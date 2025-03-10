@@ -3,7 +3,7 @@ use std::{collections::HashMap, path::Path};
 use bevy::{asset::embedded_asset, prelude::*};
 
 use crate::{
-    map::{ItemKind, TileKind, TILE_HEIGHT, TILE_WIDTH},
+    map::{ItemKind, TILE_HEIGHT, TILE_WIDTH, TileKind},
     mob::MobKind,
     player::GunType,
     spawn::Spawn,
@@ -268,8 +268,7 @@ fn init_assets(
     sheets.insert(
         SpriteSheet::OryxAvatar,
         (
-            asset_server
-                .load("embedded://something_in_the_fog/../assets/oryx_roguelike_2.0/Avatar.png"),
+            asset_server.load("embedded://something_in_the_fog/../oryx_roguelike_2.0/Avatar.png"),
             texture_atlas_layouts.add(TextureAtlasLayout::from_grid(
                 UVec2::new(16, 24),
                 6,
@@ -282,8 +281,7 @@ fn init_assets(
     sheets.insert(
         SpriteSheet::OryxTerrain,
         (
-            asset_server
-                .load("embedded://something_in_the_fog/../assets/oryx_roguelike_2.0/Terrain.png"),
+            asset_server.load("embedded://something_in_the_fog/../oryx_roguelike_2.0/Terrain.png"),
             texture_atlas_layouts.add(TextureAtlasLayout::from_grid(
                 UVec2::new(16, 24),
                 16,
@@ -296,9 +294,8 @@ fn init_assets(
     sheets.insert(
         SpriteSheet::OryxTerrainObjects,
         (
-            asset_server.load(
-                "embedded://something_in_the_fog/../assets/oryx_roguelike_2.0/Terrain_Objects.png",
-            ),
+            asset_server
+                .load("embedded://something_in_the_fog/../oryx_roguelike_2.0/Terrain_Objects.png"),
             texture_atlas_layouts.add(TextureAtlasLayout::from_grid(
                 UVec2::new(16, 24),
                 20,
@@ -311,8 +308,7 @@ fn init_assets(
     sheets.insert(
         SpriteSheet::OryxMonsters,
         (
-            asset_server
-                .load("embedded://something_in_the_fog/../assets/oryx_roguelike_2.0/Monsters.png"),
+            asset_server.load("embedded://something_in_the_fog/../oryx_roguelike_2.0/Monsters.png"),
             texture_atlas_layouts.add(TextureAtlasLayout::from_grid(
                 UVec2::new(16, 24),
                 19,
@@ -360,10 +356,10 @@ pub struct AssetsPlugin;
 
 impl Plugin for AssetsPlugin {
     fn build(&self, app: &mut App) {
-        embedded_asset!(app, "", "../assets/oryx_roguelike_2.0/Avatar.png");
-        embedded_asset!(app, "", "../assets/oryx_roguelike_2.0/Terrain.png");
-        embedded_asset!(app, "", "../assets/oryx_roguelike_2.0/Terrain_Objects.png");
-        embedded_asset!(app, "", "../assets/oryx_roguelike_2.0/Monsters.png");
+        embedded_asset!(app, "", "../oryx_roguelike_2.0/Avatar.png");
+        embedded_asset!(app, "", "../oryx_roguelike_2.0/Terrain.png");
+        embedded_asset!(app, "", "../oryx_roguelike_2.0/Terrain_Objects.png");
+        embedded_asset!(app, "", "../oryx_roguelike_2.0/Monsters.png");
 
         app.add_systems(PreStartup, init_assets);
     }
