@@ -147,7 +147,7 @@ fn update_mob_audio(
         .any(|mob| mob.kind == MobKind::KoolAidMan);
     let should_play_monk = q_saw_player
         .iter()
-        .any(|mob| mob.kind == MobKind::Sculpture);
+        .any(|mob| (mob.kind == MobKind::Sculpture || mob.kind == MobKind::Ghost));
 
     if should_play_active && active_fading_in.is_none() {
         commands
