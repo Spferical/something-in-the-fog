@@ -89,7 +89,7 @@ pub fn update_lighting_pass(
     let player_light_center = Vec4::new(0.5, 0.5, 0.11, 0.0);
 
     let fog_density: f32 = if let Ok(pos) = player_location.get_single() {
-        let mut fog = 0.0;
+        let mut fog = 130.0;
         for (i, zone) in zones.0.iter().enumerate() {
             if zone.contains(pos.0) {
                 let fog_i = FOG[i];
