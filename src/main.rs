@@ -1,7 +1,6 @@
 use std::time::Duration;
 
 use animation::{MuzzleFlash, TextEvent, WobbleEffect, WobbleEffects};
-use assets::GameAssets;
 use bevy::asset::AssetMetaCheck;
 use bevy::input::mouse::{MouseScrollUnit, MouseWheel};
 use bevy::{
@@ -197,7 +196,6 @@ fn handle_game_over(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
     fade_out: Query<&FadeOutEndScreen>,
-    assets: Res<GameAssets>,
 ) {
     if (game_state.victory || game_state.game_over) && fade_out.get_single().is_err() {
         let color = if game_state.victory {
