@@ -270,7 +270,7 @@ fn handle_ui_event(
             }
             UiEvent::Spawn(spawn) => {
                 ev_spawn.send(SpawnEvent(
-                    player_query.single().1 .0 + IVec2::new(1, 0),
+                    player_query.single().1.0 + IVec2::new(1, 0),
                     spawn.clone(),
                 ));
             }
