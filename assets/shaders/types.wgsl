@@ -27,7 +27,8 @@ struct LightingSettings {
     light_trace_samples: u32,
     ray_trace_samples: u32,
     fog_trace_samples: u32,
-    
+    fog_density: f32,
+    padding: vec3f,
     // _padding: None
 }
 

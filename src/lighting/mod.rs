@@ -5,19 +5,21 @@ use mat::{Light, LightBundle, LightingSettings};
 
 mod mat;
 
-use crate::PrimaryCamera;
 use crate::animation::{MuzzleFlash, WobbleEffects};
 use crate::edge::EdgeTexture;
+use crate::map::{MapPos, Zones};
 use crate::player::{FlashlightInfo, Player};
 use crate::renderer::{NonOccluderTexture, OccluderTexture, PlaneMouseMovedEvent};
 use crate::sdf::SdfTexture;
 use crate::ui::UiSettings;
+use crate::PrimaryCamera;
 use bevy::render::view::RenderLayers;
 pub use mat::LightingMaterial;
 
 const LIGHTING_ORDER_OFFSET: isize = 20;
 pub const LIGHTING_LAYER: usize = 4;
 pub const UI_LAYER: usize = 4;
+pub const FOG: [f32; 6] = [130.0, 50.0, 130.0, 60.0, 50.0, 100.0];
 
 #[derive(Component)]
 pub struct RenderPlane;
@@ -44,6 +46,8 @@ pub fn update_lighting_pass(
     mut mouse_reader: EventReader<PlaneMouseMovedEvent>,
     mut muzzle_flash: Query<(Entity, &mut MuzzleFlash)>,
     mut player_injury: Query<&mut WobbleEffects, With<Player>>,
+    player_location: Query<&MapPos, With<Player>>,
+    zones: Res<Zones>,
     primary_camera_query: Query<&Transform, With<PrimaryCamera>>,
     settings: ResMut<UiSettings>,
     flashlight_info: Res<FlashlightInfo>,
@@ -84,6 +88,21 @@ pub fn update_lighting_pass(
     };
     let player_light_center = Vec4::new(0.5, 0.5, 0.11, 0.0);
 
+    let fog_density: f32 = if let Ok(pos) = player_location.get_single() {
+        let mut fog = 0.0;
+        for (i, zone) in zones.0.iter().enumerate() {
+            if zone.contains(pos.0) {
+                let fog_i = FOG[i];
+                let fog_prev = if i > 0 { FOG[i - 1] } else { FOG[i] };
+                let alpha = ((pos.0.x - zone.min.x) as f32) / ((zone.max.x - zone.min.x) as f32);
+                fog = alpha * fog_i + (1.0 - alpha) * fog_prev;
+            }
+        }
+        fog
+    } else {
+        130.0
+    };
+
     let player_light_color = if let Some(injury) = player_injury
         .get_single_mut()
         .ok()
@@ -108,6 +127,7 @@ pub fn update_lighting_pass(
         mat.lights.lights[0] = flashlight;
         mat.lights.lights[1] = player_light;
 
+        mat.lighting_settings.fog_density = fog_density;
         mat.lighting_settings.num_lights = 2;
         mat.lighting_settings.toggle_2d = settings.toggle_2d as i32;
         mat.lighting_settings.world_origin = world_origin;

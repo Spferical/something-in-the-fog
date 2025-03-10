@@ -28,7 +28,8 @@ pub struct LightingSettings {
     pub light_trace_samples: u32,
     pub ray_trace_samples: u32,
     pub fog_trace_samples: u32,
-    pub _padding: Vec2,
+    pub fog_density: f32,
+    pub _padding: Vec3,
 }
 
 #[derive(AsBindGroup, Clone, Default, Asset, TypePath)]

@@ -172,7 +172,7 @@ fn fog_trace(
     for (var i: u32 = 0; i < trace_iters; i++) {
         let p = t * rd + ro;
 
-        let f = get_fog_density(p.xy);
+        let f = get_fog_density(p.xy) * settings.fog_density;
         let T = exp(-f * step_size);
         accum = accum * T;
         accum += fog_color * f;

@@ -5,7 +5,7 @@ const BG: vec3<f32> = vec3<f32>(0.0, 0.0, 0.0);
 const ZOOM: f32 = 3.0;
 const OCTAVES: i32 = 4;
 
-const INTENSITY: f32 = 130.0;
+// const INTENSITY: f32 = 130.0;
 
 fn random(st: vec2<f32>) -> f32 {
     return fract(sin(dot(st, vec2<f32>(12.9818, 79.279))) * 43758.5453123);
@@ -52,5 +52,5 @@ fn fbm(coord: vec2<f32>) -> f32 {
 
 fn get_fog_density(uv: vec2<f32>) -> f32 {
     let motion = vec2f(globals.time * -0.1, 0.0);
-    return fbm((uv + motion) * ZOOM) * INTENSITY;
+    return fbm((uv + motion) * ZOOM);
 }
