@@ -5,13 +5,13 @@ use mat::{Light, LightBundle, LightingSettings};
 
 mod mat;
 
-use crate::PrimaryCamera;
 use crate::animation::{MuzzleFlash, WobbleEffects};
 use crate::edge::EdgeTexture;
 use crate::player::{FlashlightInfo, Player};
 use crate::renderer::{NonOccluderTexture, OccluderTexture, PlaneMouseMovedEvent};
 use crate::sdf::SdfTexture;
 use crate::ui::UiSettings;
+use crate::PrimaryCamera;
 use bevy::render::view::RenderLayers;
 pub use mat::LightingMaterial;
 
@@ -111,6 +111,16 @@ pub fn update_lighting_pass(
         mat.lighting_settings.num_lights = 2;
         mat.lighting_settings.toggle_2d = settings.toggle_2d as i32;
         mat.lighting_settings.world_origin = world_origin;
+
+        if settings.low_graphics {
+            mat.lighting_settings.light_trace_samples = 4;
+            mat.lighting_settings.ray_trace_samples = 12;
+            mat.lighting_settings.fog_trace_samples = 4;
+        } else {
+            mat.lighting_settings.light_trace_samples = 16;
+            mat.lighting_settings.ray_trace_samples = 16;
+            mat.lighting_settings.fog_trace_samples = 8;
+        }
 
         if let Ok((entity, mut flash)) = muzzle_flash.get_single_mut() {
             flash.timer.tick(time.delta());

@@ -25,7 +25,10 @@ pub struct LightingSettings {
     pub toggle_2d: i32,
     pub num_lights: i32,
     pub world_origin: Vec3,
-    pub _padding: Vec3,
+    pub light_trace_samples: u32,
+    pub ray_trace_samples: u32,
+    pub fog_trace_samples: u32,
+    pub _padding: Vec2,
 }
 
 #[derive(AsBindGroup, Clone, Default, Asset, TypePath)]

@@ -1,15 +1,15 @@
 use bevy::{input::mouse::MouseWheel, prelude::*};
 use bevy_egui::{
-    EguiContexts, EguiPlugin,
     egui::{self, Align, Color32, FontData, FontFamily, Separator, TextStyle},
+    EguiContexts, EguiPlugin,
 };
 
 use crate::{
     assets::PRESS_START_2P_BYTES,
     mob::MobKind,
     player::{
-        FLASHLIGHT_MAX_BATTERY, FlashlightInfo, GunInfo, GunState, Inventory, PLAYER_MAX_DAMAGE,
-        Player,
+        FlashlightInfo, GunInfo, GunState, Inventory, Player, FLASHLIGHT_MAX_BATTERY,
+        PLAYER_MAX_DAMAGE,
     },
     spawn::Spawn,
 };

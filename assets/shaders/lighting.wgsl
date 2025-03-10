@@ -134,9 +134,6 @@ fn h_p(p: vec3f, index: i32) -> f32 {
 }
 
 fn sobel_gradient_estimate(p: vec3f) -> vec3f {
-    // float h_x = h_p(p, uint(0)) * h(p, uint(1)) * h(p, uint(2));
-    // float h_y = h_p(p, uint(1)) * h(p, uint(2)) * h(p, uint(0));
-    // float h_z = h_p(p, uint(2)) * h(p, uint(0)) * h(p, uint(1));
     let h_x = h_p(p, 0) * h(p, 1) * h(p, 2);
     let h_y = h_p(p, 1) * h(p, 2) * h(p, 0);
     let h_z = h_p(p, 2) * h(p, 0) * h(p, 1);
@@ -211,7 +208,13 @@ fn lighting_simple(
     normal: vec3f
 ) -> vec3<f32> {
     let pi = radians(180.0);
-    let shadow = visibility(pos, camera_origin, u32(16), 1e-6, 0.1);
+    let shadow = visibility(
+        pos,
+        camera_origin,
+        u32(settings.light_trace_samples),
+        1e-6,
+        0.1
+    );
     let l = normalize(light.center.xyz - pos);
     
     let t = length(pos - camera_origin);
@@ -240,7 +243,7 @@ fn lighting_simple(
         ),
         pos.z < 0.05
     );
-    return fog_trace(ground_color, pos, light, camera_origin, u32(8));
+    return fog_trace(ground_color, pos, light, camera_origin, settings.fog_trace_samples);
     // return apply_fog(color, t, camera_origin, rd);
 }
 
@@ -254,15 +257,19 @@ fn lighting_simple(
 
     let inside_texture = textureSample(screen_texture, seed_sampler, uv.xy).a > 0.5;
     let height = select(0.0, 0.5, inside_texture);
-    // let endpoints = vec3(uv, 0.0);
 
-    // let ro = vec3(screen_size / 2.0, 0.0);
-    // let ro = vec3(0.5, 0.5, 1.0);
     let ro = vec3(0.5, 0.5, 1.0);
     let ro_lighting = vec3(0.5, 0.5, 0.3);
 
     let rd = normalize(vec3(uv, 0.0) - ro);
-    let ray_outputs = trace_ray(ro, rd, u32(16), 0.01, 1000.0, 1e-4);
+    let ray_outputs = trace_ray(
+        ro,
+        rd,
+        u32(settings.ray_trace_samples),
+        0.01,
+        1000.0,
+        1e-4
+    );
     let endpoints = ray_outputs.intersection;
     let normal_sample_pt = endpoints - rd * 1e-4;
     let normal = sobel_gradient_estimate(normal_sample_pt);
@@ -281,7 +288,7 @@ fn lighting_simple(
     let ui_elem = textureSample(
         ui_texture,
         seed_sampler,
-        (ro + rd * 1.4).xy
+        (ro + rd * 1.4).xy  // roughly trying to look at the ground here
         // endpoints.xy
     );
     let color = mix(ui_elem.xyz, total_light, 1 - ui_elem.a);
