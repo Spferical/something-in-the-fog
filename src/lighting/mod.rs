@@ -96,6 +96,8 @@ pub fn update_lighting_pass(
                 let fog_prev = if i > 0 { FOG[i - 1] } else { FOG[i] };
                 let alpha = ((pos.0.x - zone.min.x) as f32) / ((zone.max.x - zone.min.x) as f32);
                 fog = alpha * fog_i + (1.0 - alpha) * fog_prev;
+            } else {
+                130.0
             }
         }
         fog
