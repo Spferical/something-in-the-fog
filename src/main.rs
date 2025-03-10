@@ -65,7 +65,7 @@ fn create_texture() -> Image {
         },
         TextureDimension::D2,
         &[0, 0, 0, 0],
-        TextureFormat::Bgra8UnormSrgb,
+        TextureFormat::Rgba8UnormSrgb,
         RenderAssetUsages::default(),
     );
     image.texture_descriptor.usage =
