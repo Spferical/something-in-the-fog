@@ -377,6 +377,7 @@ fn main() {
                 })
                 .set(WindowPlugin {
                     primary_window: Some(Window {
+                        title: "Something in the Fog".to_string(),
                         fit_canvas_to_parent: true,
                         ..default()
                     }),
