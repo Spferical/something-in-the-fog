@@ -388,7 +388,7 @@ pub fn gen_map() -> MapgenResult {
     let start = Pos::new(0, 0);
     let field_rect = Rect::new_centered(start, 16, 24);
     let forest_rect = Rect::new_centered(start, 80, 24).shift_to_right_of(field_rect);
-    let warehouse_zone_rect = Rect::new_centered(start, 80, 44).shift_to_right_of(forest_rect);
+    let warehouse_zone_rect = Rect::new_centered(start, 80, 36).shift_to_right_of(forest_rect);
     let forest2_rect = Rect::new_centered(start, 80, 44).shift_to_right_of(warehouse_zone_rect);
     let railyard_rect = Rect::new_centered(start, 80, 44).shift_to_right_of(forest2_rect);
     let final_rect = Rect::new_centered(start, 40, 40).shift_to_right_of(railyard_rect);
@@ -438,8 +438,8 @@ pub fn gen_map() -> MapgenResult {
     let warehouse_rect = Rect {
         x1: warehouse_zone_rect.x1 + 5,
         x2: warehouse_zone_rect.x2,
-        y1: warehouse_zone_rect.y1 + 5,
-        y2: warehouse_zone_rect.y2 - 5,
+        y1: warehouse_zone_rect.y1,
+        y2: warehouse_zone_rect.y2,
     };
     mapgen
         .tile_map
@@ -540,6 +540,7 @@ pub fn gen_map() -> MapgenResult {
     // Railyard. Wide open but with large shipping containers obscuring vision.
     let mut boxes_zone = railyard_rect;
     boxes_zone.x1 += 1;
+    boxes_zone.x2 -= 1;
     mapgen
         .tile_map
         .set_rect(boxes_zone, Some(TileKind::ShippingContainer));
@@ -594,7 +595,39 @@ pub fn gen_map() -> MapgenResult {
     );
 
     // final zone: boss room
-    mapgen.tile_map.set_rect(final_rect, None);
+    // mapgen.tile_map.set_rect(final_rect, None);
+    let bsp = gen_bsp_tree(
+        final_rect,
+        BspSplitOpts {
+            max_width: 8,
+            max_height: 8,
+            min_width: 3,
+            min_height: 3,
+        },
+        &mut mapgen.rng,
+    );
+    // normal bsp
+    let room_graph = bsp.into_room_graph();
+    for room in room_graph.iter() {
+        mapgen.tile_map.set_rect(room, None);
+        for adj in room_graph.get_adj(room).unwrap() {
+            if room.topleft() < adj.topleft() {
+                let wall = get_connecting_wall(room, *adj).unwrap();
+                mapgen.tile_map[wall.choose(&mut mapgen.rng)] = Some(TileKind::Door);
+            }
+        }
+        if room.x1 == final_rect.x1 + 1 {
+            let left_door = room.left_edge().choose(&mut mapgen.rng) + Offset::new(-1, 0);
+            mapgen.tile_map[left_door] = Some(TileKind::Door);
+        }
+    }
+    // ruin it a bit
+    for pos in final_rect.into_iter() {
+        if mapgen.rng.gen_bool(0.2) {
+            mapgen.tile_map[pos] = None;
+        }
+    }
+    mapgen.populate(final_rect, vec![(1, Spawn::Mob(MobKind::Eyeball))]);
 
     let mut spawns: HashMap<IVec2, Vec<Spawn>> = HashMap::new();
     for (pos, tile) in mapgen.tile_map.iter() {
