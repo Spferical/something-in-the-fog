@@ -12,9 +12,9 @@ use bevy::{
         view::RenderLayers,
     },
 };
-use map::{Map, MapPos, Tile, TileKind, Zones};
-use mob::{Mob, MobDamageEvent};
-use player::{Inventory, Player, PlayerDamageEvent, ShootEvent};
+use map::{LightsUp, Map, MapPos, Tile, TileKind, Zones};
+use mob::{Mob, MobDamageEvent, MobKind};
+use player::{GunType, Inventory, Player, PlayerDamageEvent, ShootEvent};
 use spawn::{Spawn, SpawnEvent};
 use ui::{UiEvent, UiSettings};
 
@@ -181,6 +181,9 @@ struct GameState {
     game_over: bool,
     #[allow(unused)]
     victory: bool,
+    last_known_boss_pos: Option<IVec2>,
+    waves_spawned: usize,
+    boss_dead: bool,
 }
 
 fn setup(mut window: Query<&mut Window>) {
@@ -287,11 +290,55 @@ fn handle_ui_event(
             }
             UiEvent::Spawn(spawn) => {
                 ev_spawn.send(SpawnEvent(
-                    player_query.single().1 .0 + IVec2::new(1, 0),
+                    player_query.single().1.0 + IVec2::new(1, 0),
                     spawn.clone(),
                 ));
             }
         }
+    }
+}
+
+#[derive(Component)]
+pub struct Eyeball;
+
+fn final_boss(
+    q_boss: Query<(&LightsUp, &MapPos), With<Eyeball>>,
+    mut game_state: ResMut<GameState>,
+    mut ev_spawn: EventWriter<SpawnEvent>,
+    zones: Res<Zones>,
+) {
+    if let Ok((lit, pos)) = q_boss.get_single() {
+        game_state.last_known_boss_pos = Some(pos.0);
+        if (lit.lit_factor / 5.0) as usize > game_state.waves_spawned {
+            let spawns = match game_state.waves_spawned {
+                0 => vec![
+                    (3, Spawn::Mob(MobKind::Zombie)),
+                    (1, Spawn::Item(map::ItemKind::Ammo(GunType::Shotgun, 10))),
+                ],
+                1 => vec![
+                    (3, Spawn::Mob(MobKind::Ghost)),
+                    (1, Spawn::Item(map::ItemKind::Ammo(GunType::Shotgun, 10))),
+                ],
+                2 => vec![(1, Spawn::Mob(MobKind::KoolAidMan))],
+                3 => vec![(1, Spawn::Mob(MobKind::Sculpture))],
+                4 => vec![(3, Spawn::Mob(MobKind::Zombie))],
+                5 => vec![(3, Spawn::Mob(MobKind::Hider))],
+                _ => vec![],
+            };
+            for (count, spawn) in spawns {
+                for _ in 0..count {
+                    ev_spawn.send(SpawnEvent(pos.0, spawn.clone()));
+                }
+            }
+            game_state.waves_spawned += 1;
+        }
+    } else if !game_state.boss_dead {
+        game_state.boss_dead = true;
+        // set the win tile
+        let pos = game_state
+            .last_known_boss_pos
+            .unwrap_or(zones.0.iter().last().unwrap().center());
+        ev_spawn.send(SpawnEvent(pos, Spawn::Tile(TileKind::Lever)));
     }
 }
 
@@ -356,6 +403,7 @@ fn main() {
                 animate_player_damage,
                 animate_mob_damage,
                 animate_muzzle_flash,
+                final_boss,
                 handle_victory,
                 handle_game_over,
             )
@@ -364,6 +412,9 @@ fn main() {
         .insert_resource(GameState {
             game_over: false,
             victory: false,
+            boss_dead: false,
+            waves_spawned: 0,
+            last_known_boss_pos: None,
         })
         .run();
 }

@@ -1,7 +1,7 @@
 use bevy::{prelude::*, render::view::RenderLayers};
 
 use crate::{
-    Z_ITEMS, Z_MOBS, Z_TILES,
+    Eyeball, Z_ITEMS, Z_MOBS, Z_TILES,
     animation::WobbleEffects,
     assets::{GameAssets, SpriteKind},
     map::{
@@ -77,6 +77,8 @@ pub fn spawn(
                 ));
                 if let MobKind::KoolAidMan = kind {
                     entity_commands.insert(KoolAidMovement::default());
+                } else if let MobKind::Eyeball = kind {
+                    entity_commands.insert(Eyeball);
                 }
             }
             Spawn::Item(kind) => {

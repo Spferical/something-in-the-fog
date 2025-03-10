@@ -402,8 +402,6 @@ pub fn gen_map() -> MapgenResult {
             None
         }
     }
-    mapgen.tile_map[Pos::new(3, 3)] = Some(TileKind::Lever);
-
     mapgen
         .tile_map
         .set_rect(field_rect.top_edge(), Some(TileKind::Tree));
