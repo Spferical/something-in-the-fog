@@ -49,7 +49,7 @@ fn intro_system_update(
             position: MapPos(player_pos.0 + IVec2::new(rng.gen_range(-5..5), rng.gen_range(-5..5)))
                 .to_vec2(),
             duration: Duration::from_secs(10),
-            teletype: Duration::from_secs(3.5),
+            teletype: Duration::from_secs(3),
             font_size: 15.0,
             ..default()
         });
