@@ -1,6 +1,7 @@
 use std::time::Duration;
 
 use animation::{MuzzleFlash, TextEvent, WobbleEffect, WobbleEffects};
+use bevy::asset::AssetMetaCheck;
 use bevy::input::mouse::{MouseScrollUnit, MouseWheel};
 use bevy::{
     asset::RenderAssetUsages,
@@ -305,7 +306,14 @@ fn handle_victory(
 
 fn main() {
     App::new()
-        .add_plugins(DefaultPlugins.set(ImagePlugin::default_nearest()))
+        .add_plugins(
+            DefaultPlugins
+                .set(ImagePlugin::default_nearest())
+                .set(AssetPlugin {
+                    meta_check: AssetMetaCheck::Never,
+                    ..default()
+                }),
+        )
         .add_plugins((
             ui::UiPlugin,
             ui::performance::PerformanceUiPlugin,
