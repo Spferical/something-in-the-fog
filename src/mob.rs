@@ -54,7 +54,7 @@ impl MobKind {
             Zombie => Duration::from_secs(1),
             Ghost => Duration::from_secs(1),
             Sculpture => Duration::from_millis(16),
-            Hider => Duration::from_millis(200),
+            Hider => Duration::from_millis(350),
             KoolAidMan => Duration::from_millis(100),
         }
     }
