@@ -30,6 +30,7 @@ pub struct UiSettings {
     pub toggle_2d: bool,
     pub show_fov: bool,
     pub show_flashlight: bool,
+    pub low_graphics: bool,
 }
 
 impl Default for UiSettings {
@@ -44,6 +45,7 @@ impl Default for UiSettings {
             nohurt: true,
             inf_ammo: false,
             toggle_2d: false,
+            low_graphics: false,
         }
     }
 }
@@ -170,6 +172,15 @@ fn update(
         ui.label("scroll: swap gun");
         ui.label("right click: focus light");
         ui.label("hold still: focus gun");
+        ui.label("");
+
+        ui.with_layout(egui::Layout::right_to_left(Align::Min), |ui| {
+            ui.label("Settings");
+            ui.add(Separator::default().horizontal());
+        });
+        ui.checkbox(&mut settings.low_graphics, "low graphics");
+        ui.label("");
+
         if settings.show_debug_settings {
             ui.label("");
             ui.with_layout(egui::Layout::right_to_left(Align::Min), |ui| {
