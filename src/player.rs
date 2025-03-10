@@ -293,7 +293,7 @@ fn update_sight_lines(
             + dir * (line_start_distance + line_length / 2.0))
             .extend(0.0);
         transform.rotation = Quat::from_rotation_z((dir).to_angle());
-        transform.scale = Vec3::new(line_length, 1.0, 1.0);
+        transform.scale = Vec3::new(line_length, 2.0, 1.0);
     };
     let alpha = ((shoot_state.focus - 0.2) / 2.0).clamp(0.0, 0.4);
     materials.get_mut(assets.sight_line.id()).unwrap().color =
