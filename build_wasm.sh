@@ -15,3 +15,5 @@ fi
 mkdir -p dist
 wasm-bindgen $TARGET_DIR/"$PROJECT_NAME".wasm --out-dir dist --target web --no-typescript
 cp -r wasm/* dist/
+mkdir -p dist/assets/
+cp -r assets/{PressStart2P,sfx,shaders} dist/assets/
