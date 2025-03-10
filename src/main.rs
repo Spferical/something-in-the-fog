@@ -374,6 +374,12 @@ fn main() {
                 .set(AssetPlugin {
                     meta_check: AssetMetaCheck::Never,
                     ..default()
+                })
+                .set(WindowPlugin {
+                    primary_window: Some(Window {
+                        fit_canvas_to_parent: true,
+                        ..default()
+                    })..default(),
                 }),
         )
         .add_plugins((
