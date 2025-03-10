@@ -627,7 +627,13 @@ pub fn gen_map() -> MapgenResult {
             mapgen.tile_map[pos] = None;
         }
     }
-    mapgen.populate(final_rect, vec![(1, Spawn::Mob(MobKind::Eyeball))]);
+    // clear out a room in the center
+    let center_rect = Rect::new_centered(final_rect.center(), 8, 8);
+    mapgen.tile_map.set_rect(center_rect, None);
+    mapgen
+        .mob_spawns
+        .insert(center_rect.center(), MobKind::Eyeball);
+    mapgen.populate(final_rect, vec![(20, Spawn::Mob(MobKind::Ghost))]);
 
     let mut spawns: HashMap<IVec2, Vec<Spawn>> = HashMap::new();
     for (pos, tile) in mapgen.tile_map.iter() {
