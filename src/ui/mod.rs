@@ -37,12 +37,12 @@ impl Default for UiSettings {
     fn default() -> Self {
         Self {
             show_performance_overlay: false,
-            show_debug_settings: true,
+            show_debug_settings: false,
             debug_scroll: false,
             show_visibility: false,
             show_fov: false,
             show_flashlight: false,
-            nohurt: true,
+            nohurt: false,
             inf_ammo: false,
             toggle_2d: false,
             low_graphics: false,
