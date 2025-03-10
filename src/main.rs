@@ -1,6 +1,7 @@
 use std::time::Duration;
 
 use animation::{MuzzleFlash, TextEvent, WobbleEffect, WobbleEffects};
+use assets::GameAssets;
 use bevy::asset::AssetMetaCheck;
 use bevy::input::mouse::{MouseScrollUnit, MouseWheel};
 use bevy::{
@@ -53,6 +54,12 @@ struct PrimaryCamera;
 
 #[derive(Component)]
 struct CameraFollow;
+
+#[derive(Component)]
+struct FadeOutEndScreen {
+    color: Color,
+    timer: Timer,
+}
 
 fn create_texture() -> Image {
     let mut image = Image::new_fill(
@@ -181,26 +188,36 @@ fn setup(mut window: Query<&mut Window>) {
     window.single_mut().fit_canvas_to_parent = true;
 }
 
-/*fn handle_game_over(
+fn handle_game_over(
     mut commands: Commands,
     game_state: Res<GameState>,
-    fade_out: Query<&FadeOut>,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
+    fade_out: Query<&FadeOutEndScreen>,
     assets: Res<GameAssets>,
 ) {
-    if game_state.game_over && fade_out.is_empty() {
+    if (game_state.victory || game_state.game_over) && fade_out.get_single().is_err() {
+        let color = if game_state.victory {
+            Color::srgba(0.0, 0.0, 0.0, 0.0)
+        } else {
+            Color::srgba(1.0, 0.0, 0.0, 0.0)
+        };
         commands.spawn((
-            FadeOut,
-            Mesh2d(assets.square.clone()),
-            MeshMaterial2d(assets.fade_out_material.clone()),
-            RenderLayers::layer(1),
-            PlayerInjuryEffect {
+            FadeOutEndScreen {
+                color,
                 timer: Timer::new(Duration::from_secs(5), TimerMode::Once),
-                ease: EasingCurve::new(0.0, 1.0, EaseFunction::CubicOut),
             },
-            Transform::from_translation(Vec3::ZERO.with_z(10.0)).with_scale(Vec3::splat(99999.0)),
+            Mesh3d(meshes.add(Plane3d::default().mesh().size(6.0, 6.0))),
+            MeshMaterial3d(materials.add(StandardMaterial {
+                base_color: Color::srgba(0.0, 0.0, 0.0, 0.0),
+                alpha_mode: AlphaMode::Blend,
+                ..default()
+            })),
+            Transform::from_xyz(0.0, 0.2, 0.0),
+            RenderLayers::layer(crate::lighting::LIGHTING_LAYER),
         ));
     }
-}*/
+}
 
 fn animate_player_damage(
     mut query: Query<&mut WobbleEffects, With<Player>>,
@@ -270,7 +287,7 @@ fn handle_ui_event(
             }
             UiEvent::Spawn(spawn) => {
                 ev_spawn.send(SpawnEvent(
-                    player_query.single().1.0 + IVec2::new(1, 0),
+                    player_query.single().1 .0 + IVec2::new(1, 0),
                     spawn.clone(),
                 ));
             }
@@ -340,7 +357,7 @@ fn main() {
                 animate_mob_damage,
                 animate_muzzle_flash,
                 handle_victory,
-                //handle_game_over,
+                handle_game_over,
             )
                 .chain(),
         )

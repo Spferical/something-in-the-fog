@@ -16,7 +16,7 @@ use bevy::render::view::RenderLayers;
 pub use mat::LightingMaterial;
 
 const LIGHTING_ORDER_OFFSET: isize = 20;
-const LIGHTING_LAYER: usize = 4;
+pub const LIGHTING_LAYER: usize = 4;
 pub const UI_LAYER: usize = 4;
 
 #[derive(Component)]

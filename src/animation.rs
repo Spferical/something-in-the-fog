@@ -3,8 +3,8 @@ use std::time::Duration;
 use bevy::{prelude::*, render::view::RenderLayers};
 
 use crate::{
-    Z_TEXT, assets::GameAssets, despawn_after::DespawnAfter, lighting::UI_LAYER, map::TILE_HEIGHT,
-    player::GunInfo,
+    assets::GameAssets, despawn_after::DespawnAfter, lighting::UI_LAYER, map::TILE_HEIGHT,
+    player::GunInfo, FadeOutEndScreen, Z_TEXT,
 };
 
 #[derive(Component)]
@@ -118,6 +118,25 @@ fn fade_text(mut query: Query<(&mut TextColor, &mut TextFade)>, time: Res<Time>)
     }
 }
 
+fn handle_fade_out(
+    mut query: Query<(&mut FadeOutEndScreen, &MeshMaterial3d<StandardMaterial>)>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
+    time: Res<Time>,
+) {
+    let Ok((mut fade_out, material_handle)) = query.get_single_mut() else {
+        return;
+    };
+    let material = materials.get_mut(material_handle).unwrap();
+
+    fade_out.timer.tick(time.delta());
+    material.base_color = Color::Srgba(
+        fade_out
+            .color
+            .to_srgba()
+            .with_alpha(fade_out.timer.fraction()),
+    );
+}
+
 fn teletype_text(mut query: Query<(&mut Text2d, &mut TeleType)>, time: Res<Time>) {
     for (mut text, mut teletype) in query.iter_mut() {
         teletype.timer.tick(time.delta());
@@ -166,7 +185,14 @@ impl Plugin for AnimatePlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(
             Update,
-            (animate, spawn_text, teletype_text, fade_text, wobble_effect),
+            (
+                animate,
+                spawn_text,
+                teletype_text,
+                fade_text,
+                handle_fade_out,
+                wobble_effect,
+            ),
         )
         .add_event::<TextEvent>();
     }
