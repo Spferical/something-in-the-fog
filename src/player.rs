@@ -564,6 +564,7 @@ fn bang(mut ev_shoot: EventReader<ShootEvent>, mut ev_text: EventWriter<TextEven
             text: "*bang*".into(),
             position: *start,
             duration: Duration::from_secs(1),
+            ..default()
         });
     }
 }
@@ -686,6 +687,7 @@ fn pickup(
                 text: format!("got {kind}!"),
                 position: dest.to_vec2(),
                 duration: Duration::from_secs(5),
+                ..default()
             });
         }
     }

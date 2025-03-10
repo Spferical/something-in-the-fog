@@ -3,8 +3,8 @@ use std::time::Duration;
 use bevy::{prelude::*, render::view::RenderLayers};
 
 use crate::{
-    Z_TEXT, assets::GameAssets, despawn_after::DespawnAfter, lighting::UI_LAYER, map::TILE_HEIGHT,
-    player::GunInfo,
+    assets::GameAssets, despawn_after::DespawnAfter, lighting::UI_LAYER, map::TILE_HEIGHT,
+    player::GunInfo, Z_TEXT,
 };
 
 #[derive(Component)]
@@ -37,6 +37,26 @@ pub struct TextEvent {
     pub text: String,
     pub position: Vec2,
     pub duration: Duration,
+    pub teletype: Duration,
+    pub movement: bool,
+}
+
+impl Default for TextEvent {
+    fn default() -> TextEvent {
+        TextEvent {
+            text: "".into(),
+            position: Vec2::ZERO,
+            duration: Duration::ZERO,
+            teletype: Duration::ZERO,
+            movement: true,
+        }
+    }
+}
+
+#[derive(Component)]
+pub struct TeleType {
+    timer: Timer,
+    text: String,
 }
 
 fn spawn_text(
@@ -48,23 +68,40 @@ fn spawn_text(
         text,
         position,
         duration,
+        teletype,
+        movement,
     } in ev_text.read()
     {
         let timer = Timer::new(*duration, TimerMode::Once);
-        commands.spawn((
+        let initial_text = if teletype.as_millis() > 0 {
+            String::new()
+        } else {
+            text.clone()
+        };
+        let mut entity = commands.spawn((
             Transform::from_translation(position.extend(Z_TEXT)),
-            Text2d::new(text),
-            TextFont::from_font(assets.font.clone()),
+            Text2d::new(initial_text),
+            TextLayout::new(JustifyText::Center, LineBreak::WordBoundary),
+            TextFont::from_font(assets.font.clone()).with_font_size(15.0),
             TextFade(timer.clone()),
             DespawnAfter(timer.clone()),
             RenderLayers::layer(UI_LAYER),
-            MoveAnimation {
+        ));
+        if teletype.as_millis() > 0 {
+            entity.insert(TeleType {
+                timer: Timer::new(*teletype, TimerMode::Once),
+                text: text.clone(),
+            });
+        }
+
+        if *movement {
+            entity.insert(MoveAnimation {
                 from: *position,
                 to: position + Vec2::new(0.0, TILE_HEIGHT),
-                timer,
+                timer: timer.clone(),
                 ease: EaseFunction::QuadraticIn,
-            },
-        ));
+            });
+        }
     }
 }
 
@@ -75,6 +112,15 @@ fn fade_text(mut query: Query<(&mut TextColor, &mut TextFade)>, time: Res<Time>)
     for (mut color, mut fade) in query.iter_mut() {
         fade.0.tick(time.delta());
         color.0 = Color::Srgba(color.0.to_srgba().with_alpha(fade.0.fraction_remaining()));
+    }
+}
+
+fn teletype_text(mut query: Query<(&mut Text2d, &mut TeleType)>, time: Res<Time>) {
+    for (mut text, mut teletype) in query.iter_mut() {
+        teletype.timer.tick(time.delta());
+        let alpha = teletype.timer.fraction();
+        let num_chars = (alpha * (teletype.text.len() as f32)) as usize;
+        text.0 = teletype.text[0..num_chars].to_owned();
     }
 }
 
@@ -115,7 +161,10 @@ pub struct AnimatePlugin;
 
 impl Plugin for AnimatePlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Update, (animate, spawn_text, fade_text, wobble_effect))
-            .add_event::<TextEvent>();
+        app.add_systems(
+            Update,
+            (animate, spawn_text, teletype_text, fade_text, wobble_effect),
+        )
+        .add_event::<TextEvent>();
     }
 }

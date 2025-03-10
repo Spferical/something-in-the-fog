@@ -20,6 +20,7 @@ mod animation;
 mod assets;
 mod despawn_after;
 mod edge;
+mod intro;
 mod lighting;
 mod map;
 mod mapgen;
@@ -268,7 +269,7 @@ fn handle_ui_event(
             }
             UiEvent::Spawn(spawn) => {
                 ev_spawn.send(SpawnEvent(
-                    player_query.single().1.0 + IVec2::new(1, 0),
+                    player_query.single().1 .0 + IVec2::new(1, 0),
                     spawn.clone(),
                 ));
             }
@@ -296,6 +297,7 @@ fn handle_victory(
                 text: "You win!".into(),
                 position: MapPos(player_pos.0 + IVec2::new(0, 1)).to_vec2(),
                 duration: Duration::from_secs(10),
+                ..default()
             });
         }
     }
@@ -309,6 +311,7 @@ fn main() {
             ui::performance::PerformanceUiPlugin,
             // LogDiagnosticsPlugin::default(),
             assets::AssetsPlugin,
+            intro::IntroPlugin,
             map::WorldPlugin,
             animation::AnimatePlugin,
             renderer::Renderer,
