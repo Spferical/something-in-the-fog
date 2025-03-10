@@ -19,7 +19,7 @@ pub use mat::LightingMaterial;
 const LIGHTING_ORDER_OFFSET: isize = 20;
 pub const LIGHTING_LAYER: usize = 4;
 pub const UI_LAYER: usize = 4;
-pub const FOG: [f32; 6] = [130.0, 50.0, 130.0, 60.0, 50.0, 100.0];
+pub const FOG: [f32; 6] = [130.0, 50.0, 130.0, 60.0, 80.0, 100.0];
 
 #[derive(Component)]
 pub struct RenderPlane;
