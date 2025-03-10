@@ -379,7 +379,8 @@ fn main() {
                     primary_window: Some(Window {
                         fit_canvas_to_parent: true,
                         ..default()
-                    })..default(),
+                    }),
+                    ..default()
                 }),
         )
         .add_plugins((
