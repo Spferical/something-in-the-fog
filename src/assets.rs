@@ -3,7 +3,7 @@ use std::{collections::HashMap, path::Path};
 use bevy::{asset::embedded_asset, prelude::*};
 
 use crate::{
-    map::{ItemKind, TILE_HEIGHT, TILE_WIDTH, TileKind},
+    map::{ItemKind, TileKind, TILE_HEIGHT, TILE_WIDTH},
     mob::MobKind,
     player::GunType,
     spawn::Spawn,
@@ -17,6 +17,7 @@ pub struct Sfx {
     pub base_track: Handle<AudioSource>,
     pub active_track: Handle<AudioSource>,
     pub monk_track: Handle<AudioSource>,
+    pub boss_track: Handle<AudioSource>,
     pub radio_static_track: Handle<AudioSource>,
 
     pub reload_pistol: Vec<Handle<AudioSource>>,
@@ -194,6 +195,7 @@ fn init_assets(
     let base_track = asset_server.load::<AudioSource>("sfx/music/base_layer.ogg");
     let active_track = asset_server.load::<AudioSource>("sfx/music/active_layer.ogg");
     let monk_track = asset_server.load::<AudioSource>("sfx/music/scp_layer.ogg");
+    let boss_track = asset_server.load::<AudioSource>("sfx/music/very_bossy_version.ogg");
     let radio_static_track = asset_server.load::<AudioSource>("sfx/music/radio_static.ogg");
 
     let empty_pistol = add_audio_sources(
@@ -339,6 +341,7 @@ fn init_assets(
             base_track,
             active_track,
             monk_track,
+            boss_track,
             radio_static_track,
 
             reload_pistol,

@@ -17,6 +17,9 @@ struct ActiveTrack;
 struct MonkTrack;
 
 #[derive(Component)]
+struct BossTrack;
+
+#[derive(Component)]
 struct RadioStaticTrack;
 
 #[derive(Component)]
@@ -66,6 +69,16 @@ pub fn setup_background_music(mut commands: Commands, game_assets: Res<GameAsset
             ..default()
         },
         MonkTrack,
+    ));
+
+    commands.spawn((
+        AudioPlayer(game_assets.sfx.boss_track.clone()),
+        PlaybackSettings {
+            mode: bevy::audio::PlaybackMode::Loop,
+            volume: bevy::audio::Volume::new(0.0),
+            ..default()
+        },
+        BossTrack,
     ));
 
     commands.spawn((
@@ -131,14 +144,22 @@ fn adjust_radio_static(
 fn update_mob_audio(
     mut commands: Commands,
     q_saw_player: Query<&Mob, Or<(With<SawPlayer>, With<HeardPlayer>)>>,
+    query_base_track: Query<Entity, With<BaseTrack>>,
     query_active_track: Query<(Entity, Option<&FadeIn>, Option<&FadeOut>), With<ActiveTrack>>,
     query_monk_track: Query<(Entity, Option<&FadeIn>, Option<&FadeOut>), With<MonkTrack>>,
+    query_boss_track: Query<(Entity, Option<&FadeIn>), With<BossTrack>>,
 ) {
+    let Ok(base_track) = query_base_track.get_single() else {
+        return;
+    };
     let Ok((active_track, active_fading_in, active_fading_out)) = query_active_track.get_single()
     else {
         return;
     };
     let Ok((monk_track, monk_fading_in, monk_fading_out)) = query_monk_track.get_single() else {
+        return;
+    };
+    let Ok((boss_track, boss_fading_in)) = query_boss_track.get_single() else {
         return;
     };
 
@@ -148,8 +169,11 @@ fn update_mob_audio(
     let should_play_monk = q_saw_player
         .iter()
         .any(|mob| (mob.kind == MobKind::Sculpture || mob.kind == MobKind::Ghost));
+    let should_play_boss = q_saw_player
+        .iter()
+        .any(|mob| (mob.kind == MobKind::Eyeball));
 
-    if should_play_active && active_fading_in.is_none() {
+    if should_play_active && active_fading_in.is_none() && !should_play_boss {
         commands
             .entity(active_track)
             .insert(FadeIn::default())
@@ -161,13 +185,32 @@ fn update_mob_audio(
             .insert(FadeOut)
             .remove::<FadeIn>();
     }
-    if should_play_monk && monk_fading_in.is_none() {
+    if should_play_monk && monk_fading_in.is_none() && !should_play_boss {
         commands
             .entity(monk_track)
             .insert(FadeIn::default())
             .remove::<FadeOut>();
     }
     if !should_play_monk && monk_fading_out.is_none() {
+        commands
+            .entity(monk_track)
+            .insert(FadeOut)
+            .remove::<FadeIn>();
+    }
+    if should_play_boss && boss_fading_in.is_none() {
+        println!("senpai noticed me!");
+        commands
+            .entity(boss_track)
+            .insert(FadeIn::default())
+            .remove::<FadeOut>();
+        commands
+            .entity(base_track)
+            .insert(FadeOut)
+            .remove::<FadeIn>();
+        commands
+            .entity(active_track)
+            .insert(FadeOut)
+            .remove::<FadeIn>();
         commands
             .entity(monk_track)
             .insert(FadeOut)
