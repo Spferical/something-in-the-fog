@@ -435,7 +435,7 @@ pub fn gen_map() -> MapgenResult {
     // clearing with one big building in it
     let warehouse_rect = Rect {
         x1: warehouse_zone_rect.x1 + 5,
-        x2: warehouse_zone_rect.x2,
+        x2: warehouse_zone_rect.x2 - 1,
         y1: warehouse_zone_rect.y1,
         y2: warehouse_zone_rect.y2,
     };
@@ -477,12 +477,12 @@ pub fn gen_map() -> MapgenResult {
     for room in warehouse_room_graph.iter() {
         let exterior_door = if room.x1 == warehouse_rect.x1 + 1 {
             Some(room.left_edge().choose(&mut mapgen.rng) + rogue_algebra::Offset::new(-1, 0))
+        } else if room.x2 == warehouse_rect.x2 - 1 {
+            Some(room.right_edge().choose(&mut mapgen.rng) + rogue_algebra::Offset::new(1, 0))
         } else if room.y1 == warehouse_rect.y1 + 1 {
             Some(room.bottom_edge().choose(&mut mapgen.rng) + rogue_algebra::Offset::new(0, -1))
         } else if room.y2 == warehouse_rect.y2 - 1 {
             Some(room.top_edge().choose(&mut mapgen.rng) + rogue_algebra::Offset::new(0, 1))
-        } else if room.x2 == warehouse_rect.x2 - 1 {
-            Some(room.right_edge().choose(&mut mapgen.rng) + rogue_algebra::Offset::new(1, 0))
         } else {
             None
         };
