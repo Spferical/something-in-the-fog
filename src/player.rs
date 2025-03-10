@@ -558,17 +558,6 @@ fn spawn_bullets(
     }
 }
 
-fn bang(mut ev_shoot: EventReader<ShootEvent>, mut ev_text: EventWriter<TextEvent>) {
-    for ShootEvent { start, .. } in ev_shoot.read() {
-        ev_text.send(TextEvent {
-            text: "*bang*".into(),
-            position: *start,
-            duration: Duration::from_secs(1),
-            ..default()
-        });
-    }
-}
-
 #[derive(Resource)]
 struct MoveTimer(Timer);
 
@@ -749,7 +738,6 @@ impl Plugin for PlayerPlugin {
                 update_sight_lines,
                 spawn_bullets,
                 update_reload_indicator,
-                bang,
                 damage_player,
             )
                 .chain(),

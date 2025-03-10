@@ -12,8 +12,8 @@ use crate::{
 pub struct IntroPlugin;
 
 const INTRO_TEXT: [&'static str; 9] = [
-    "By the time you\nread this message,\nyou know where I am",
-    "Cold and hungry,\nfilled with regret",
+    "I left this town\nlong ago",
+    "I was cold\nand hungry,\nfilled with regret",
     "There is nothing\nleft here for you",
     "Go back to\nyour car",
     "start the engine",
@@ -50,6 +50,7 @@ fn intro_system_update(
                 .to_vec2(),
             duration: Duration::from_secs(10),
             teletype: Duration::from_secs(5),
+            font_size: 15.0,
             ..default()
         });
 

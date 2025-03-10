@@ -39,6 +39,7 @@ pub struct TextEvent {
     pub duration: Duration,
     pub teletype: Duration,
     pub movement: bool,
+    pub font_size: f32,
 }
 
 impl Default for TextEvent {
@@ -49,6 +50,7 @@ impl Default for TextEvent {
             duration: Duration::ZERO,
             teletype: Duration::ZERO,
             movement: true,
+            font_size: 10.0,
         }
     }
 }
@@ -70,6 +72,7 @@ fn spawn_text(
         duration,
         teletype,
         movement,
+        font_size,
     } in ev_text.read()
     {
         let timer = Timer::new(*duration, TimerMode::Once);
@@ -82,7 +85,7 @@ fn spawn_text(
             Transform::from_translation(position.extend(Z_TEXT)),
             Text2d::new(initial_text),
             TextLayout::new(JustifyText::Center, LineBreak::WordBoundary),
-            TextFont::from_font(assets.font.clone()).with_font_size(15.0),
+            TextFont::from_font(assets.font.clone()).with_font_size(*font_size),
             TextFade(timer.clone()),
             DespawnAfter(timer.clone()),
             RenderLayers::layer(UI_LAYER),
