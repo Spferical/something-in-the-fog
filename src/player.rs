@@ -10,15 +10,15 @@ use bevy::{
 use rand::Rng as _;
 
 use crate::{
-    GameState, PrimaryCamera, SDF_RES, Z_PLAYER,
     animation::{MoveAnimation, TextEvent, WobbleEffects},
     assets::{GameAssets, SpriteKind},
     despawn_after::DespawnAfter,
     lighting::UI_LAYER,
-    map::{BlocksMovement, Map, MapPos, Pickup, TILE_HEIGHT, TILE_WIDTH, Tile},
+    map::{BlocksMovement, Map, MapPos, Pickup, Tile, TILE_HEIGHT, TILE_WIDTH},
     mob::{Mob, MobDamageEvent},
     renderer::PlaneMouseMovedEvent,
     ui::UiSettings,
+    GameState, PrimaryCamera, SDF_RES, Z_PLAYER,
 };
 
 const PLAYER_MOVE_DELAY: Duration = Duration::from_millis(350);
@@ -150,7 +150,12 @@ pub struct Inventory {
     pub guns: HashMap<GunType, GunState>,
 }
 
-fn swap_gun(mut inventory: ResMut<Inventory>, mut ev_scroll: EventReader<MouseWheel>) {
+fn swap_gun(
+    mut commands: Commands,
+    mut inventory: ResMut<Inventory>,
+    mut ev_scroll: EventReader<MouseWheel>,
+    assets: Res<GameAssets>,
+) {
     for event in ev_scroll.read() {
         let gun_types = inventory
             .guns
@@ -170,6 +175,24 @@ fn swap_gun(mut inventory: ResMut<Inventory>, mut ev_scroll: EventReader<MouseWh
         } else {
             i = i.wrapping_sub(1).min(gun_types.len() - 1);
         }
+
+        if gun_types[i] != inventory.equipped {
+            let sound = match gun_types[0] {
+                GunType::Pistol => &assets.sfx.reload_pistol,
+                _ => &assets.sfx.reload_shotgun,
+            };
+            if let Some(sound) = sound.choose(&mut rand::thread_rng()) {
+                commands.spawn((
+                    AudioPlayer(sound.clone()),
+                    PlaybackSettings {
+                        mode: bevy::audio::PlaybackMode::Despawn,
+                        volume: bevy::audio::Volume::new(1.0),
+                        ..default()
+                    },
+                ));
+            }
+        }
+
         inventory.equipped = gun_types[i];
     }
 }
