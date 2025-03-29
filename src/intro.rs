@@ -11,8 +11,8 @@ use crate::{
 
 pub struct IntroPlugin;
 
-const TEXT_DISTANCE: f32 = 200.0;
-const INTRO_TEXT: [&'static str; 9] = [
+const TEXT_DISTANCE: f32 = 250.0;
+const INTRO_TEXT: [&str; 9] = [
     "I left this town\nlong ago",
     "I was cold\nand hungry,\nfilled with regret",
     "There is nothing\nleft here for you",
