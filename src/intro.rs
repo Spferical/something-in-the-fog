@@ -11,6 +11,7 @@ use crate::{
 
 pub struct IntroPlugin;
 
+const TEXT_DISTANCE: f32 = 200.0;
 const INTRO_TEXT: [&'static str; 9] = [
     "I left this town\nlong ago",
     "I was cold\nand hungry,\nfilled with regret",
@@ -40,8 +41,8 @@ fn intro_system_update(
         return;
     };
 
-    let intro_text_x = (intro_text.0 / 300.0) as usize;
-    let player_x = (player.translation.x / 300.0) as usize;
+    let intro_text_x = (intro_text.0 / TEXT_DISTANCE) as usize;
+    let player_x = (player.translation.x / TEXT_DISTANCE) as usize;
 
     if intro_text_x < player_x && player_x <= INTRO_TEXT.len() {
         ev_text.send(TextEvent {
