@@ -168,7 +168,7 @@ fn update_mob_audio(
         .any(|mob| mob.kind == MobKind::KoolAidMan);
     let should_play_monk = q_saw_player
         .iter()
-        .any(|mob| (mob.kind == MobKind::Sculpture || mob.kind == MobKind::Ghost));
+        .any(|mob| (mob.kind == MobKind::Sculpture));
     let should_play_boss = q_saw_player
         .iter()
         .any(|mob| (mob.kind == MobKind::Eyeball));
@@ -198,7 +198,6 @@ fn update_mob_audio(
             .remove::<FadeIn>();
     }
     if should_play_boss && boss_fading_in.is_none() {
-        println!("senpai noticed me!");
         commands
             .entity(boss_track)
             .insert(FadeIn::default())

@@ -53,9 +53,9 @@ impl MobKind {
             Eyeball => Duration::from_secs(1),
             Zombie => Duration::from_secs(1),
             Ghost => Duration::from_secs(1),
-            Sculpture => Duration::from_millis(16),
-            Hider => Duration::from_millis(350),
-            KoolAidMan => Duration::from_millis(100),
+            Sculpture => Duration::from_millis(32),
+            Hider => Duration::from_millis(700),
+            KoolAidMan => Duration::from_millis(200),
         }
     }
 
@@ -81,6 +81,11 @@ impl MobKind {
             Hider => EaseFunction::CubicIn,
             KoolAidMan => EaseFunction::BounceOut,
         }
+    }
+
+    pub fn hears_player(&self) -> bool {
+        use MobKind::*;
+        !matches!(self, Zombie | Ghost)
     }
 }
 

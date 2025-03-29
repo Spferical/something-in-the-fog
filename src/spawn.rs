@@ -66,7 +66,6 @@ pub fn spawn(
             Spawn::Mob(kind) => {
                 entity_commands.insert((
                     SeesPlayer,
-                    HearsPlayer,
                     Mob {
                         move_timer: Timer::new(kind.get_move_delay(), TimerMode::Once),
                         damage: 0,
@@ -75,6 +74,9 @@ pub fn spawn(
                     LightsUp::default(),
                     WobbleEffects::default(),
                 ));
+                if kind.hears_player() {
+                    entity_commands.insert(HearsPlayer);
+                }
                 if let MobKind::KoolAidMan = kind {
                     entity_commands.insert(KoolAidMovement::default());
                 } else if let MobKind::Eyeball = kind {

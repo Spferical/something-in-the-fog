@@ -387,11 +387,11 @@ pub fn gen_map() -> MapgenResult {
 
     let start = Pos::new(0, 0);
     let field_rect = Rect::new_centered(start, 16, 24);
-    let forest_rect = Rect::new_centered(start, 80, 24).shift_to_right_of(field_rect);
-    let warehouse_zone_rect = Rect::new_centered(start, 80, 36).shift_to_right_of(forest_rect);
-    let forest2_rect = Rect::new_centered(start, 80, 44).shift_to_right_of(warehouse_zone_rect);
-    let railyard_rect = Rect::new_centered(start, 80, 44).shift_to_right_of(forest2_rect);
-    let final_rect = Rect::new_centered(start, 40, 40).shift_to_right_of(railyard_rect);
+    let forest_rect = Rect::new_centered(start, 40, 24).shift_to_right_of(field_rect);
+    let warehouse_zone_rect = Rect::new_centered(start, 40, 36).shift_to_right_of(forest_rect);
+    let forest2_rect = Rect::new_centered(start, 40, 44).shift_to_right_of(warehouse_zone_rect);
+    let railyard_rect = Rect::new_centered(start, 40, 44).shift_to_right_of(forest2_rect);
+    let final_rect = Rect::new_centered(start, 20, 20).shift_to_right_of(railyard_rect);
 
     // field
     // field is empty and surrounded by trees on 3 sides.
@@ -421,8 +421,8 @@ pub fn gen_map() -> MapgenResult {
     mapgen.populate(
         forest_rect,
         vec![
-            (20, Spawn::Mob(MobKind::Zombie)),
-            (20, Spawn::Item(ItemKind::Ammo(GunType::Pistol, 15))),
+            (10, Spawn::Mob(MobKind::Zombie)),
+            (10, Spawn::Item(ItemKind::Ammo(GunType::Pistol, 15))),
         ],
     );
 
@@ -444,10 +444,10 @@ pub fn gen_map() -> MapgenResult {
         .set_rect(warehouse_rect, Some(TileKind::Wall));
 
     let warehouse_bsp_opts = BspSplitOpts {
-        min_width: 9,
-        min_height: 9,
-        max_width: 20,
-        max_height: 20,
+        min_width: 5,
+        min_height: 5,
+        max_width: 11,
+        max_height: 11,
     };
     let warehouse_bsp_tree = gen_bsp_tree(
         warehouse_rect.shrink(1),
@@ -512,9 +512,10 @@ pub fn gen_map() -> MapgenResult {
     mapgen.populate(
         warehouse_rect,
         vec![
-            (30, Spawn::Mob(MobKind::Hider)),
-            (15, Spawn::Item(ItemKind::Ammo(GunType::Pistol, 15))),
-            (15, Spawn::Item(ItemKind::Ammo(GunType::Shotgun, 4))),
+            (15, Spawn::Mob(MobKind::Hider)),
+            (7, Spawn::Item(ItemKind::Ammo(GunType::Pistol, 15))),
+            (7, Spawn::Item(ItemKind::Ammo(GunType::Shotgun, 4))),
+            (1, Spawn::Item(ItemKind::Gun(GunType::Shotgun, 4))),
         ],
     );
 
@@ -526,7 +527,7 @@ pub fn gen_map() -> MapgenResult {
     mapgen.populate(
         forest2_rect,
         vec![
-            (100, Spawn::Tile(TileKind::Bush)),
+            (50, Spawn::Tile(TileKind::Bush)),
             (20, Spawn::Mob(MobKind::Hider)),
             (20, Spawn::Mob(MobKind::Ghost)),
             (1, Spawn::Mob(MobKind::Sculpture)),
@@ -584,11 +585,12 @@ pub fn gen_map() -> MapgenResult {
     mapgen.populate(
         railyard_rect,
         vec![
-            (15, Spawn::Mob(MobKind::Ghost)),
-            (15, Spawn::Mob(MobKind::KoolAidMan)),
-            (15, Spawn::Mob(MobKind::Zombie)),
-            (15, Spawn::Item(ItemKind::Ammo(GunType::Pistol, 15))),
-            (15, Spawn::Item(ItemKind::Ammo(GunType::Shotgun, 2))),
+            (7, Spawn::Mob(MobKind::Ghost)),
+            (7, Spawn::Mob(MobKind::KoolAidMan)),
+            (7, Spawn::Mob(MobKind::Zombie)),
+            (7, Spawn::Item(ItemKind::Ammo(GunType::Pistol, 15))),
+            (7, Spawn::Item(ItemKind::Ammo(GunType::Shotgun, 2))),
+            (1, Spawn::Item(ItemKind::Gun(GunType::Shotgun, 2))),
         ],
     );
 
@@ -631,7 +633,7 @@ pub fn gen_map() -> MapgenResult {
     mapgen
         .mob_spawns
         .insert(center_rect.center(), MobKind::Eyeball);
-    mapgen.populate(final_rect, vec![(20, Spawn::Mob(MobKind::Ghost))]);
+    mapgen.populate(final_rect, vec![(10, Spawn::Mob(MobKind::Ghost))]);
 
     let mut spawns: HashMap<IVec2, Vec<Spawn>> = HashMap::new();
     for (pos, tile) in mapgen.tile_map.iter() {
