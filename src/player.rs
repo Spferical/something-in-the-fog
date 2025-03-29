@@ -669,7 +669,12 @@ fn pickup(
                 crate::map::ItemKind::Gun(gun_type, ammo) => {
                     let gun_state = inventory.guns.entry(*gun_type).or_default();
                     gun_state.present = true;
-                    gun_state.ammo_loaded = *ammo;
+                    gun_state.ammo_loaded += *ammo;
+                    let gun_info = gun_type.get_info();
+                    if gun_state.ammo_loaded > gun_info.max_load {
+                        gun_state.ammo_available += gun_state.ammo_loaded - gun_info.max_load;
+                        gun_state.ammo_loaded = gun_info.max_load;
+                    }
                 }
             }
             ev_text.send(TextEvent {
