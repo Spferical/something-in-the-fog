@@ -100,6 +100,10 @@ fn update(
     egui::SidePanel::left("side_panel").show(ctx, |ui| {
         ui.style_mut().wrap_mode = Some(egui::TextWrapMode::Extend);
 
+        ui.horizontal(|ui| {
+            ui.label("Something in the Fog V1.1\n");
+        });
+
         ui.with_layout(egui::Layout::right_to_left(Align::Min), |ui| {
             ui.label("Status");
             ui.add(Separator::default().horizontal());
